@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 from src.box import Box
 from src.hitbox import Hitbox
-from src.utils import get_project_root
+from src.utils import get_project_root, strict_eq
 
 type Cell = set[Box]
 type Row = list[Cell | None]
@@ -221,7 +221,7 @@ class Map:
         return hash((self.width, self.height, frozenset(self.objects)))
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, Map):
+        if strict_eq(self, other):
             return self.width == other.width and self.height == other.height and self.objects == other.objects
         else:
             return False

@@ -1,6 +1,6 @@
-import math
-
 from pygame import Rect, Surface
+
+from src.utils import comp_as_int, strict_eq
 
 
 class Box:
@@ -157,8 +157,8 @@ class Box:
         return hash((int(self.x), int(self.y), self.width, self.height))
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, Box):
-            return (math.isclose(self.x, other.x) and math.isclose(self.y, other.y)
+        if strict_eq(self, other):
+            return (comp_as_int(self.x, other.x) and comp_as_int(self.y, other.y)
                     and self.width == other.width and self.height == other.height)
         else:
             return False

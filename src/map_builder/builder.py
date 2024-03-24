@@ -2,10 +2,11 @@ import sys
 
 import pygame
 
+from src.box import Box
 from src.hitbox import Hitbox
 from src.map import Map
 from src.map_builder.camera import Camera
-from src.utils import normalise_rect
+from src.utils import normalise_rect, Position, Rect
 
 
 class Builder:
@@ -14,15 +15,21 @@ class Builder:
     def __init__(self, window: pygame.Surface, zone: str, width: int, height: int):
         self.window = window
         self.map = Map(zone, load=False, width=width, height=height)
+        self.map_box = Box(0, 0, width, height)
         self.camera = Camera(width, height)
-        self.selection_start = ()
-        self.selection = ()
+        self.selection_start: Position | tuple = ()
+        self.selection: Rect | tuple = ()
         self.has_selection = False
 
     def main_loop(self):
         clock = pygame.time.Clock()
+        l_dragging = False
+        r_dragging = False
+        prev_mouse_pos = 0, 0
         while True:
             dt = clock.tick(60) / 1000  # To get in seconds
+
+            selection_changed = False
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -38,8 +45,26 @@ class Builder:
                             self.add_wall()
                     elif event.key == pygame.K_s and pygame.key.get_mods() & (pygame.KMOD_CTRL | pygame.KMOD_ALT):
                         self.map.save()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        l_dragging = True
+                        self.selection_start = self.camera.get_absolute(*event.pos)
+                    elif event.button == 2:
+                        r_dragging = True
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        l_dragging = False
+                        self.has_selection = True
+                    elif event.button == 2:
+                        r_dragging = False
+                elif event.type == pygame.MOUSEMOTION:
+                    if l_dragging:
+                        self.handle_l_drag(event.pos)
+                        selection_changed = True
+                    if r_dragging:
+                        self.handle_r_drag(prev_mouse_pos, event.pos)
+                    prev_mouse_pos = event.pos
 
-            selection_changed = False
             keys = pygame.key.get_pressed()
             speed_mod = Camera.FAST_MULT if pygame.key.get_mods() & pygame.KMOD_SHIFT else 1
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -60,11 +85,17 @@ class Builder:
                                                 int(self.camera.center_x - self.selection_start[0]),
                                                 int(self.camera.center_y - self.selection_start[1]))
 
-            self.window.fill((0, 0, 0))
+            self.window.fill((50, 50, 50))
+            self.map_box.draw(self.window, (0, 0, 0), x_off=-self.camera.x, y_off=-self.camera.y)
             self.camera.render(self.window, self.map, render_fn=self._render_selection)
             pygame.display.update()
 
     def select(self) -> None:
+        """Handles the select action by setting the start of the selection and toggling has_selection.
+
+        This method is for selecting with the keyboard *not* the mouse.
+        """
+
         if len(self.selection_start) == 0 or self.has_selection:
             self.selection_start = self.camera.center_x, self.camera.center_y
             self.has_selection = False
@@ -72,11 +103,46 @@ class Builder:
             self.has_selection = True
 
     def _render_selection(self, window: pygame.Surface):
+        """Draws the selection rectangle to the given window.
+
+        Parameters
+        ----------
+        window : Surface
+            The surface to render the selection to.
+        """
+
         if len(self.selection) == 4:
             surf = pygame.Surface((self.selection[2], self.selection[3]), pygame.SRCALPHA)
             surf.fill(Builder.SELECTION_COLOUR, surf.get_rect())
-            window.blit(surf, (self.selection[0] - self.camera.x, self.selection[1] - self.camera.y,
+            window.blit(surf, (*self.camera.get_relative(self.selection[0], self.selection[1]),
                         self.selection[2], self.selection[3]))
 
-    def add_wall(self):
+    def add_wall(self) -> None:
+        """Adds the current selection to the map as a wall."""
         self.map.add_wall(Hitbox(*self.selection))
+
+    def handle_l_drag(self, curr_pos: Position) -> None:
+        """Changes the selection based on the given position.
+
+        Parameters
+        ----------
+        curr_pos : Position
+            The current position of the mouse.
+        """
+
+        x_w_off, y_w_off = self.camera.get_absolute(*curr_pos)
+        self.selection = normalise_rect(*self.selection_start, int(x_w_off - self.selection_start[0]),
+                                        int(y_w_off - self.selection_start[1]))
+
+    def handle_r_drag(self, prev_pos: Position, curr_pos: Position) -> None:
+        """Moves the camera by the difference between the current and previous mouse positions.
+
+        Parameters
+        ----------
+        prev_pos : Position
+            The position of the mouse in the previous tick.
+        curr_pos : Position
+            The current position of the mouse.
+        """
+
+        self.camera.move(prev_pos[0] - curr_pos[0], prev_pos[1] - curr_pos[1])

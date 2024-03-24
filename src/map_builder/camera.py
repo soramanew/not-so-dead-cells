@@ -6,6 +6,7 @@ from pygame import Surface
 from src.box import Box
 from src.hitbox import Hitbox
 from src.map import Map
+from src.utils import Position
 
 
 class Camera(Box):
@@ -131,3 +132,42 @@ class Camera(Box):
                            Camera.CROSSHAIR_THICKNESS, Camera.CROSSHAIR_SIZE)
         window.fill(Camera.CROSSHAIR_COLOUR, vertical_rect)
         window.fill(Camera.CROSSHAIR_COLOUR, horizontal_rect)
+
+    def get_relative(self, x: float, y: float) -> Position:
+        """Subtracts this camera's position from the given coordinates to get the coordinates
+        relative to the camera's viewport.
+
+        Parameters
+        ----------
+        x : float
+            The x component of the coordinate to transform.
+        y : float
+            The y component of the coordinate to transform.
+
+        Returns
+        -------
+        Position
+            The transformed coordinate.
+        """
+
+        return x - self.x, y - self.y
+
+    def get_absolute(self, x: float, y: float) -> Position:
+        """Adds this camera's position to the given coordinates to get the coordinates in absolute (world) space.
+
+        This method assumes the given coordinate is in this camera's local space.
+
+        Parameters
+        ----------
+        x : float
+            The x component of the coordinate to transform.
+        y : float
+            The y component of the coordinate to transform.
+
+        Returns
+        -------
+        Position
+            The transformed coordinate.
+        """
+
+        return x + self.x, y + self.y
