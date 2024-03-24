@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+import sys
+
 import pygame
 
-from player2 import Player
-from map import Map
+from src.player2 import Player
+from src.map import Map
+from src.camera import Camera
 
 
 def main():
     pygame.init()
 
-    window = pygame.display.set_mode((1200, 800), pygame.RESIZABLE)
+    window_width = 1200
+    window_height = 800
+    window = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
     pygame.display.set_caption("Not so Dead Cells")
     clock = pygame.time.Clock()
 
     player = Player(100, 20)
-    current_map = Map(player, "prisoner_quarters")
+    current_map = Map("prisoners_quarters")
+    camera = Camera(player, window_width, window_height)
 
     while True:
         dt = clock.tick(60) / 1000  # To get in seconds
@@ -30,7 +36,9 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                return
+                sys.exit()
+            elif event.type == pygame.VIDEORESIZE:
+                camera.resize(*event.dict["size"])
             elif event.type == pygame.KEYDOWN:
                 if (keys[pygame.K_s] or keys[pygame.K_DOWN]) and event.key == pygame.K_SPACE:
                     move_types.append("slam")
@@ -42,23 +50,24 @@ def main():
         player.handle_moves(dt, *move_types)
         player.update_position(dt, current_map.walls)
         player.tick_changes(dt)
+        camera.tick_move(dt)
 
-        window_width, window_height = window.get_size()
-        if player.left < 0:
-            player.left += window_width
-        elif player.right > window_width:
-            player.right -= window_width
-        if player.top < 0:
-            player.top += window_height
-        elif player.bottom > window_height:
-            player.bottom -= window_height
+        # --- Wrapping logic --- #
+        # window_width, window_height = window.get_size()
+        # if player.left < 0:
+        #     player.left += window_width
+        # elif player.right > window_width:
+        #     player.right -= window_width
+        # if player.top < 0:
+        #     player.top += window_height
+        # elif player.bottom > window_height:
+        #     player.bottom -= window_height
 
         # Clear window
         window.fill((0, 0, 0))
 
         # Draw stuff
-        current_map.draw_debug(window)
-        player.draw(window, colour=(0, 255, 0))
+        camera.render(window, current_map, debug=True)
 
         # Update window
         pygame.display.update()
