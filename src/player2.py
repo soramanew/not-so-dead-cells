@@ -34,8 +34,9 @@ class Player(Hitbox):
 
     # ---------------------------- Constructor ---------------------------- #
 
-    def __init__(self, x: float, y: float, width: int = 10, height: int = 30):
+    def __init__(self, current_map: Map, x: float, y: float, width: int = 10, height: int = 30):
         super().__init__(x, y, width, height)
+        self.current_map = current_map
         self.vx = 0  # The velocity of the player in the x direction (- left, + right)
         self.vy = 0  # The velocity of the player in the y direction (- up, + down)
         self.controlled_vx = 0  # The controlled velocity of the player in the x direction (- is left, + is right)
@@ -50,12 +51,12 @@ class Player(Hitbox):
 
     # ------------------------------ Getters ------------------------------ #
 
-    def is_rolling(self):
+    def is_rolling(self) -> bool:
         return self.roll_time > 0
 
     # ------------------------------ Methods ------------------------------ #
 
-    def handle_moves(self, dt, *move_types):
+    def handle_moves(self, dt: float, *move_types: str) -> None:
         """Handles movement commands.
 
         Parameters
@@ -92,7 +93,7 @@ class Player(Hitbox):
         if not self.slamming and "slam" in move_types:
             self._slam()
 
-    def _x_control(self, direction, dt):
+    def _x_control(self, direction: str, dt: float) -> None:
         """Adds velocity (accelerates) in the x direction and changes facing direction.
 
         Parameters
@@ -108,44 +109,63 @@ class Player(Hitbox):
         # Change direction facing
         self.facing = direction
 
-    def _jump(self):
+    def _jump(self) -> None:
         """Jump... Cancel rolling + decrement jump + add jump velocity."""
         # Cancel roll if rolling
         if self.is_rolling():
-            self.stop_rolling()
+            stopped_rolling = self._stop_rolling()
+            if not stopped_rolling:
+                return
         self.jumps -= 1
         # Set vy to negative jump strength
         self.vy = -Player.JUMP_STRENGTH
 
-    def _roll(self):
+    def _roll(self) -> None:
         """Cancel slam + roll"""
         if self.slamming:
             self.slamming = False
         self.roll_time = Player.ROLL_LENGTH
 
-    def stop_rolling(self):
+    def _stop_rolling(self) -> bool:
+        """Stops the player from rolling if the player is able to stop rolling.
+
+        Returns
+        -------
+        bool
+            Whether the player stopped rolling or not.
+        """
+
+        walls_above = self.current_map.get_rect(self.x, self.y + self.height - self.base_height,
+                                                self.width, self.base_height)
+        for wall in walls_above:
+            if (wall.top < self.top + self.height - self.base_height < wall.bottom and
+                    wall.left < self.right and wall.right > self.left):
+                # Top when at base height inside wall and x inside wall
+                return False
+
         self.roll_time = -1
         self.roll_cooldown = Player.ROLL_COOLDOWN
+        return True
 
-    def _slam(self):
+    def _slam(self) -> None:
         """Cancel roll + slam"""
         if self.is_rolling():
-            self.stop_rolling()
+            stopped_rolling = self._stop_rolling()
+            if not stopped_rolling:
+                return
         self.vy = Player.SLAM_STRENGTH
         self.slamming = True
 
-    def update_position(self, dt, boxes):
+    def update_position(self, dt: float) -> None:
         """Updates the position of the player by the velocity * dt.
 
         Parameters
         ----------
         dt : float
             The time between this tick and the last tick in seconds.
-        boxes : list of Hitbox
-            A list of Hitboxes to check for collisions with.
         """
 
-        collisions = self.move(self.vx * dt, self.vy * dt, boxes)
+        collisions = self.move(self.vx * dt, self.vy * dt, self.current_map.walls)
 
         if "bottom" in collisions:
             self.on_platform = True
@@ -155,7 +175,7 @@ class Player(Hitbox):
 
         # TODO: climb ledges, wall climbing
 
-    def tick_changes(self, dt):
+    def tick_changes(self, dt: float) -> None:
         """Updates values every tick.
 
         Parameters
@@ -181,7 +201,7 @@ class Player(Hitbox):
             # Stop slamming if below speed cap
             self.slamming = False
 
-    def _tick_roll(self, dt):
+    def _tick_roll(self, dt: float) -> None:
         """Updates roll-related properties.
 
         Parameters
@@ -199,7 +219,7 @@ class Player(Hitbox):
             self.roll_time -= dt
             self.vx = Player.ROLL_SPEED * self.facing
             if not self.is_rolling():
-                self.stop_rolling()
+                self._stop_rolling()
         else:
             # Otherwise set total vx to controlled vx
             self.vx = self.controlled_vx
@@ -207,22 +227,62 @@ class Player(Hitbox):
         # Sync controlled vx with total vx so rolling can transition seamlessly
         self.controlled_vx = self.vx
 
-        # Change height while rolling
+        self._change_roll_height(dt)
+
+    def _change_roll_height(self, dt: float) -> None:
+        """Changes the height of the player based on its progression through a roll.
+
+        This method also changes the height of the player back to the base height if it is not rolling and
+        extends the roll if the player is not able to exit rolling (blocked by wall above).
+
+        Parameters
+        ----------
+        dt : float
+            The time between this tick and the last.
+        """
+
+        walls_above = self.current_map.get_rect(self.x, self.y + self.height - self.base_height,
+                                                self.width, self.base_height)
         if self.is_rolling():
             roll_height = clamp(int(self.base_height * Player.roll_height_fn(
                 self.roll_time / Player.ROLL_LENGTH)), self.base_height, self.min_roll_height)
-            self.top += self.height - roll_height
-            self.height = roll_height
+
+            do_change = True
+            if roll_height > self.height:
+                for wall in walls_above:
+                    if (wall.top < self.top + self.height - self.base_height < wall.bottom and
+                            wall.left < self.right and wall.right > self.left):
+                        # Top when at base height inside wall and x inside wall
+                        do_change = False
+
+            if do_change:
+                self.top += self.height - roll_height
+                self.height = roll_height
+            else:
+                self.roll_time += dt
         elif self.height != self.base_height:
             # If not rolling and height is not base_height (e.g. when rolling is interrupted via jumping),
             # transition height to base height
             diff = self.base_height - self.height
             # If gap is small just snap it to base_height (if not it will never reach base_height)
             if diff < self.base_height / 10:
-                self.top -= diff
-                self.height = self.base_height
+                new_top = self.top - diff
+                new_height = self.base_height
             # Otherwise transition it
             else:
                 diff //= 3
-                self.top -= diff
-                self.height += diff
+                new_top = self.top - diff
+                new_height = self.height + diff
+
+            do_change = True
+            if new_height > self.height:
+                for wall in walls_above:
+                    if wall.top < new_top < wall.bottom and wall.left < self.right and wall.right > self.left:
+                        # New top inside wall and x inside wall
+                        do_change = False
+
+            if do_change:
+                self.top = new_top
+                self.height = new_height
+            else:
+                self.roll_time += dt

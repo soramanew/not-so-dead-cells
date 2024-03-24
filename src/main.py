@@ -18,8 +18,8 @@ def main():
     pygame.display.set_caption("Not so Dead Cells")
     clock = pygame.time.Clock()
 
-    player = Player(100, 20)
     current_map = Map("prisoners_quarters")
+    player = Player(current_map, 100, 20)
     camera = Camera(player, window_width, window_height)
 
     while True:
@@ -48,7 +48,7 @@ def main():
                     move_types.append("roll")
 
         player.handle_moves(dt, *move_types)
-        player.update_position(dt, current_map.walls)
+        player.update_position(dt)
         player.tick_changes(dt)
         camera.tick_move(dt)
 
