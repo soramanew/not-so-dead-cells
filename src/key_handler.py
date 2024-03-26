@@ -2,7 +2,7 @@ import pygame.key
 
 
 # The length that keys are held for (s)
-_RETENTION_LENGTH: float = 0.1
+_RETENTION_LENGTH: float = 0
 
 # The dictionary of keys
 _time: dict[int, float] = {}

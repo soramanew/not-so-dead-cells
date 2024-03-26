@@ -29,10 +29,9 @@ def main():
 
         move_types = []
 
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+        if key_handler.get(pygame.K_LEFT) or key_handler.get(pygame.K_a):
             move_types.append(PlayerControl.LEFT)
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+        if key_handler.get(pygame.K_RIGHT) or key_handler.get(pygame.K_d):
             move_types.append(PlayerControl.RIGHT)
 
         for event in pygame.event.get():
@@ -43,7 +42,7 @@ def main():
                 camera.resize(*event.dict["size"])
             elif event.type == pygame.KEYDOWN:
                 key_handler.down(event.key)
-                if (keys[pygame.K_s] or keys[pygame.K_DOWN]) and event.key == pygame.K_SPACE:
+                if (key_handler.get(pygame.K_s) or key_handler.get(pygame.K_DOWN)) and event.key == pygame.K_SPACE:
                     move_types.append(PlayerControl.SLAM)
                 elif event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP:
                     move_types.append(PlayerControl.JUMP)
