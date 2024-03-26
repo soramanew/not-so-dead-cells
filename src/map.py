@@ -6,9 +6,9 @@ import random
 from collections.abc import Callable
 from types import SimpleNamespace
 
-from src.box import Box
-from src.hitbox import Hitbox
-from src.utils import get_project_root, strict_eq
+from box import Box
+from hitbox import Hitbox
+from utils import get_project_root, strict_eq
 
 type Cell = set[Box]
 type Row = list[Cell | None]

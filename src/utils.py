@@ -1,7 +1,6 @@
 from pathlib import Path
 
-type Position = tuple[float, float]
-type Rect = tuple[float, float, int, int]
+from util_types import Rect
 
 
 def get_project_root():

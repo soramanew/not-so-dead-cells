@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import pygame
-
-from src.box import Box
+from box import Box
 
 
 class Hitbox(Box):

@@ -1,6 +1,6 @@
-from pygame import Rect, Surface
+import pygame
 
-from src.utils import comp_as_int, strict_eq
+from utils import comp_as_int, strict_eq
 
 
 class Box:
@@ -109,17 +109,17 @@ class Box:
         self.y = value - self.height / 2
 
     def __init__(self, x: float, y: float, width: int, height: int):
-        self._rect = Rect(x, y, width, height)
+        self._rect = pygame.Rect(x, y, width, height)
         self.left = x
         self.top = y
 
-    def draw(self, window: Surface, colour: tuple[int, int, int] = (0, 0, 255), x_off: float = 0,
+    def draw(self, window: pygame.Surface, colour: tuple[int, int, int] = (0, 0, 255), x_off: float = 0,
              y_off: float = 0, scale: float = 1) -> None:
         """Draws this box to the given surface.
 
         Parameters
         ----------
-        window : Surface
+        window : pygame.Surface
             The surface to draw to.
         colour : tuple[int, int, int], default = (0, 0, 255)
             The colour to draw this box as.

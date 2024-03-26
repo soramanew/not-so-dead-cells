@@ -2,11 +2,12 @@ import sys
 
 import pygame
 
-from src.box import Box
-from src.hitbox import Hitbox
-from src.map import Map
-from src.map_builder.camera import Camera
-from src.utils import normalise_rect, Position, Rect
+from box import Box
+from hitbox import Hitbox
+from map import Map
+from map_builder.camera import Camera
+from utils import normalise_rect
+from util_types import Rect, Position
 
 
 class Builder:

@@ -1,12 +1,11 @@
-import re
 from collections.abc import Callable
 
-from pygame import Surface
+import pygame
 
-from src.box import Box
-from src.hitbox import Hitbox
-from src.map import Map
-from src.utils import Position
+from box import Box
+from hitbox import Hitbox
+from map import Map
+from util_types import Position
 
 
 class Camera(Box):
@@ -50,7 +49,7 @@ class Camera(Box):
         self.width = width
         self.height = height
 
-    def _render_individual(self, target: Box, window: Surface, **kwargs) -> None:
+    def _render_individual(self, target: Box, window: pygame.Surface, **kwargs) -> None:
         """Renders the given target to the given surface through this camera's viewport.
 
         This method draws the target to the surface with an offset of the negative of this camera's position
@@ -60,7 +59,7 @@ class Camera(Box):
         ----------
         target : Box
             The target to render.
-        window : Surface
+        window : pygame.Surface
             The surface to render to.
         kwargs
             Additional arguments to pass to the target's draw method.
@@ -68,7 +67,7 @@ class Camera(Box):
 
         target.draw(window, x_off=-self.x, y_off=-self.y, scale=self.scale, **kwargs)
 
-    def render_debug(self, window: Surface, current_map: Map) -> None:
+    def render_debug(self, window: pygame.Surface, current_map: Map) -> None:
         """Renders the given map in debug mode to the given surface through this camera's viewport.
 
         This method renders the map's Hitboxes.
@@ -79,7 +78,7 @@ class Camera(Box):
 
         Parameters
         ----------
-        window : Surface
+        window : pygame.Surface
             The surface to render to.
         current_map : Map
             The map to render in debug mode.
@@ -90,8 +89,8 @@ class Camera(Box):
         for hitbox in hitboxes:
             self._render_individual(hitbox, window)
 
-    def render(self, window: Surface, current_map: Map, debug: bool = True,
-               render_fn: Callable[[Surface], None] = None) -> None:
+    def render(self, window: pygame.Surface, current_map: Map, debug: bool = True,
+               render_fn: Callable[[pygame.Surface], None] = None) -> None:
         """Renders the given map to the given surface through this camera's viewport.
 
         See Also
@@ -101,13 +100,13 @@ class Camera(Box):
 
         Parameters
         ----------
-        window : Surface
+        window : pygame.Surface
             The surface to render to.
         current_map : Map
             The map to render.
         debug : bool, default = True
             Whether to render the map in debug mode or not.
-        render_fn : Callable with parameters [Surface] and return None, optional
+        render_fn : Callable with parameters [pygame.Surface] and return None, optional
             An optional extra function to call between rendering the map and crosshair.
         """
 
@@ -118,12 +117,12 @@ class Camera(Box):
             render_fn(window)
         self._render_crosshair(window)
 
-    def _render_crosshair(self, window: Surface) -> None:
+    def _render_crosshair(self, window: pygame.Surface) -> None:
         """Renders a crosshair in the center of the window.
 
         Parameters
         ----------
-        window : Surface
+        window : pygame.Surface
             The window to render to.
         """
         vertical_rect = ((self.width - Camera.CROSSHAIR_SIZE) / 2, (self.height - Camera.CROSSHAIR_THICKNESS) / 2,

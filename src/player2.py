@@ -1,6 +1,6 @@
-from src.hitbox import Hitbox
-from src.map import Map
-from src.utils import clamp
+from hitbox import Hitbox
+from map import Map
+from utils import clamp
 
 
 class Player(Hitbox):

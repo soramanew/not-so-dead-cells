@@ -4,9 +4,9 @@ import sys
 
 import pygame
 
-from src.player2 import Player
-from src.map import Map
-from src.camera import Camera
+from player2 import Player
+from map import Map
+from camera import Camera
 
 
 def main():
