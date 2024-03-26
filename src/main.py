@@ -4,9 +4,11 @@ import sys
 
 import pygame
 
+import key_handler
 from player2 import Player
 from map import Map
 from camera import Camera
+from util_types import PlayerControl
 
 
 def main():
@@ -29,9 +31,9 @@ def main():
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            move_types.append("left")
+            move_types.append(PlayerControl.LEFT)
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            move_types.append("right")
+            move_types.append(PlayerControl.RIGHT)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -40,15 +42,20 @@ def main():
             elif event.type == pygame.VIDEORESIZE:
                 camera.resize(*event.dict["size"])
             elif event.type == pygame.KEYDOWN:
+                key_handler.down(event.key)
                 if (keys[pygame.K_s] or keys[pygame.K_DOWN]) and event.key == pygame.K_SPACE:
-                    move_types.append("slam")
+                    move_types.append(PlayerControl.SLAM)
                 elif event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP:
-                    move_types.append("jump")
+                    move_types.append(PlayerControl.JUMP)
                 elif event.key == pygame.K_LSHIFT:
-                    move_types.append("roll")
+                    move_types.append(PlayerControl.ROLL)
+            elif event.type == pygame.KEYUP:
+                key_handler.up(event.key)
 
+        key_handler.tick(dt)
         player.handle_moves(dt, *move_types)
-        player.update_position(dt)
+        collisions = player.update_position(dt)
+        player.handle_collisions(collisions)
         player.tick_changes(dt)
         camera.tick_move(dt)
 

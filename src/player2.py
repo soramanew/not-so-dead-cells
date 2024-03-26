@@ -1,5 +1,10 @@
+import pygame.key
+
+import key_handler
+from wall import Wall
 from hitbox import Hitbox
 from map import Map
+from util_types import Direction, Collision, run_once, PlayerControl, Side
 from utils import clamp
 
 
@@ -10,9 +15,11 @@ class Player(Hitbox):
     CONTROL_SPEED_DECAY: int = 7
 
     # The max number of jumps the player has
-    JUMPS: int = 200
-    # The upwards vy added on jump
+    JUMPS: int = 2
+    # The upwards velocity added on jump
     JUMP_STRENGTH: int = 300
+    # The side velocity added on wall jumping
+    WALL_JUMP_STRENGTH: float = 300
 
     # The speed of rolling (px/s)
     ROLL_SPEED: int = 300
@@ -23,8 +30,11 @@ class Player(Hitbox):
 
     # The max speed the player can move downwards when not slamming (px/s)
     DROP_SPEED_CAP: int = 800
-    # The downwards vy added on slam
+    # The downwards velocity added on slam
     SLAM_STRENGTH: int = 1200
+
+    # A multiplier to the wall sliding vy decay
+    GRAB_STRENGTH: int = 60
 
     # -------------------------- Static Methods -------------------------- #
 
@@ -36,35 +46,33 @@ class Player(Hitbox):
 
     def __init__(self, current_map: Map, x: float, y: float, width: int = 10, height: int = 30):
         super().__init__(x, y, width, height)
-        self.current_map = current_map
-        self.vx = 0  # The velocity of the player in the x direction (- left, + right)
-        self.vy = 0  # The velocity of the player in the y direction (- up, + down)
-        self.controlled_vx = 0  # The controlled velocity of the player in the x direction (- is left, + is right)
-        self.facing = 1  # The direction the player is currently facing (-1 for left, 1 for right)
-        self.jumps = Player.JUMPS  # How many jumps the player has left (is reset when touching ground)
-        self.roll_cooldown = 0  # The time until the player can roll again in seconds
-        self.slamming = False  # If the player is currently slamming
-        self.base_height = height
-        self.min_roll_height = height // 3
-        self.on_platform = False
-        self.roll_time = 0
+        self.current_map: Map = current_map
+        self.vx: float = 0  # The velocity of the player in the x direction (- left, + right)
+        self.vy: float = 0  # The velocity of the player in the y direction (- up, + down)
+        self.controlled_vx: float = 0  # The velocity of the player in the x direction caused by user controls
+        self.facing: Side = Side.RIGHT  # The direction the player is currently facing (-1 for left, 1 for right)
+        self.jumps: int = Player.JUMPS  # How many jumps the player has left (is reset when touching ground)
+        self.roll_cooldown: float = 0  # The time until the player can roll again in seconds
+        self.slamming: bool = False  # If the player is currently slamming
+        self.base_height: int = height
+        self.min_roll_height: int = height // 3
+        self.on_platform: bool = False
+        self.roll_time: float = 0
+        self.wall_sliding_dir: Side | None = None
+        self.ledge_climbing: bool = False
 
     # ------------------------------ Getters ------------------------------ #
 
     def is_rolling(self) -> bool:
         return self.roll_time > 0
 
+    def can_jump(self) -> bool:
+        return not self.slamming and (self.jumps > 0 or self.wall_sliding_dir)
+
     # ------------------------------ Methods ------------------------------ #
 
-    def handle_moves(self, dt: float, *move_types: str) -> None:
+    def handle_moves(self, dt: float, *move_types: PlayerControl) -> None:
         """Handles movement commands.
-
-        Parameters
-        ----------
-        dt : float
-            The number of seconds between this tick and the last tick.
-        *move_types : str
-            The commands to do. Can be 'left', 'right', 'jump', 'roll' or 'slam'.
 
         See Also
         --------
@@ -72,53 +80,67 @@ class Player(Hitbox):
         _jump()
         _roll()
         _slam()
+
+        Parameters
+        ----------
+        dt : float
+            The number of seconds between this tick and the last tick.
+        *move_types : PlayerControl
+            The moves to perform.
         """
 
-        if not self.is_rolling() and "left" in move_types:
-            self._x_control("left", dt)
+        if not self.is_rolling() and PlayerControl.LEFT in move_types:
+            self._x_control(Side.LEFT, dt)
 
-        if not self.is_rolling() and "right" in move_types:
-            self._x_control("right", dt)
+        if not self.is_rolling() and PlayerControl.RIGHT in move_types:
+            self._x_control(Side.RIGHT, dt)
 
         # NOTE: order matters for the below moves as they will override each other
 
         # Cannot jump if currently slamming or no jumps left
-        if not self.slamming and self.jumps > 0 and "jump" in move_types:
+        if self.can_jump() and PlayerControl.JUMP in move_types:
             self._jump()
 
         # Cannot roll if currently rolling or roll is on cooldown
-        if not self.is_rolling() and self.roll_cooldown <= 0 and "roll" in move_types:
+        if not self.is_rolling() and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
             self._roll()
 
-        if not self.slamming and "slam" in move_types:
+        if not self.slamming and PlayerControl.SLAM in move_types:
             self._slam()
 
-    def _x_control(self, direction: str, dt: float) -> None:
+    def _x_control(self, direction: Side, dt: float) -> None:
         """Adds velocity (accelerates) in the x direction and changes facing direction.
 
         Parameters
         ----------
-        direction : str
+        direction : Side
             The direction of the acceleration.
         dt : float
             The number of seconds between this tick and the last tick.
         """
-        direction = 1 if direction == "right" else -1
+
         # Apply acceleration
-        self.controlled_vx += Player.CONTROL_ACCEL * dt * direction
+        self.controlled_vx += Player.CONTROL_ACCEL * dt * direction.value
         # Change direction facing
         self.facing = direction
 
     def _jump(self) -> None:
         """Jump... Cancel rolling + decrement jump + add jump velocity."""
+
         # Cancel roll if rolling
         if self.is_rolling():
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
-        self.jumps -= 1
+
         # Set vy to negative jump strength
         self.vy = -Player.JUMP_STRENGTH
+        if self.wall_sliding_dir:
+            # Set vx to opposing the wall to jump off
+            self.controlled_vx = Player.WALL_JUMP_STRENGTH * -self.wall_sliding_dir.value
+        else:
+            # Do not consume a jump if wall jump
+            self.jumps -= 1
 
     def _roll(self) -> None:
         """Cancel slam + roll"""
@@ -156,24 +178,74 @@ class Player(Hitbox):
         self.vy = Player.SLAM_STRENGTH
         self.slamming = True
 
-    def update_position(self, dt: float) -> None:
+    def update_position(self, dt: float) -> list[Collision]:
         """Updates the position of the player by the velocity * dt.
 
         Parameters
         ----------
         dt : float
             The time between this tick and the last tick in seconds.
+
+        Returns
+        -------
+        list of Collision
+            A list of collisions with the player which happened due to this movement.
         """
 
-        collisions = self.move(self.vx * dt, self.vy * dt, self.current_map.walls)
+        return self.move(self.vx * dt, self.vy * dt, self.current_map.walls)
 
-        if "bottom" in collisions:
-            self.on_platform = True
-            self.jumps = Player.JUMPS
-            self.slamming = False
-            self.vy = 0
+    def handle_collisions(self, collisions: list[Collision]) -> None:
+        """Handles player actions on collisions.
+
+        Parameters
+        ----------
+        collisions : list of Direction
+            The collisions the player experienced in this tick.
+        """
+
+        self._reset_collision_attrs()
+
+        down_wall = run_once(self._handle_down_wall_collision)
+        side_wall = run_once(self._handle_side_wall_collision)
+        for direction, entity in collisions:
+            if direction == Direction.DOWN and isinstance(entity, Wall):
+                down_wall()
+            if (direction == Direction.RIGHT or direction == Direction.LEFT) and isinstance(entity, Wall):
+                side_wall(direction, entity)
 
         # TODO: climb ledges, wall climbing
+
+    def _reset_collision_attrs(self) -> None:
+        """Resets the attributes affected by methods called by handle_collision() to their default values.
+
+        See Also
+        --------
+        _handle_down_wall_collision()
+        _handle_side_wall_collision()
+        """
+
+        self.on_platform = False
+        self.wall_sliding_dir = None
+
+    def _handle_down_wall_collision(self) -> None:
+        """Actions on downwards wall collisions.
+
+        This should be called from handle_collisions() and wrapped with run_once().
+        """
+
+        self.on_platform = True
+        self.jumps = Player.JUMPS
+        self.slamming = False
+        self.vy = 0
+
+    def _handle_side_wall_collision(self, direction: Direction, wall: Wall) -> None:
+        if ((key_handler.get(pygame.K_a) or key_handler.get(pygame.K_d)
+             or key_handler.get(pygame.K_LEFT) or key_handler.get(pygame.K_RIGHT))
+                and not self.is_rolling()):
+            self.wall_sliding_dir = direction.value
+            self.slamming = False
+        # TODO: handle wall climbing
+        # TODO: handle ledge climbing if close enough
 
     def tick_changes(self, dt: float) -> None:
         """Updates values every tick.
@@ -186,9 +258,10 @@ class Player(Hitbox):
 
         # Apply air resistance and friction
         self.controlled_vx /= 1 + Player.CONTROL_SPEED_DECAY * dt
-        self.vx /= 1 + (Map.AIR_RESISTANCE + (Map.FRICTION if self.on_platform else 0)) * dt
+        self.vx /= 1 + (Map.AIR_RESISTANCE + (Wall.FRICTION if self.on_platform else 0)) * dt
         self.vy /= 1 + Map.AIR_RESISTANCE * dt
-        # TODO: add friction in y direction from side collision
+        if self.wall_sliding_dir:
+            self.vy /= 1 + Wall.FRICTION * Player.GRAB_STRENGTH * dt
 
         self._tick_roll(dt)
 
@@ -204,6 +277,8 @@ class Player(Hitbox):
     def _tick_roll(self, dt: float) -> None:
         """Updates roll-related properties.
 
+        This method also syncs vx and controlled_vx.
+
         Parameters
         ----------
         dt : float
@@ -217,7 +292,7 @@ class Player(Hitbox):
         if self.is_rolling():
             # Reduce roll time and set vx to roll speed if rolling
             self.roll_time -= dt
-            self.vx = Player.ROLL_SPEED * self.facing
+            self.vx = Player.ROLL_SPEED * self.facing.value
             if not self.is_rolling():
                 self._stop_rolling()
         else:

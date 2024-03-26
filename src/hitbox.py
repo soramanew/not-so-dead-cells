@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 from box import Box
+from util_types import Direction, Collision
 
 
 class Hitbox(Box):
     def __init__(self, x: float, y: float, width: int, height: int):
         super().__init__(x, y, width, height)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Hitbox [ {self.left=}, {self.top=}, {self.right=}, {self.bottom=} ]"
 
-    def move(self, dx, dy, boxes):
-        """Moves this hitbox by a given amount while checking for collisions.
+    def move(self, dx: float, dy: float, boxes: set[Hitbox]) -> list[Collision]:
+        """Moves this Hitbox by a given amount while checking for collisions.
 
-        This method calls :func:`move_axis<Hitbox.move_axis>` for each axis.
+        This method calls move_axis for each axis.
+
+        See Also
+        --------
+        move_axis()
 
         Parameters
         ----------
@@ -21,13 +26,13 @@ class Hitbox(Box):
             The number of pixels to move in the x-axis.
         dy : float
             The number of pixels to move in the y-axis.
-        boxes : list of Hitbox
-            A list of other Hitboxes to check for collisions with.
+        boxes : set of Hitbox
+            A set of other Hitboxes to check for collisions with.
 
         Returns
         -------
-        list of str
-            A list of directions which collisions happened in. Can be left, right, top or bottom.
+        list of Collision
+            The list of collisions.
         """
 
         collisions = []
@@ -39,10 +44,14 @@ class Hitbox(Box):
 
         return collisions
 
-    def move_axis(self, dx, dy, boxes):
+    def move_axis(self, dx: float, dy: float, boxes: set[Hitbox]) -> list[Collision]:
         """Moves this Hitbox by a given amount while checking for collisions with other Hitboxes.
 
-        Only use this method for single axis movement; Use :func:`move<Hitbox.move>` for movement.
+        Only use this method for single axis movement; Use move() for movement.
+
+        See Also
+        --------
+        move()
 
         Parameters
         ----------
@@ -50,13 +59,13 @@ class Hitbox(Box):
             The number of pixels to move in the x-axis.
         dy : float
             The number of pixels to move in the y-axis.
-        boxes : list of Hitbox
-            A list of other Hitboxes to check for collisions with.
+        boxes : set of Hitbox
+            A set of other Hitboxes to check for collisions with.
 
         Returns
         -------
-        list of str
-            A list of directions which collisions happened in. Can be 'left', 'right', 'top' or 'bottom'.
+        list of Direction
+            A list of directions which collisions happened in.
         """
 
         self.x += dx
@@ -67,16 +76,16 @@ class Hitbox(Box):
         for box in boxes:
             if self._rect.colliderect(box._rect):
                 if dx > 0:
-                    collisions.append("right")
+                    collisions.append(Collision(Direction.RIGHT, box))
                     self.right = box.left
                 elif dx < 0:
-                    collisions.append("left")
+                    collisions.append(Collision(Direction.LEFT, box))
                     self.left = box.right
                 if dy > 0:
-                    collisions.append("bottom")
+                    collisions.append(Collision(Direction.DOWN, box))
                     self.bottom = box.top
                 elif dy < 0:
-                    collisions.append("top")
+                    collisions.append(Collision(Direction.UP, box))
                     self.top = box.bottom
 
         return collisions

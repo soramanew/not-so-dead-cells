@@ -6,6 +6,7 @@ import random
 from collections.abc import Callable
 from types import SimpleNamespace
 
+from wall import Wall
 from box import Box
 from hitbox import Hitbox
 from utils import get_project_root, strict_eq
@@ -19,7 +20,6 @@ class Map:
     MAP_STORAGE: Path = get_project_root() / "assets/maps"
 
     GRAVITY: int = 800
-    FRICTION: float = 0.1
     AIR_RESISTANCE: float = 0.05
 
     def __init__(self, zone: str, load: bool = True,
@@ -43,7 +43,7 @@ class Map:
         self.rows = self.height // self.cell_size
         self.cols = self.width // self.cell_size
         self.grid: Grid = [None] * self.rows
-        self.walls: set[Hitbox] = self._load_walls(map_data.walls) if load else set()
+        self.walls: set[Wall] = self._load_walls(map_data.walls) if load else set()
 
         # TODO put default size, load from file or something, make level builder
 
@@ -72,11 +72,11 @@ class Map:
                 math.ceil((x + width) / self.cell_size),
                 math.ceil((y + height) / self.cell_size))
 
-    def _load_walls(self, walls: list[SimpleNamespace]) -> set[Hitbox]:
+    def _load_walls(self, walls: list[SimpleNamespace]) -> set[Wall]:
         """Loads the given walls into this map's spatial grid.
 
-        This method loads each SimpleNamespace into a Hitbox, inserts it into the grid
-        and returns the set of Hitboxes.
+        This method loads each SimpleNamespace into a Wall, inserts it into the grid
+        and returns the set of Walls.
 
         Parameters
         ----------
@@ -85,17 +85,17 @@ class Map:
 
         Returns
         -------
-        set of Hitbox
-            The set of walls as Hitboxes.
+        set of Wall
+            The set of walls as Walles.
         """
 
-        hitboxes = set()
+        wall_set = set()
         for wall in walls:
-            box = Hitbox(float(wall.x), float(wall.y), int(wall.w), int(wall.h))
-            hitboxes.add(box)
+            box = Wall(float(wall.x), float(wall.y), int(wall.w), int(wall.h))
+            wall_set.add(box)
             self.add_box(box)
 
-        return hitboxes
+        return wall_set
 
     def add_box(self, box: Box) -> None:
         """Adds the given box to all cells in this map that intersect it.
@@ -182,14 +182,14 @@ class Map:
 
         return list(filter(filter_fn, set(clients))) if callable(filter_fn) else clients
 
-    def add_wall(self, wall: Hitbox) -> None:
+    def add_wall(self, wall: Wall) -> None:
         """Adds the given wall into this map.
 
         This adds the wall to the walls array and the grid.
 
         Parameters
         ----------
-        wall : Hitbox
+        wall : Wall
             The wall to add.
         """
 
