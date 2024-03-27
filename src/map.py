@@ -17,16 +17,19 @@ type Grid = list[Row | None]
 
 
 class Map:
-    MAP_STORAGE: Path = get_project_root() / "assets/maps"
 
     GRAVITY: int = 800
     AIR_RESISTANCE: float = 0.05
+
+    @staticmethod
+    def storage() -> Path:
+        return get_project_root() / "assets/maps"
 
     def __init__(self, zone: str, load: bool = True,
                  width: int = 2000, height: int = 2000, cell_size: int = 50) -> None:
         self.objects: set[Box] = set()
         self.zone = zone
-        zone_dir = Map.MAP_STORAGE / self.zone
+        zone_dir = Map.storage() / self.zone
 
         if load:
             self.save_path = random.choice(list(zone_dir.iterdir()))

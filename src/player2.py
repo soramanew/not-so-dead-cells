@@ -36,6 +36,11 @@ class Player(Hitbox):
     # A multiplier to the wall sliding vy decay
     GRAB_STRENGTH: int = 60
 
+    # The number of seconds the player can wall climb for
+    WALL_CLIMB_LENGTH: float = 0.5
+    # The speed of wall climbing
+    WALL_CLIMB_STRENGTH: int = 150
+
     # -------------------------- Static Methods -------------------------- #
 
     @staticmethod
@@ -58,8 +63,9 @@ class Player(Hitbox):
         self.min_roll_height: int = height // 3
         self.on_platform: bool = False
         self.roll_time: float = 0
-        self.wall_sliding_dir: Side | None = None
+        self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
         self.ledge_climbing: bool = False
+        self.wall_climb_time: float = 0
 
     # ------------------------------ Getters ------------------------------ #
 
@@ -67,7 +73,7 @@ class Player(Hitbox):
         return self.roll_time > 0
 
     def can_jump(self) -> bool:
-        return not self.slamming and (self.jumps > 0 or self.wall_sliding_dir)
+        return not self.slamming and (self.jumps > 0 or self.wall_col_dir)
 
     # ------------------------------ Methods ------------------------------ #
 
@@ -135,9 +141,11 @@ class Player(Hitbox):
 
         # Set vy to negative jump strength
         self.vy = -Player.JUMP_STRENGTH
-        if self.wall_sliding_dir:
+        # Stop wall climbing so vy does not get overridden
+        self.wall_climb_time = -1
+        if self.wall_col_dir and not self.on_platform:
             # Set vx to opposing the wall to jump off
-            self.controlled_vx = Player.WALL_JUMP_STRENGTH * -self.wall_sliding_dir.value
+            self.controlled_vx = Player.WALL_JUMP_STRENGTH * -self.wall_col_dir.value
         else:
             # Do not consume a jump if wall jump
             self.jumps -= 1
@@ -205,13 +213,21 @@ class Player(Hitbox):
 
         self._reset_collision_attrs()
 
-        down_wall = run_once(self._handle_down_wall_collision)
-        side_wall = run_once(self._handle_side_wall_collision)
+        self._handle_down_wall_collision.reset()
+        self._handle_side_wall_collision.reset()
+
         for direction, entity in collisions:
             if direction == Direction.DOWN and isinstance(entity, Wall):
-                down_wall()
+                self._handle_down_wall_collision()
+
+        reset_wall_climb = True
+        for direction, entity in collisions:
             if (direction == Direction.RIGHT or direction == Direction.LEFT) and isinstance(entity, Wall):
-                side_wall(direction, entity)
+                self._handle_side_wall_collision(direction, entity)
+                reset_wall_climb = False
+
+        if reset_wall_climb:
+            self._start_wall_climb.reset()
 
         # TODO: climb ledges, wall climbing
 
@@ -225,8 +241,9 @@ class Player(Hitbox):
         """
 
         self.on_platform = False
-        self.wall_sliding_dir = None
+        self.wall_col_dir = None
 
+    @run_once
     def _handle_down_wall_collision(self) -> None:
         """Actions on downwards wall collisions.
 
@@ -238,14 +255,20 @@ class Player(Hitbox):
         self.slamming = False
         self.vy = 0
 
+    @run_once
     def _handle_side_wall_collision(self, direction: Direction, wall: Wall) -> None:
         if ((key_handler.get(pygame.K_a) or key_handler.get(pygame.K_d)
              or key_handler.get(pygame.K_LEFT) or key_handler.get(pygame.K_RIGHT))
                 and not self.is_rolling()):
-            self.wall_sliding_dir = direction.value
+            self.wall_col_dir = direction.value
             self.slamming = False
-        # TODO: handle wall climbing
+            if not self.on_platform:
+                self._start_wall_climb()
         # TODO: handle ledge climbing if close enough
+
+    @run_once
+    def _start_wall_climb(self) -> None:
+        self.wall_climb_time = Player.WALL_CLIMB_LENGTH
 
     def tick_changes(self, dt: float) -> None:
         """Updates values every tick.
@@ -260,8 +283,6 @@ class Player(Hitbox):
         self.controlled_vx /= 1 + Player.CONTROL_SPEED_DECAY * dt
         self.vx /= 1 + (Map.AIR_RESISTANCE + (Wall.FRICTION if self.on_platform else 0)) * dt
         self.vy /= 1 + Map.AIR_RESISTANCE * dt
-        if self.wall_sliding_dir:
-            self.vy /= 1 + Wall.FRICTION * Player.GRAB_STRENGTH * dt
 
         self._tick_roll(dt)
 
@@ -273,6 +294,16 @@ class Player(Hitbox):
         elif self.vy <= Player.DROP_SPEED_CAP:
             # Stop slamming if below speed cap
             self.slamming = False
+
+        self._tick_wall_col(dt)
+
+    def _tick_wall_col(self, dt: float) -> None:
+        if self.wall_col_dir:
+            if self.wall_climb_time > 0:
+                self.vy = -Player.WALL_CLIMB_STRENGTH
+                self.wall_climb_time -= dt
+            elif self.vy > 0:
+                self.vy /= 1 + Wall.FRICTION * Player.GRAB_STRENGTH * dt
 
     def _tick_roll(self, dt: float) -> None:
         """Updates roll-related properties.

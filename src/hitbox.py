@@ -74,7 +74,7 @@ class Hitbox(Box):
         collisions = []
 
         for box in boxes:
-            if self._rect.colliderect(box._rect):
+            if self.detect_collision(box):
                 if dx > 0:
                     collisions.append(Collision(Direction.RIGHT, box))
                     self.right = box.left
@@ -89,3 +89,6 @@ class Hitbox(Box):
                     self.top = box.bottom
 
         return collisions
+
+    def detect_collision(self, box: Hitbox):
+        return self.left < box.right and self.right > box.left and self.top < box.bottom and self.bottom > box.top

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from functools import wraps
 from enum import Enum
+from types import MethodType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -39,10 +41,16 @@ class Collision:
         return iter((self.direction, self.entity))
 
 
+def _reset_run_once(self):
+    self.has_run = False
+
+
 def run_once(f):
+    @wraps(f)
     def wrapper(*args, **kwargs):
         if not wrapper.has_run:
             wrapper.has_run = True
             return f(*args, **kwargs)
     wrapper.has_run = False
+    wrapper.reset = MethodType(_reset_run_once, wrapper)
     return wrapper
