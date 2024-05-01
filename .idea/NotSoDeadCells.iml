@@ -13,4 +13,12 @@
     <option name="format" value="NUMPY" />
     <option name="myDocStringFormat" value="NumPy" />
   </component>
+  <component name="PyNamespacePackagesService">
+    <option name="namespacePackageFolders">
+      <list>
+        <option value="$MODULE_DIR$/src/player" />
+        <option value="$MODULE_DIR$/src/map_builder" />
+      </list>
+    </option>
+  </component>
 </module>

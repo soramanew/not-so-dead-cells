@@ -5,7 +5,7 @@ import sys
 import pygame
 
 import key_handler
-from player2 import Player
+from player.player import Player
 from map import Map
 from camera import Camera
 from util_types import PlayerControl
@@ -22,7 +22,7 @@ def main():
 
     current_map = Map("prisoners_quarters")
     player = Player(current_map, 100, 20)
-    camera = Camera(player, window_width, window_height)
+    camera = Camera(player.movement, window_width, window_height)
 
     while True:
         dt = clock.tick(60) / 1000  # To get in seconds
@@ -52,10 +52,7 @@ def main():
                 key_handler.up(event.key)
 
         key_handler.tick(dt)
-        player.handle_moves(dt, *move_types)
-        player.tick_changes(dt)
-        collisions = player.update_position(dt)
-        player.handle_collisions(collisions)
+        player.tick(dt, move_types)
         camera.tick_move(dt)
 
         # --- Wrapping logic --- #

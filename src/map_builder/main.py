@@ -1,6 +1,6 @@
 import pygame
 
-from map_builder.builder import Builder
+from .builder import Builder
 
 
 def main():
