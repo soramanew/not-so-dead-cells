@@ -53,9 +53,9 @@ def main():
 
         key_handler.tick(dt)
         player.handle_moves(dt, *move_types)
+        player.tick_changes(dt)
         collisions = player.update_position(dt)
         player.handle_collisions(collisions)
-        player.tick_changes(dt)
         camera.tick_move(dt)
 
         # --- Wrapping logic --- #

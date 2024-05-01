@@ -1,10 +1,8 @@
-import pygame.key
-
 import key_handler
 from wall import Wall
 from hitbox import Hitbox
 from map import Map
-from util_types import Direction, Collision, run_once, PlayerControl, Side
+from util_types import Direction, Collision, run_once, PlayerControl, Side, Position
 from utils import clamp
 
 
@@ -41,6 +39,11 @@ class Player(Hitbox):
     # The speed of wall climbing
     WALL_CLIMB_STRENGTH: int = 150
 
+    # The height from the top of the player to the top of the platform that the player can climb up
+    LEDGE_CLIMB_HEIGHT: float = 0.5
+    # The speed at which the player can climb ledges (multiplier to player height)
+    LEDGE_CLIMB_SPEED: float = 3
+
     # -------------------------- Static Methods -------------------------- #
 
     @staticmethod
@@ -64,7 +67,7 @@ class Player(Hitbox):
         self.on_platform: bool = False
         self.roll_time: float = 0
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
-        self.ledge_climbing: bool = False
+        self.ledge_climbing: tuple[Side, Position] | None = None
         self.wall_climb_time: float = 0
 
     # ------------------------------ Getters ------------------------------ #
@@ -125,6 +128,9 @@ class Player(Hitbox):
             The number of seconds between this tick and the last tick.
         """
 
+        # Cancel ledge climbing if not same direction
+        if self.ledge_climbing is not None and self.ledge_climbing[0] != direction:
+            self.ledge_climbing = None
         # Apply acceleration
         self.controlled_vx += Player.CONTROL_ACCEL * dt * direction.value
         # Change direction facing
@@ -139,6 +145,9 @@ class Player(Hitbox):
             if not stopped_rolling:
                 return
 
+        # Cancel ledge climbing
+        self.ledge_climbing = None
+
         # Set vy to negative jump strength
         self.vy = -Player.JUMP_STRENGTH
         # Stop wall climbing so vy does not get overridden
@@ -151,7 +160,9 @@ class Player(Hitbox):
             self.jumps -= 1
 
     def _roll(self) -> None:
-        """Cancel slam + roll"""
+        """Cancel slam and ledge climbing + roll"""
+
+        self.ledge_climbing = None
         if self.slamming:
             self.slamming = False
         self.roll_time = Player.ROLL_LENGTH
@@ -179,10 +190,13 @@ class Player(Hitbox):
 
     def _slam(self) -> None:
         """Cancel roll + slam"""
+
         if self.is_rolling():
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
+        self.ledge_climbing = None
+
         self.vy = Player.SLAM_STRENGTH
         self.slamming = True
 
@@ -223,13 +237,12 @@ class Player(Hitbox):
         reset_wall_climb = True
         for direction, entity in collisions:
             if (direction == Direction.RIGHT or direction == Direction.LEFT) and isinstance(entity, Wall):
-                self._handle_side_wall_collision(direction, entity)
+                if not self.is_rolling():
+                    self._handle_side_wall_collision(direction.value, entity)
                 reset_wall_climb = False
 
         if reset_wall_climb:
             self._start_wall_climb.reset()
-
-        # TODO: climb ledges, wall climbing
 
     def _reset_collision_attrs(self) -> None:
         """Resets the attributes affected by methods called by handle_collision() to their default values.
@@ -254,17 +267,32 @@ class Player(Hitbox):
         self.jumps = Player.JUMPS
         self.slamming = False
         self.vy = 0
+        self.wall_climb_time = -1
 
     @run_once
-    def _handle_side_wall_collision(self, direction: Direction, wall: Wall) -> None:
-        if ((key_handler.get(pygame.K_a) or key_handler.get(pygame.K_d)
-             or key_handler.get(pygame.K_LEFT) or key_handler.get(pygame.K_RIGHT))
-                and not self.is_rolling()):
-            self.wall_col_dir = direction.value
+    def _handle_side_wall_collision(self, side: Side, wall: Wall) -> None:
+        can_climb_ledge = self.top - wall.top < self.base_height * Player.LEDGE_CLIMB_HEIGHT
+
+        if can_climb_ledge:
+            walls_above = self.current_map.get_rect(self.left, wall.top - self.base_height,
+                                                    self.width, self.top - (wall.top - self.base_height))
+            for wall_a in walls_above:
+                if wall_a.bottom + self.base_height > wall.top:
+                    can_climb_ledge = False
+
+        left_key_down = key_handler.get_control(PlayerControl.LEFT)
+        right_key_down = key_handler.get_control(PlayerControl.RIGHT)
+
+        if can_climb_ledge:
+            if side == Side.LEFT and left_key_down:
+                self.ledge_climbing = side, (wall.right, wall.top)
+            elif side == Side.RIGHT and right_key_down:
+                self.ledge_climbing = side, (wall.left, wall.top)
+        if left_key_down or right_key_down:
+            self.wall_col_dir = side
             self.slamming = False
-            if not self.on_platform:
+            if not (can_climb_ledge or self.on_platform):
                 self._start_wall_climb()
-        # TODO: handle ledge climbing if close enough
 
     @run_once
     def _start_wall_climb(self) -> None:
@@ -295,15 +323,29 @@ class Player(Hitbox):
             # Stop slamming if below speed cap
             self.slamming = False
 
+        if self.ledge_climbing is not None:
+            self._tick_ledge_climb()
         self._tick_wall_col(dt)
 
     def _tick_wall_col(self, dt: float) -> None:
-        if self.wall_col_dir:
+        if self.wall_col_dir and not (self.is_rolling() and self.slamming and self.ledge_climbing):
             if self.wall_climb_time > 0:
                 self.vy = -Player.WALL_CLIMB_STRENGTH
                 self.wall_climb_time -= dt
             elif self.vy > 0:
                 self.vy /= 1 + Wall.FRICTION * Player.GRAB_STRENGTH * dt
+
+    def _tick_ledge_climb(self) -> None:
+        side, target = self.ledge_climbing
+        if (not (key_handler.get_control(PlayerControl.LEFT) or key_handler.get_control(PlayerControl.RIGHT))
+                or (self.bottom <= target[1] and ((side == Side.RIGHT and self.left >= target[0]) or
+                                         (side == Side.LEFT and self.right <= target[0])))):
+            self.ledge_climbing = None
+            return
+
+        self.controlled_vx = self.base_height * Player.LEDGE_CLIMB_SPEED * side.value
+        if self.bottom >= target[1]:
+            self.vy = -self.base_height * Player.LEDGE_CLIMB_SPEED
 
     def _tick_roll(self, dt: float) -> None:
         """Updates roll-related properties.
