@@ -5,7 +5,9 @@ import math
 import random
 from collections.abc import Callable
 from types import SimpleNamespace
+from typing import Any
 
+from util_types import Side
 from wall import Wall
 from box import Box
 from hitbox import Hitbox
@@ -37,18 +39,19 @@ class Map:
             self.width = int(map_data.width)
             self.height = int(map_data.height)
             self.cell_size = int(map_data.cell_size)
+            self.init_dir = Side[map_data.init_dir]
+            self.player_spawn = tuple(map_data.spawn)
         else:
             self.save_path = zone_dir / (str(int(max(zone_dir.iterdir()).stem) + 1) + ".json")
             self.width = width
             self.height = height
             self.cell_size = cell_size
+            self.player_spawn = (0, 0, 10, 30)
 
         self.rows = self.height // self.cell_size
         self.cols = self.width // self.cell_size
         self.grid: Grid = [None] * self.rows
         self.walls: set[Wall] = self._load_walls(map_data.walls) if load else set()
-
-        # TODO put default size, load from file or something, make level builder
 
     def _to_cells(self, x: float, y: float, width: int, height: int) -> tuple[int, int, int, int]:
         """Converts the given rectangle to the cell coordinates of each side (left, top, right, bottom).
@@ -200,8 +203,28 @@ class Map:
             self.walls.add(wall)
             self.add_box(wall)
 
-    def save(self) -> str:
-        """Saves this map as a JSON file and returns the JSON string.
+    def set_player(self, x: float, y: float, width: int, height: int) -> None:
+        """Sets the player spawn for this map.
+
+        This also determines the size of the player.
+
+        Parameters
+        ----------
+        x : float
+            The left-most position of the player spawn.
+        y : float
+            The top-most position of the player spawn.
+        width : int
+         The width of the player spawn.
+        height : int
+            The height of the player spawn.
+        """
+
+        self.player_spawn = (x, y, width, height)
+        self.init_dir = Side.LEFT if width < 0 else Side.RIGHT
+
+    def save(self) -> dict[str, Any]:
+        """Saves this map as a JSON file and returns the JSON object representation.
 
         See Also
         --------
@@ -209,16 +232,23 @@ class Map:
 
         Returns
         -------
-        str
+        dict with str key and any value
             The JSON representation of this map.
         """
 
-        json_str = "{" + ('"width":{width},"height":{height},"cell_size":{cell_size},"walls":{walls}'
-                          .format(width=self.width, height=self.height, cell_size=self.cell_size,
-                                  walls=f"[{", ".join(wall.to_json() for wall in self.walls)}]")) + "}"
+        json_obj = {
+            "width": self.width,
+            "height": self.height,
+            "cell_size": self.cell_size,
+            "spawn": self.player_spawn,
+            "init_dir": self.init_dir,
+            "walls": [wall.to_json() for wall in self.walls]
+        }
+
         with open(self.save_path, "w") as file:
-            file.write(json_str)
-        return json_str
+            file.write(json.dumps(json_obj))
+
+        return json_obj
 
     def __hash__(self) -> int:
         return hash((self.width, self.height, frozenset(self.objects)))

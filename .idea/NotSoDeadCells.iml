@@ -18,6 +18,7 @@
       <list>
         <option value="$MODULE_DIR$/src/player" />
         <option value="$MODULE_DIR$/src/map_builder" />
+        <option value="$MODULE_DIR$/src/enemy" />
       </list>
     </option>
   </component>

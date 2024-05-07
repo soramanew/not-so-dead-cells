@@ -143,15 +143,21 @@ class Box:
             y = 0
         window.fill(colour, (x, y, width, height))
 
-    def to_json(self) -> str:
+    def to_json(self) -> dict[str, float | int]:
         """Converts this box to JSON format.
 
         Returns
         -------
-        str
+        dict with str keys and float or int values
             The JSON representation of this box.
         """
-        return "{" + '"x":{x},"y":{y},"w":{w},"h":{h}'.format(x=self.x, y=self.y, w=self.width, h=self.height) + "}"
+        return {
+            "x": self.x,
+            "y": self.y,
+            "w": self.width,
+            "h": self.height
+        }
+        # return "{" + '"x":{x},"y":{y},"w":{w},"h":{h}'.format(x=self.x, y=self.y, w=self.width, h=self.height) + "}"
 
     def __hash__(self) -> int:
         return hash((int(self.x), int(self.y), self.width, self.height))

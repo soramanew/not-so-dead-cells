@@ -3,11 +3,11 @@ import sys
 import pygame
 
 from box import Box
-from hitbox import Hitbox
 from map import Map
 from map_builder.camera import Camera
 from utils import normalise_rect
 from util_types import Rect, Position
+from wall import Wall
 
 
 class Builder:
@@ -46,6 +46,8 @@ class Builder:
                             self.add_wall()
                     elif event.key == pygame.K_s and pygame.key.get_mods() & (pygame.KMOD_CTRL | pygame.KMOD_ALT):
                         self.map.save()
+                    elif event.key == pygame.K_p:
+                        self.set_player()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         l_dragging = True
@@ -120,7 +122,11 @@ class Builder:
 
     def add_wall(self) -> None:
         """Adds the current selection to the map as a wall."""
-        self.map.add_wall(Hitbox(*self.selection))
+        self.map.add_wall(Wall(*self.selection))
+
+    def set_player(self) -> None:
+        """Sets the map's player spawn to the current selection."""
+        self.map.set_player(*self.selection)
 
     def handle_l_drag(self, curr_pos: Position) -> None:
         """Changes the selection based on the given position.

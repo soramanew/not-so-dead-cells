@@ -3,6 +3,8 @@
   "width": 2000,
   "height": 2000,
   "cell_size": 50,
+  "spawn": [0, 0, 10, 30],
+  "init_dir": "RIGHT",
   "walls": [
     {
       "x": 60,

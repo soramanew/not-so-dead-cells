@@ -52,18 +52,18 @@ class PlayerMovement(Hitbox):
 
     # ---------------------------- Constructor ---------------------------- #
 
-    def __init__(self, current_map: Map, x: float, y: float, width: int, height: int):
-        super().__init__(x, y, width, height)
+    def __init__(self, current_map: Map):
+        super().__init__(*current_map.player_spawn)
         self.current_map: Map = current_map
         self.vx: float = 0  # The velocity of the player in the x direction (- left, + right)
         self.vy: float = 0  # The velocity of the player in the y direction (- up, + down)
         self.controlled_vx: float = 0  # The velocity of the player in the x direction caused by user controls
-        self.facing: Side = Side.RIGHT  # The direction the player is currently facing (-1 for left, 1 for right)
+        self.facing: Side = current_map.init_dir  # The direction the player is currently facing
         self.jumps: int = PlayerMovement.JUMPS  # How many jumps the player has left (is reset when touching ground)
         self.roll_cooldown: float = 0  # The time until the player can roll again in seconds
         self.slamming: bool = False  # If the player is currently slamming
-        self.base_height: int = height
-        self.min_roll_height: int = height // 3
+        self.base_height: int = current_map.player_spawn[3]
+        self.min_roll_height: int = current_map.player_spawn[3] // 3
         self.on_platform: bool = False
         self.roll_time: float = 0
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
