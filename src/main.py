@@ -25,9 +25,9 @@ def main():
     player = Player(current_map)
     camera = Camera(player.movement, window_width, window_height)
 
-    enemy_platform = next(iter(current_map.walls))
-    enemy = Enemy(current_map, enemy_platform, enemy_platform.left + 10, enemy_platform.top - 20,
-                  10, 20, 100)
+    enemies = []
+    for wall in current_map.walls:
+        enemies.append(Enemy(current_map, wall, 10, 20, 100))
 
     while True:
         dt = clock.tick(60) / 1000  # To get in seconds
@@ -58,7 +58,8 @@ def main():
 
         key_handler.tick(dt)
         player.tick(dt, move_types)
-        enemy.tick(dt)
+        for enemy in enemies:
+            enemy.tick(dt)
         camera.tick_move(dt)
 
         # --- Wrapping logic --- #
@@ -77,7 +78,8 @@ def main():
 
         # Draw stuff
         camera.render(window, current_map, debug=True)
-        camera._render_w_off(enemy.movement, window, colour=(255, 0, 0))
+        for enemy in enemies:
+            camera._render_w_off(enemy.movement, window, colour=(255, 0, 0))
 
         # Update window
         pygame.display.update()

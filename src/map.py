@@ -145,8 +145,8 @@ class Map:
             self.grid[row][col] = set()
         self.grid[row][col].add(client)
 
-    def get_rect(self, x: float, y: float, width: int, height: int, filter_fn: Callable[[Box], bool] = None) \
-            -> list[Box]:
+    def get_rect(self, x: float, y: float, width: int, height: int, filter_fn: Callable[[Box], bool] = None,
+                 precision: bool = True) -> list[Box]:
         """Fetches all clients in this map within the given rectangle.
 
         Parameters
@@ -161,6 +161,8 @@ class Map:
             The height of the rectangle to search in.
         filter_fn : callable with parameters [Box] and return bool, optional
             A function to filter for specific clients.
+        precision : bool
+            Whether to check for precise bounds or just use spatial hash columns
 
         Returns
         -------
@@ -184,7 +186,13 @@ class Map:
                 for col in range(s_col, e_col):
                     cell = self.grid[row][col]
                     if cell is not None:
-                        clients.extend(cell)
+                        if precision:
+                            for c in cell:
+                                if x < c.right and x + width > c.left and \
+                                        y < c.bottom and y + height > c.top:
+                                    clients.append(c)
+                        else:
+                            clients.extend(cell)
 
         return list(filter(filter_fn, set(clients))) if callable(filter_fn) else clients
 

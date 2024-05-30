@@ -91,5 +91,5 @@ class Hitbox(Box):
 
         return collisions
 
-    def detect_collision(self, box: Hitbox):
+    def detect_collision(self, box: Box):
         return self.left < box.right and self.right > box.left and self.top < box.bottom and self.bottom > box.top
