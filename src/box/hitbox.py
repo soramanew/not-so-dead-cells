@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from box import Box
-from util_types import Direction, Collision
+from util.type import Collision, Direction
+
+from .box import Box
 
 
 class Hitbox(Box):
@@ -91,5 +92,5 @@ class Hitbox(Box):
 
         return collisions
 
-    def detect_collision(self, box: Box):
+    def detect_collision(self, box: Box) -> bool:
         return self.left < box.right and self.right > box.left and self.top < box.bottom and self.bottom > box.top

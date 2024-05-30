@@ -1,15 +1,12 @@
 from collections.abc import Callable
 
 import pygame
-
-from box import Box
-from hitbox import Hitbox
+from box import Box, Hitbox
 from map import Map
-from util_types import Position
+from util.type import Position
 
 
 class Camera(Box):
-
     CROSSHAIR_COLOUR = 255, 255, 255
     CROSSHAIR_SIZE = 10
     CROSSHAIR_THICKNESS = 2
@@ -17,7 +14,14 @@ class Camera(Box):
     SPEED = 100
     FAST_MULT = 3
 
-    def __init__(self, width: int, height: int, x: float = 0, y: float = 0, initial_scale: float = 1):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        x: float = 0,
+        y: float = 0,
+        initial_scale: float = 1,
+    ):
         super().__init__(x, y, width, height)
         self.scale = initial_scale
 
@@ -84,13 +88,23 @@ class Camera(Box):
             The map to render in debug mode.
         """
 
-        hitboxes = current_map.get_rect(self.x, self.y, self.width, self.height,
-                                        lambda client: isinstance(client, Hitbox))
+        hitboxes = current_map.get_rect(
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            lambda client: isinstance(client, Hitbox),
+        )
         for hitbox in hitboxes:
             self._render_individual(hitbox, window)
 
-    def render(self, window: pygame.Surface, current_map: Map, debug: bool = True,
-               render_fn: Callable[[pygame.Surface], None] = None) -> None:
+    def render(
+        self,
+        window: pygame.Surface,
+        current_map: Map,
+        debug: bool = True,
+        render_fn: Callable[[pygame.Surface], None] = None,
+    ) -> None:
         """Renders the given map to the given surface through this camera's viewport.
 
         See Also
@@ -125,10 +139,18 @@ class Camera(Box):
         window : pygame.Surface
             The window to render to.
         """
-        vertical_rect = ((self.width - Camera.CROSSHAIR_SIZE) / 2, (self.height - Camera.CROSSHAIR_THICKNESS) / 2,
-                         Camera.CROSSHAIR_SIZE, Camera.CROSSHAIR_THICKNESS)
-        horizontal_rect = ((self.width - Camera.CROSSHAIR_THICKNESS) / 2, (self.height - Camera.CROSSHAIR_SIZE) / 2,
-                           Camera.CROSSHAIR_THICKNESS, Camera.CROSSHAIR_SIZE)
+        vertical_rect = (
+            (self.width - Camera.CROSSHAIR_SIZE) / 2,
+            (self.height - Camera.CROSSHAIR_THICKNESS) / 2,
+            Camera.CROSSHAIR_SIZE,
+            Camera.CROSSHAIR_THICKNESS,
+        )
+        horizontal_rect = (
+            (self.width - Camera.CROSSHAIR_THICKNESS) / 2,
+            (self.height - Camera.CROSSHAIR_SIZE) / 2,
+            Camera.CROSSHAIR_THICKNESS,
+            Camera.CROSSHAIR_SIZE,
+        )
         window.fill(Camera.CROSSHAIR_COLOUR, vertical_rect)
         window.fill(Camera.CROSSHAIR_COLOUR, horizontal_rect)
 

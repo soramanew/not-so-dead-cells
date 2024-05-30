@@ -1,6 +1,5 @@
 import pygame
-
-from utils import comp_as_int, strict_eq
+from util.func import comp_as_int, strict_eq
 
 
 class Box:
@@ -113,8 +112,14 @@ class Box:
         self.left = x
         self.top = y
 
-    def draw(self, window: pygame.Surface, colour: tuple[int, int, int] = (0, 0, 255), x_off: float = 0,
-             y_off: float = 0, scale: float = 1) -> None:
+    def draw(
+        self,
+        window: pygame.Surface,
+        colour: tuple[int, int, int] = (0, 0, 255),
+        x_off: float = 0,
+        y_off: float = 0,
+        scale: float = 1,
+    ) -> None:
         """Draws this box to the given surface.
 
         Parameters
@@ -151,12 +156,7 @@ class Box:
         dict with str keys and float or int values
             The JSON representation of this box.
         """
-        return {
-            "x": self.x,
-            "y": self.y,
-            "w": self.width,
-            "h": self.height
-        }
+        return {"x": self.x, "y": self.y, "w": self.width, "h": self.height}
         # return "{" + '"x":{x},"y":{y},"w":{w},"h":{h}'.format(x=self.x, y=self.y, w=self.width, h=self.height) + "}"
 
     def __hash__(self) -> int:
@@ -164,7 +164,11 @@ class Box:
 
     def __eq__(self, other) -> bool:
         if strict_eq(self, other):
-            return (comp_as_int(self.x, other.x) and comp_as_int(self.y, other.y)
-                    and self.width == other.width and self.height == other.height)
+            return (
+                comp_as_int(self.x, other.x)
+                and comp_as_int(self.y, other.y)
+                and self.width == other.width
+                and self.height == other.height
+            )
         else:
             return False

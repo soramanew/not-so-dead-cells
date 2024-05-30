@@ -1,4 +1,4 @@
-from hitbox import Hitbox
+from box import Hitbox
 
 
 class Wall(Hitbox):

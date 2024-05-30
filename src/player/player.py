@@ -1,5 +1,6 @@
 from map import Map
-from util_types import PlayerControl
+from util.type import PlayerControl
+
 from .movement import PlayerMovement
 
 

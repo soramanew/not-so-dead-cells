@@ -1,13 +1,12 @@
 import sys
 
 import pygame
-
 from box import Box
-from map import Map
-from map_builder.camera import Camera
-from utils import normalise_rect
-from util_types import Rect, Position
-from wall import Wall
+from map import Map, Wall
+from util.func import normalise_rect
+from util.type import Position, Rect
+
+from .camera import Camera
 
 
 class Builder:
@@ -84,9 +83,11 @@ class Builder:
                 selection_changed = True
 
             if selection_changed and not self.has_selection and len(self.selection_start) == 2:
-                self.selection = normalise_rect(*self.selection_start,
-                                                int(self.camera.center_x - self.selection_start[0]),
-                                                int(self.camera.center_y - self.selection_start[1]))
+                self.selection = normalise_rect(
+                    *self.selection_start,
+                    int(self.camera.center_x - self.selection_start[0]),
+                    int(self.camera.center_y - self.selection_start[1]),
+                )
 
             self.window.fill((50, 50, 50))
             self.map_box.draw(self.window, (0, 0, 0), x_off=-self.camera.x, y_off=-self.camera.y)
@@ -117,8 +118,14 @@ class Builder:
         if len(self.selection) == 4:
             surf = pygame.Surface((self.selection[2], self.selection[3]), pygame.SRCALPHA)
             surf.fill(Builder.SELECTION_COLOUR, surf.get_rect())
-            window.blit(surf, (*self.camera.get_relative(self.selection[0], self.selection[1]),
-                        self.selection[2], self.selection[3]))
+            window.blit(
+                surf,
+                (
+                    *self.camera.get_relative(self.selection[0], self.selection[1]),
+                    self.selection[2],
+                    self.selection[3],
+                ),
+            )
 
     def add_wall(self) -> None:
         """Adds the current selection to the map as a wall."""
@@ -138,8 +145,11 @@ class Builder:
         """
 
         x_w_off, y_w_off = self.camera.get_absolute(*curr_pos)
-        self.selection = normalise_rect(*self.selection_start, int(x_w_off - self.selection_start[0]),
-                                        int(y_w_off - self.selection_start[1]))
+        self.selection = normalise_rect(
+            *self.selection_start,
+            int(x_w_off - self.selection_start[0]),
+            int(y_w_off - self.selection_start[1]),
+        )
 
     def handle_r_drag(self, prev_pos: Position, curr_pos: Position) -> None:
         """Moves the camera by the difference between the current and previous mouse positions.

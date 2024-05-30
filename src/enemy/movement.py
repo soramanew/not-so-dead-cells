@@ -1,10 +1,8 @@
-from math import isclose
 from random import getrandbits, random, uniform
 
-from hitbox import Hitbox
-from map import Map
-from util_types import Side, Direction
-from wall import Wall
+from box import Hitbox
+from map import Map, Wall
+from util.type import Direction, Side
 
 
 class EnemyMovement(Hitbox):
@@ -14,11 +12,20 @@ class EnemyMovement(Hitbox):
     # The distance (pixels) between the enemy and it's move target to be considered as reached the target
     TARGET_THRESHOLD: float = 0.01
 
-    def __init__(self, current_map: Map, platform: Wall, width: int, height: int, speed: float,
-                 x: float = None, y: float = None, facing: Side = None):
+    def __init__(
+        self,
+        current_map: Map,
+        platform: Wall,
+        width: int,
+        height: int,
+        speed: float,
+        x: float = None,
+        y: float = None,
+        facing: Side = None,
+    ):
         # Default values
         if x is None:
-            x = uniform(platform.left + width / 2, platform.right - width / 2)
+            x = uniform(platform.left, platform.right - width)
         if y is None:
             y = platform.top - height
         if facing is None:
@@ -26,14 +33,14 @@ class EnemyMovement(Hitbox):
 
         # Init
         super().__init__(x, y, width, height)
-        self.map = current_map
+        self.map: Map = current_map
         self.platform: Wall = platform  # The platform this enemy is on
         self.speed: float = speed  # Movement speed (px/s)
         self.gravity: float = 0
         self.facing: Side = facing
         self.moving: bool = False
         self.move_target: float
-        self.area = self._get_area()
+        self.area: tuple[float, float] = self._get_area()
 
     def _get_area(self) -> tuple[float, float]:
         """Finds the area which this Enemy can move on it's platform without colliding with obstacles above it.
@@ -46,8 +53,13 @@ class EnemyMovement(Hitbox):
             The x bounds in which this enemy can move.
         """
 
-        obstacles = self.map.get_rect(self.platform.x, self.platform.y - self.height, self.platform.width, self.height,
-                                      lambda o: isinstance(o, Wall) and o is not self.platform)
+        obstacles = self.map.get_rect(
+            self.platform.x,
+            self.platform.y - self.height,
+            self.platform.width,
+            self.height,
+            lambda o: isinstance(o, Wall) and o is not self.platform,
+        )
         if not obstacles:
             return self.platform.left, self.platform.right
 
@@ -58,7 +70,10 @@ class EnemyMovement(Hitbox):
             return False
 
         while check_collisions():
-            self.x = uniform(self.platform.left + self.width / 2, self.platform.right - self.width / 2)
+            self.x = uniform(
+                self.platform.left,
+                self.platform.right - self.width,
+            )
             print("[DEBUG] Enemy spawn colliding: moving spawn")
 
         nearest_left = None
@@ -71,9 +86,14 @@ class EnemyMovement(Hitbox):
             if diff >= 0 and (nearest_right is None or diff < nearest_right[0]):
                 nearest_right = diff, wall.left
 
-        return (self.platform.left if nearest_left is None or nearest_left[1] < self.platform.left else nearest_left[1],
-                self.platform.right if nearest_right is None
-                or nearest_right[1] > self.platform.right else nearest_right[1])
+        return (
+            (self.platform.left if nearest_left is None or nearest_left[1] < self.platform.left else nearest_left[1]),
+            (
+                self.platform.right
+                if nearest_right is None or nearest_right[1] > self.platform.right
+                else nearest_right[1]
+            ),
+        )
 
     def tick(self, dt: float) -> None:
         """Updates this Enemy's position and has a chance to start idle movement if not currently moving.
@@ -93,13 +113,13 @@ class EnemyMovement(Hitbox):
         self.gravity += Map.GRAVITY * dt
         collisions = self.move_axis(0, self.gravity * dt, self.map.walls)
         for direction, entity in collisions:
-            if direction == Direction.DOWN and isinstance(entity, Wall):
+            if direction is Direction.DOWN and isinstance(entity, Wall):
                 self.gravity = 0
 
     def _start_move(self) -> None:
         """Starts idle movement by choosing a target to move."""
 
-        self.move_target = uniform(self.area[0] + self.width / 2, self.area[1] - self.width / 2)
+        self.move_target = uniform(self.area[0], self.area[1] - self.width)
         self.moving = True
 
     def _tick_move(self, dt: float) -> None:
@@ -116,5 +136,8 @@ class EnemyMovement(Hitbox):
         else:
             diff = self.move_target - self.x
             self.facing = Side.LEFT if diff < 0 else Side.RIGHT
-            self.move_axis(diff if abs(diff) < self.speed * dt else self.speed * self.facing.value * dt,
-                           0, self.map.walls)
+            self.move_axis(
+                (diff if abs(diff) < self.speed * dt else self.speed * self.facing.value * dt),
+                0,
+                self.map.walls,
+            )

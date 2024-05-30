@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from util_types import Rect
+from .type import Rect
 
 
 def get_project_root():
     """Returns path of the root project directory."""
-    return Path(__file__).parent.parent
+    return Path(__file__).parent.parent.parent
 
 
 def clamp(x: int, maximum: int, minimum: int) -> int:

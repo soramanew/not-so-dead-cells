@@ -1,7 +1,5 @@
 import pygame
-
-from box import Box
-from hitbox import Hitbox
+from box import Box, Hitbox
 from map import Map
 
 
@@ -90,8 +88,13 @@ class Camera(Box):
             The map to render in debug mode.
         """
 
-        hitboxes = current_map.get_rect(self.x, self.y, self.width, self.height,
-                                        lambda client: isinstance(client, Hitbox))
+        hitboxes = current_map.get_rect(
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            lambda client: isinstance(client, Hitbox),
+        )
         for hitbox in hitboxes:
             self._render_w_off(hitbox, window)
 

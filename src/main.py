@@ -3,13 +3,12 @@ from __future__ import annotations
 import sys
 
 import pygame
-
-import key_handler
-from enemy.enemy import Enemy
-from player.player import Player
-from map import Map
 from camera import Camera
-from util_types import PlayerControl
+from enemy import Enemy
+from map import Map
+from player import Player
+from util import key_handler
+from util.type import PlayerControl
 
 
 def main():

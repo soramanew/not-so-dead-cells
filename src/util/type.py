@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from functools import wraps
 from enum import Enum
+from functools import wraps
 from types import MethodType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from hitbox import Hitbox
+    from box import Hitbox
 
 type Position = tuple[float, float]
 type Rect = tuple[float, float, int, int]
@@ -51,6 +51,7 @@ def run_once(f):
         if not wrapper.has_run:
             wrapper.has_run = True
             return f(*args, **kwargs)
+
     wrapper.has_run = False
     wrapper.reset = MethodType(_reset_run_once, wrapper)
     return wrapper

@@ -1,9 +1,8 @@
-import key_handler
-from wall import Wall
-from hitbox import Hitbox
-from map import Map
-from util_types import Direction, Collision, run_once, PlayerControl, Side, Position
-from utils import clamp
+from box import Hitbox
+from map import Map, Wall
+from util import key_handler
+from util.func import clamp
+from util.type import Collision, Direction, PlayerControl, Position, Side, run_once
 
 
 class PlayerMovement(Hitbox):
@@ -176,11 +175,18 @@ class PlayerMovement(Hitbox):
             Whether the player stopped rolling or not.
         """
 
-        walls_above = self.current_map.get_rect(self.x, self.y + self.height - self.base_height,
-                                                self.width, self.base_height)
+        walls_above = self.current_map.get_rect(
+            self.x,
+            self.y + self.height - self.base_height,
+            self.width,
+            self.base_height,
+        )
         for wall in walls_above:
-            if (wall.top < self.top + self.height - self.base_height < wall.bottom and
-                    wall.left < self.right and wall.right > self.left):
+            if (
+                wall.top < self.top + self.height - self.base_height < wall.bottom
+                and wall.left < self.right
+                and wall.right > self.left
+            ):
                 # Top when at base height inside wall and x inside wall
                 return False
 
@@ -231,12 +237,12 @@ class PlayerMovement(Hitbox):
         self._handle_side_wall_collision.reset()
 
         for direction, entity in collisions:
-            if direction == Direction.DOWN and isinstance(entity, Wall):
+            if direction is Direction.DOWN and isinstance(entity, Wall):
                 self._handle_down_wall_collision()
 
         reset_wall_climb = True
         for direction, entity in collisions:
-            if (direction == Direction.RIGHT or direction == Direction.LEFT) and isinstance(entity, Wall):
+            if (direction is Direction.RIGHT or direction is Direction.LEFT) and isinstance(entity, Wall):
                 if not self.is_rolling():
                     self._handle_side_wall_collision(direction.value, entity)
                 reset_wall_climb = False
@@ -274,8 +280,12 @@ class PlayerMovement(Hitbox):
         can_climb_ledge = self.top - wall.top < self.base_height * PlayerMovement.LEDGE_CLIMB_HEIGHT
 
         if can_climb_ledge:
-            walls_above = self.current_map.get_rect(self.left, wall.top - self.base_height,
-                                                    self.width, self.top - (wall.top - self.base_height))
+            walls_above = self.current_map.get_rect(
+                self.left,
+                wall.top - self.base_height,
+                self.width,
+                self.top - (wall.top - self.base_height),
+            )
             for wall_a in walls_above:
                 if wall_a.bottom + self.base_height > wall.top:
                     can_climb_ledge = False
@@ -284,9 +294,9 @@ class PlayerMovement(Hitbox):
         right_key_down = key_handler.get_control(PlayerControl.RIGHT)
 
         if can_climb_ledge:
-            if side == Side.LEFT and left_key_down:
+            if side is Side.LEFT and left_key_down:
                 self.ledge_climbing = side, (wall.right, wall.top)
-            elif side == Side.RIGHT and right_key_down:
+            elif side is Side.RIGHT and right_key_down:
                 self.ledge_climbing = side, (wall.left, wall.top)
         if left_key_down or right_key_down:
             self.wall_col_dir = side
@@ -337,9 +347,10 @@ class PlayerMovement(Hitbox):
 
     def _tick_ledge_climb(self) -> None:
         side, target = self.ledge_climbing
-        if (not (key_handler.get_control(PlayerControl.LEFT) or key_handler.get_control(PlayerControl.RIGHT))
-                or (self.bottom <= target[1] and ((side == Side.RIGHT and self.left >= target[0]) or
-                                         (side == Side.LEFT and self.right <= target[0])))):
+        if not (key_handler.get_control(PlayerControl.LEFT) or key_handler.get_control(PlayerControl.RIGHT)) or (
+            self.bottom <= target[1]
+            and ((side is Side.RIGHT and self.left >= target[0]) or (side is Side.LEFT and self.right <= target[0]))
+        ):
             self.ledge_climbing = None
             return
 
@@ -389,17 +400,27 @@ class PlayerMovement(Hitbox):
             The time between this tick and the last.
         """
 
-        walls_above = self.current_map.get_rect(self.x, self.y + self.height - self.base_height,
-                                                self.width, self.base_height)
+        walls_above = self.current_map.get_rect(
+            self.x,
+            self.y + self.height - self.base_height,
+            self.width,
+            self.base_height,
+        )
         if self.is_rolling():
-            roll_height = clamp(int(self.base_height * PlayerMovement.roll_height_fn(
-                self.roll_time / PlayerMovement.ROLL_LENGTH)), self.base_height, self.min_roll_height)
+            roll_height = clamp(
+                int(self.base_height * PlayerMovement.roll_height_fn(self.roll_time / PlayerMovement.ROLL_LENGTH)),
+                self.base_height,
+                self.min_roll_height,
+            )
 
             do_change = True
             if roll_height > self.height:
                 for wall in walls_above:
-                    if (wall.top < self.top + self.height - self.base_height < wall.bottom and
-                            wall.left < self.right and wall.right > self.left):
+                    if (
+                        wall.top < self.top + self.height - self.base_height < wall.bottom
+                        and wall.left < self.right
+                        and wall.right > self.left
+                    ):
                         # Top when at base height inside wall and x inside wall
                         do_change = False
 

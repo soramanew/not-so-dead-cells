@@ -1,17 +1,16 @@
 import json
-from pathlib import Path
-
 import math
 import random
 from collections.abc import Callable
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from util_types import Side
-from wall import Wall
 from box import Box
-from hitbox import Hitbox
-from utils import get_project_root, strict_eq
+from util.func import get_project_root, strict_eq
+from util.type import Side
+
+from .wall import Wall
 
 type Cell = set[Box]
 type Row = list[Cell | None]
@@ -19,7 +18,6 @@ type Grid = list[Row | None]
 
 
 class Map:
-
     GRAVITY: int = 800
     AIR_RESISTANCE: float = 0.05
 
@@ -27,8 +25,14 @@ class Map:
     def storage() -> Path:
         return get_project_root() / "assets/maps"
 
-    def __init__(self, zone: str, load: bool = True,
-                 width: int = 2000, height: int = 2000, cell_size: int = 50) -> None:
+    def __init__(
+        self,
+        zone: str,
+        load: bool = True,
+        width: int = 2000,
+        height: int = 2000,
+        cell_size: int = 50,
+    ) -> None:
         self.objects: set[Box] = set()
         self.zone = zone
         zone_dir = Map.storage() / self.zone
@@ -73,10 +77,12 @@ class Map:
             The coordinates of the left-most cell, top-most cell, right-most cell and bottom-most cell as a tuple.
         """
 
-        return (math.floor(x / self.cell_size),
-                math.floor(y / self.cell_size),
-                math.ceil((x + width) / self.cell_size),
-                math.ceil((y + height) / self.cell_size))
+        return (
+            math.floor(x / self.cell_size),
+            math.floor(y / self.cell_size),
+            math.ceil((x + width) / self.cell_size),
+            math.ceil((y + height) / self.cell_size),
+        )
 
     def _load_walls(self, walls: list[SimpleNamespace]) -> set[Wall]:
         """Loads the given walls into this map's spatial grid.
@@ -145,8 +151,15 @@ class Map:
             self.grid[row][col] = set()
         self.grid[row][col].add(client)
 
-    def get_rect(self, x: float, y: float, width: int, height: int, filter_fn: Callable[[Box], bool] = None,
-                 precision: bool = True) -> list[Box]:
+    def get_rect(
+        self,
+        x: float,
+        y: float,
+        width: int,
+        height: int,
+        filter_fn: Callable[[Box], bool] = None,
+        precision: bool = True,
+    ) -> list[Box]:
         """Fetches all clients in this map within the given rectangle.
 
         Parameters
@@ -161,7 +174,7 @@ class Map:
             The height of the rectangle to search in.
         filter_fn : callable with parameters [Box] and return bool, optional
             A function to filter for specific clients.
-        precision : bool
+        precision : bool, default True
             Whether to check for precise bounds or just use spatial hash columns
 
         Returns
@@ -188,11 +201,10 @@ class Map:
                     if cell is not None:
                         if precision:
                             for c in cell:
-                                if x < c.right and x + width > c.left and \
-                                        y < c.bottom and y + height > c.top:
+                                if x < c.right and x + width > c.left and y < c.bottom and y + height > c.top:
                                     clients.append(c)
                         else:
-                            clients.extend(cell)
+                            clients += cell
 
         return list(filter(filter_fn, set(clients))) if callable(filter_fn) else clients
 
@@ -250,7 +262,7 @@ class Map:
             "cell_size": self.cell_size,
             "spawn": self.player_spawn,
             "init_dir": self.init_dir,
-            "walls": [wall.to_json() for wall in self.walls]
+            "walls": [wall.to_json() for wall in self.walls],
         }
 
         with open(self.save_path, "w") as file:

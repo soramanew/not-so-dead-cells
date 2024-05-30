@@ -1,6 +1,6 @@
 import pygame.key
 
-from util_types import PlayerControl
+from .type import PlayerControl
 
 # The length that keys are held for (s)
 _RETENTION_LENGTH: float = 0
@@ -37,12 +37,12 @@ def get(key: int) -> bool:
         return False
 
 
-def get_control(control: PlayerControl):
-    if control == PlayerControl.LEFT:
+def get_control(control: PlayerControl) -> bool:
+    if control is PlayerControl.LEFT:
         return get(pygame.K_a) or get(pygame.K_LEFT)
-    elif control == PlayerControl.RIGHT:
+    elif control is PlayerControl.RIGHT:
         return get(pygame.K_d) or get(pygame.K_RIGHT)
-    elif control == PlayerControl.SLAM:
+    elif control is PlayerControl.SLAM:
         return (get(pygame.K_s) or get(pygame.K_DOWN)) and get(pygame.K_SPACE)
-    elif control == PlayerControl.JUMP:
+    elif control is PlayerControl.JUMP:
         return get(pygame.K_w) or get(pygame.K_UP) or get(pygame.K_SPACE)
