@@ -2,7 +2,7 @@ from box import Hitbox
 from map import Map, Wall
 from util import key_handler
 from util.func import clamp
-from util.type import Collision, Direction, PlayerControl, Position, Side, run_once
+from util.type import Collision, Direction, PlayerControl, Side, Vec2, run_once
 
 
 class PlayerMovement(Hitbox):
@@ -66,7 +66,7 @@ class PlayerMovement(Hitbox):
         self.on_platform: bool = False
         self.roll_time: float = 0
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
-        self.ledge_climbing: tuple[Side, Position] | None = None
+        self.ledge_climbing: tuple[Side, Vec2] | None = None
         self.wall_climb_time: float = 0
 
     # ------------------------------ Getters ------------------------------ #

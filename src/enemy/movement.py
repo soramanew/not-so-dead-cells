@@ -117,7 +117,7 @@ class EnemyMovement(Hitbox):
                 self.gravity = 0
 
     def _start_move(self) -> None:
-        """Starts idle movement by choosing a target to move."""
+        """Starts idle movement by choosing a target to move to."""
 
         self.move_target = uniform(self.area[0], self.area[1] - self.width)
         self.moving = True

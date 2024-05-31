@@ -4,7 +4,7 @@ import pygame
 from box import Box
 from map import Map, Wall
 from util.func import normalise_rect
-from util.type import Position, Rect
+from util.type import Rect, Vec2
 
 from .camera import Camera
 
@@ -17,7 +17,7 @@ class Builder:
         self.map = Map(zone, load=False, width=width, height=height)
         self.map_box = Box(0, 0, width, height)
         self.camera = Camera(width, height)
-        self.selection_start: Position | tuple = ()
+        self.selection_start: Vec2 | tuple = ()
         self.selection: Rect | tuple = ()
         self.has_selection = False
 
@@ -135,7 +135,7 @@ class Builder:
         """Sets the map's player spawn to the current selection."""
         self.map.set_player(*self.selection)
 
-    def handle_l_drag(self, curr_pos: Position) -> None:
+    def handle_l_drag(self, curr_pos: Vec2) -> None:
         """Changes the selection based on the given position.
 
         Parameters
@@ -151,7 +151,7 @@ class Builder:
             int(y_w_off - self.selection_start[1]),
         )
 
-    def handle_r_drag(self, prev_pos: Position, curr_pos: Position) -> None:
+    def handle_r_drag(self, prev_pos: Vec2, curr_pos: Vec2) -> None:
         """Moves the camera by the difference between the current and previous mouse positions.
 
         Parameters

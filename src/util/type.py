@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from box import Hitbox
 
-type Position = tuple[float, float]
+type Vec2 = tuple[float, float]
+type Line = tuple[Vec2, Vec2]
 type Rect = tuple[float, float, int, int]
 
 

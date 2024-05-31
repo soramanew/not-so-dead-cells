@@ -32,7 +32,6 @@ class Box:
     @left.setter
     def left(self, value: float):
         self._left = value
-        self._rect.left = self.left
 
     @property
     def top(self):
@@ -45,7 +44,6 @@ class Box:
     @top.setter
     def top(self, value: float):
         self._top = value
-        self._rect.top = self.top
 
     @property
     def right(self):
@@ -58,7 +56,6 @@ class Box:
     @right.setter
     def right(self, value: float):
         self.left = value - self.width
-        self._rect.right = self.right
 
     @property
     def bottom(self):
@@ -71,25 +68,24 @@ class Box:
     @bottom.setter
     def bottom(self, value: float):
         self.top = value - self.height
-        self._rect.bottom = self.bottom
 
     @property
     def width(self):
         """The width of this box."""
-        return self._rect.width
+        return self._width
 
     @width.setter
     def width(self, value):
-        self._rect.width = value
+        self._width = value
 
     @property
     def height(self):
         """The height of this box."""
-        return self._rect.height
+        return self._height
 
     @height.setter
     def height(self, value):
-        self._rect.height = value
+        self._height = value
 
     @property
     def center_x(self):
@@ -108,9 +104,10 @@ class Box:
         self.y = value - self.height / 2
 
     def __init__(self, x: float, y: float, width: int, height: int):
-        self._rect = pygame.Rect(x, y, width, height)
         self.left = x
         self.top = y
+        self.width = width
+        self.height = height
 
     def draw(
         self,

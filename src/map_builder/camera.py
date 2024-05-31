@@ -3,7 +3,7 @@ from collections.abc import Callable
 import pygame
 from box import Box, Hitbox
 from map import Map
-from util.type import Position
+from util.type import Vec2
 
 
 class Camera(Box):
@@ -154,7 +154,7 @@ class Camera(Box):
         window.fill(Camera.CROSSHAIR_COLOUR, vertical_rect)
         window.fill(Camera.CROSSHAIR_COLOUR, horizontal_rect)
 
-    def get_relative(self, x: float, y: float) -> Position:
+    def get_relative(self, x: float, y: float) -> Vec2:
         """Subtracts this camera's position from the given coordinates to get the coordinates
         relative to the camera's viewport.
 
@@ -173,7 +173,7 @@ class Camera(Box):
 
         return x - self.x, y - self.y
 
-    def get_absolute(self, x: float, y: float) -> Position:
+    def get_absolute(self, x: float, y: float) -> Vec2:
         """Adds this camera's position to the given coordinates to get the coordinates in absolute (world) space.
 
         This method assumes the given coordinate is in this camera's local space.
