@@ -1,43 +1,23 @@
-from random import getrandbits, random, uniform
+from random import random, uniform
 
-from box import Hitbox
-from map import Map, Wall
-from util.type import Direction, Side
+from map import Wall
+from player import Player
+from util.func import clamp
+from util.type import Side
+
+from .enemyabc import EnemyABC
 
 
-class EnemyMovement(Hitbox):
+class Movement(EnemyABC):
     # The chance of a non-moving enemy starting to move per tick
     MOVE_CHANCE: float = 0.01
 
     # The distance (pixels) between the enemy and it's move target to be considered as reached the target
     TARGET_THRESHOLD: float = 0.01
 
-    def __init__(
-        self,
-        current_map: Map,
-        platform: Wall,
-        width: int,
-        height: int,
-        speed: float,
-        x: float = None,
-        y: float = None,
-        facing: Side = None,
-    ):
-        # Default values
-        if x is None:
-            x = uniform(platform.left, platform.right - width)
-        if y is None:
-            y = platform.top - height
-        if facing is None:
-            facing = Side.RIGHT if getrandbits(1) else Side.LEFT  # Random init dir
-
-        # Init
-        super().__init__(x, y, width, height)
-        self.map: Map = current_map
-        self.platform: Wall = platform  # The platform this enemy is on
+    def __init__(self, speed: float, facing: Side = None, **kwargs):
+        super().__init__(**kwargs)
         self.speed: float = speed  # Movement speed (px/s)
-        self.gravity: float = 0
-        self.facing: Side = facing
         self.moving: bool = False
         self.move_target: float
         self.area: tuple[float, float] = self._get_area()
@@ -58,14 +38,14 @@ class EnemyMovement(Hitbox):
             self.platform.y - self.height,
             self.platform.width,
             self.height,
-            lambda o: isinstance(o, Wall) and o is not self.platform,
+            lambda o: o is not self.platform and isinstance(o, Wall),
         )
         if not obstacles:
             return self.platform.left, self.platform.right
 
         def check_collisions() -> bool:
             for obs in obstacles:
-                if self.detect_collision(obs):
+                if self.detect_collision_box(obs):
                     return True
             return False
 
@@ -95,49 +75,39 @@ class EnemyMovement(Hitbox):
             ),
         )
 
-    def tick(self, dt: float) -> None:
+    def _tick_move(self, dt: float, player: Player) -> None:
         """Updates this Enemy's position and has a chance to start idle movement if not currently moving.
 
         Parameters
         ----------
         dt : float
             The seconds between this tick and the last.
+        player : Player
+            The player.
         """
+
+        if self.alerted:
+            self.move_target = clamp(
+                player.x - min(self.width + self.atk_range, abs(player.x - self.x)) * self.facing.value,
+                self.area[1],
+                self.area[0],
+            )
+            self.moving = True
 
         if not self.moving:
-            if random() < EnemyMovement.MOVE_CHANCE:
-                self._start_move()
+            if random() < Movement.MOVE_CHANCE:
+                # Start moving
+                self.move_target = uniform(self.area[0], self.area[1] - self.width)
+                self.moving = True
         else:
-            self._tick_move(dt)
-
-        self.gravity += Map.GRAVITY * dt
-        collisions = self.move_axis(0, self.gravity * dt, self.map.walls)
-        for direction, entity in collisions:
-            if direction is Direction.DOWN and isinstance(entity, Wall):
-                self.gravity = 0
-
-    def _start_move(self) -> None:
-        """Starts idle movement by choosing a target to move to."""
-
-        self.move_target = uniform(self.area[0], self.area[1] - self.width)
-        self.moving = True
-
-    def _tick_move(self, dt: float) -> None:
-        """Stops movement if this Enemy has reached its target, otherwise moves it towards its target.
-
-        Parameters
-        ----------
-        dt : float
-            The seconds between this tick and the last.
-        """
-
-        if abs(self.x - self.move_target) < EnemyMovement.TARGET_THRESHOLD:
-            self.moving = False
-        else:
-            diff = self.move_target - self.x
-            self.facing = Side.LEFT if diff < 0 else Side.RIGHT
-            self.move_axis(
-                (diff if abs(diff) < self.speed * dt else self.speed * self.facing.value * dt),
-                0,
-                self.map.walls,
-            )
+            # Tick movement
+            if abs(self.x - self.move_target) < Movement.TARGET_THRESHOLD:
+                self.moving = False
+            else:
+                diff = self.move_target - self.x
+                self.facing = Side.LEFT if diff < 0 else Side.RIGHT
+                self.move_axis(
+                    (diff if abs(diff) < self.speed * dt else self.speed * self.facing.value * dt),
+                    0,
+                    self.map.walls,
+                )

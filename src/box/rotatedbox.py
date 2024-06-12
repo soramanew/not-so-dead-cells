@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 
+import pygame
 from util.type import Line, Vec2
 
 from .box import Box
@@ -91,7 +92,9 @@ class RotatedBox:
     @property
     def center(self) -> Vec2:
         return self._rotate_point(
-            self.anchor_x + self.width * (0.5 - self.anchor_xr), self.anchor_y + self.height * (0.5 - self.anchor_yr)
+            self.anchor_x + self.width * (0.5 - self.anchor_xr),
+            self.anchor_y + self.height * (0.5 - self.anchor_yr),
+            (self.anchor_x, self.anchor_y),
         )
 
     @property
@@ -120,8 +123,8 @@ class RotatedBox:
         self.anchor_xr: float = anchor_xr  # The point of the anchor along the width (0 = left, 1 = right)
         self.anchor_yr: float = anchor_yr  # The point of the anchor along the height (0 = top, 1 = bottom)
 
-    def _rotate_point(self, x: float, y: float) -> Vec2:
-        cx, cy = self.center
+    def _rotate_point(self, x: float, y: float, center: Vec2 = None) -> Vec2:
+        cx, cy = self.center if center is None else center
         temp_x = x - cx
         temp_y = y - cy
         cos = math.cos(self.angle)
@@ -140,3 +143,33 @@ class RotatedBox:
         return _projection_colliding(
             box, self, (((box.center_x, box.center_y), (1, 0)), ((box.center_x, box.center_y), (0, 1)))
         ) and _projection_colliding(self, box, self._get_axes())
+
+    def draw(
+        self,
+        window: pygame.Surface,
+        colour: tuple[int, int, int] = (0, 0, 255),
+        x_off: float = 0,
+        y_off: float = 0,
+        scale: float = 1,
+    ) -> None:
+        """Draws this box to the given surface.
+
+        Parameters
+        ----------
+        window : pygame.Surface
+            The surface to draw to.
+        colour : tuple[int, int, int], default = (0, 0, 255)
+            The colour to draw this box as.
+        x_off : float, default = 0
+            The offset in the x direction to draw this box.
+        y_off : float, default = 0
+            The offset in the y direction to draw this box.
+        scale : float, default = 1
+            The scale to draw this box.
+        """
+
+        left = (self.left + x_off) * scale
+        top = (self.top + y_off) * scale
+        right = (self.right + x_off) * scale
+        bottom = (self.bottom + y_off) * scale
+        pygame.draw.polygon(window, colour, ((left, top), (right, top), (right, bottom), (left, bottom)))

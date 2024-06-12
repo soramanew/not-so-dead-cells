@@ -38,7 +38,8 @@ class Map:
         zone_dir = Map.storage() / self.zone
 
         if load:
-            self.save_path = random.choice(list(zone_dir.iterdir()))
+            # self.save_path = random.choice(list(zone_dir.iterdir()))
+            self.save_path = zone_dir / "5.json"
             map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
             self.width = int(map_data.width)
             self.height = int(map_data.height)
@@ -223,7 +224,7 @@ class Map:
             self.walls.add(wall)
             self.add_box(wall)
 
-    def set_player(self, x: float, y: float, width: int, height: int) -> None:
+    def set_player_spawn(self, x: float, y: float, width: int, height: int) -> None:
         """Sets the player spawn for this map.
 
         This also determines the size of the player.

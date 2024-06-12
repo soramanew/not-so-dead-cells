@@ -22,14 +22,17 @@ def main():
 
     current_map = Map("prisoners_quarters")
     player = Player(current_map)
-    camera = Camera(player.movement, window_width, window_height)
+    camera = Camera(player, window_width, window_height)
 
     enemies = []
     for wall in current_map.walls:
-        enemies.append(Enemy(current_map, wall, 10, 20, 100))
+        enemies.append(Enemy(current_map, platform=wall, size=(10, 20), speed=100, sense_size=(200, 150), atk_range=10))
+
+    font = pygame.font.SysFont("Rubik", 20)
 
     while True:
-        dt = clock.tick(60) / 1000  # To get in seconds
+        dt = clock.tick(144) / 1000  # To get in seconds
+        # TODO fps chooser
 
         move_types = []
 
@@ -58,7 +61,7 @@ def main():
         key_handler.tick(dt)
         player.tick(dt, move_types)
         for enemy in enemies:
-            enemy.tick(dt)
+            enemy.tick(dt, player)
         camera.tick_move(dt)
 
         # --- Wrapping logic --- #
@@ -78,7 +81,10 @@ def main():
         # Draw stuff
         camera.render(window, current_map, debug=True)
         for enemy in enemies:
-            camera._render_w_off(enemy.movement, window, colour=(255, 0, 0))
+            camera._render_w_off(enemy, window, colour=(255, 0, 0))
+
+        # FPS monitor
+        window.blit(font.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255)), (15, 15))
 
         # Update window
         pygame.display.update()

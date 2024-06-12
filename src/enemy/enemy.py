@@ -1,56 +1,85 @@
+import random
+
+import pygame
+from box import Hitbox
 from map import Map, Wall
-from util.type import Side
+from player import Player
+from util.type import Colour, Side, Size, Vec2
 
-from .movement import EnemyMovement
+from .movement import Movement
+from .sense import Sense
 
 
-class Enemy:
+class Enemy(Hitbox, Movement, Sense):
     @property
-    def x(self):
-        return self.movement.x
-
-    @property
-    def y(self):
-        return self.movement.y
+    def head_x(self) -> float:
+        return self.x + self._get_dep_facing(self._head_x) * self.width
 
     @property
-    def width(self):
-        return self.movement.width
-
-    @property
-    def height(self):
-        return self.movement.height
-
-    @property
-    def facing(self):
-        return self.movement.facing
-
-    @property
-    def head_x(self):
-        return self.x + self.width * (self._head_x if self.facing is Side.LEFT else 1 - self._head_x)
-
-    @property
-    def head_y(self):
-        return self.y + self.height * self._head_y
+    def head_y(self) -> float:
+        return self.y + self._head_y
 
     def __init__(
         self,
         current_map: Map,
-        platform: Wall,
-        width: int,
-        height: int,
+        platform: Wall,  # The platform this enemy is on
+        size: Size,
         speed: float,
-        x: float = None,
-        y: float = None,
+        sense_size: Size,
+        atk_range: float,
+        pos: Vec2 = (None, None),
         facing: Side = None,
-        head_x: float = 0.5,  # Head position, see head_x property, 0 = facing, 1 = opposite
-        head_y: float = 0.3,  # See head_y property, 0 = top, 1 = bottom
-        head_angle: float = 0,  # The angle to the horizontal of the head facing (radians) (positive = down)
+        head_pos: Vec2 = (0.7, 0.3),  # Head position in direction facing as ratio (width, height)
+        sense_anchor: Vec2 = (0.2, 0.5),  # Same as head but for sense
     ):
-        self.movement: EnemyMovement = EnemyMovement(current_map, platform, width, height, speed, x, y, facing)
+        width, height = size
+        x, y = pos
 
-        self._head_x: float = head_x
-        self._head_y: float = head_y
+        # Default values
+        if x is None:
+            x = random.uniform(platform.left, platform.right - width)
+        if y is None:
+            y = platform.top - height
+        if facing is None:
+            facing = Side.RIGHT if random.getrandbits(1) else Side.LEFT  # Random init dir
 
-    def tick(self, dt: float):
-        self.movement.tick(dt)
+        # Init
+        self.map: Map = current_map
+        self.platform: Wall = platform
+        self.facing: Side = facing
+        self._head_x, self._head_y = head_pos
+        self.alerted = False
+        self.atk_range = atk_range
+
+        super().__init__(
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            speed=speed,
+            sense_x=sense_anchor[0],
+            sense_y=sense_anchor[1],
+            sense_width=sense_size[0],
+            sense_height=sense_size[1],
+        )
+
+        # After super because depends on height
+        self._head_y *= self.height
+
+    def _get_dep_facing(self, ratio: float) -> float:
+        return ratio if self.facing is Side.RIGHT else 1 - ratio
+
+    def tick(self, dt: float, player: Player) -> None:
+        self._tick_sense(player)
+        self._tick_move(dt, player)
+
+    def draw(
+        self,
+        surface: pygame.Surface,
+        colour: Colour = (0, 0, 255),
+        x_off: float = 0,
+        y_off: float = 0,
+        scale: float = 1,
+    ) -> None:
+        super().draw(surface, colour, x_off, y_off, scale)
+        self.draw_sense(surface, ((0, 255, 0), (200, 50, 50)), x_off, y_off, scale)

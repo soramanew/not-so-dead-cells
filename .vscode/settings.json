@@ -1,11 +1,16 @@
 {
     "cSpell.words": [
+        "blit",
         "COOLDOWN",
+        "drawables",
+        "enemyabc",
         "funcs",
         "Hitbox",
+        "Hitboxes",
         "KEYDOWN",
         "KEYUP",
         "pygame",
+        "rotatedbox",
         "VIDEORESIZE"
     ]
 }

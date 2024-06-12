@@ -133,7 +133,7 @@ class Builder:
 
     def set_player(self) -> None:
         """Sets the map's player spawn to the current selection."""
-        self.map.set_player(*self.selection)
+        self.map.set_player_spawn(*self.selection)
 
     def handle_l_drag(self, curr_pos: Vec2) -> None:
         """Changes the selection based on the given position.

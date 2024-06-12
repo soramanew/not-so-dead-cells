@@ -1,6 +1,7 @@
 import pygame
-from box import Box, Hitbox
+from box import Box
 from map import Map
+from util.type import Drawable
 
 
 class Camera(Box):
@@ -54,7 +55,7 @@ class Camera(Box):
         dy = (self.target.center_y - self.center_y) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
         self.move(dx, dy)
 
-    def _render_w_off(self, target: Box, window: pygame.Surface, **kwargs) -> None:
+    def _render_w_off(self, target: Drawable, window: pygame.Surface, **kwargs) -> None:
         """Renders the given target to the given surface through this camera's viewport.
 
         This method draws the target to the surface with an offset of the negative of this camera's position.
@@ -74,7 +75,7 @@ class Camera(Box):
     def render_debug(self, window: pygame.Surface, current_map: Map) -> None:
         """Renders the given map in debug mode to the given surface through this camera's viewport.
 
-        This method renders the map's Hitboxes.
+        This method renders the map's Drawables.
 
         See Also
         --------
@@ -88,15 +89,15 @@ class Camera(Box):
             The map to render in debug mode.
         """
 
-        hitboxes = current_map.get_rect(
+        drawables = current_map.get_rect(
             self.x,
             self.y,
             self.width,
             self.height,
-            lambda client: isinstance(client, Hitbox),
+            lambda client: isinstance(client, Drawable),
         )
-        for hitbox in hitboxes:
-            self._render_w_off(hitbox, window)
+        for drawable in drawables:
+            self._render_w_off(drawable, window)
 
     def render(self, window: pygame.Surface, current_map: Map, debug: bool = False) -> None:
         """Renders the given map to the given surface through this camera's viewport.

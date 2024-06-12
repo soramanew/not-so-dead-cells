@@ -6,8 +6,8 @@ from .box import Box
 
 
 class Hitbox(Box):
-    def __init__(self, x: float, y: float, width: int, height: int):
-        super().__init__(x, y, width, height)
+    def __init__(self, x: float, y: float, width: int, height: int, **kwargs):
+        super().__init__(x, y, width, height, **kwargs)
 
     def __str__(self) -> str:
         return f"Hitbox [ {self.left=}, {self.top=}, {self.right=}, {self.bottom=} ]"
@@ -76,7 +76,7 @@ class Hitbox(Box):
 
         if boxes is not None:
             for box in boxes:
-                if self.detect_collision(box):
+                if self.detect_collision_box(box):
                     if dx > 0:
                         collisions.append(Collision(Direction.RIGHT, box))
                         self.right = box.left
@@ -92,5 +92,11 @@ class Hitbox(Box):
 
         return collisions
 
-    def detect_collision(self, box: Box) -> bool:
-        return self.left < box.right and self.right > box.left and self.top < box.bottom and self.bottom > box.top
+    def detect_collision(self, left: float, top: float, right: float, bottom: float) -> bool:
+        return self.left < right and self.right > left and self.top < bottom and self.bottom > top
+
+    def detect_collision_box(self, box: Box) -> bool:
+        return self.detect_collision(box.left, box.top, box.right, box.bottom)
+
+    def detect_collision_rect(self, left: float, top: float, width: int, height: int) -> bool:
+        return self.detect_collision(left, top, left + width, top + height)
