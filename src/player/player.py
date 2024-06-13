@@ -1,8 +1,9 @@
 from box import Hitbox
 from map import Map, Wall
 from util import key_handler
+from util.decor import run_once
 from util.func import clamp
-from util.type import Collision, Direction, PlayerControl, Side, Vec2, run_once
+from util.type import Collision, Direction, PlayerControl, Side, Vec2
 
 
 def _roll_height_fn(x):
@@ -47,6 +48,22 @@ class Player(Hitbox):
     # The speed at which the player can climb ledges (multiplier to player height)
     LEDGE_CLIMB_SPEED: float = 3
 
+    # Invincibility frames after taking damage in seconds
+    I_FRAMES: float = 0.3
+
+    # The max health of the player
+    MAX_HEALTH: float = 100
+
+    @property
+    def health(self) -> int:
+        return self._health
+
+    @health.setter
+    def health(self, value: int) -> None:
+        if value < self._health:
+            self.i_frames = Player.I_FRAMES
+        self._health = value
+
     # ---------------------------- Constructor ---------------------------- #
 
     def __init__(self, current_map: Map):
@@ -66,6 +83,8 @@ class Player(Hitbox):
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
         self.ledge_climbing: tuple[Side, Vec2] | None = None
         self.wall_climb_time: float = 0
+        self._health: int = Player.MAX_HEALTH
+        self.i_frames: float = 0
 
     # ------------------------------ Getters ------------------------------ #
 
@@ -320,6 +339,9 @@ class Player(Hitbox):
         self.vx /= 1 + (Map.AIR_RESISTANCE + (Wall.FRICTION if self.on_platform else 0)) * dt
         self.vy /= 1 + Map.AIR_RESISTANCE * dt
 
+        # Tick invincibility frames
+        self.i_frames -= dt
+
         self._tick_roll(dt)
 
         if not self.slamming:
@@ -372,6 +394,7 @@ class Player(Hitbox):
             self.roll_cooldown -= dt
 
         if self.is_rolling():
+            self.i_frames = 0.001
             # Reduce roll time and set vx to roll speed if rolling
             self.roll_time -= dt
             self.vx = Player.ROLL_SPEED * self.facing.value
@@ -459,3 +482,10 @@ class Player(Hitbox):
         self.tick_changes(dt)
         collisions = self.update_position(dt)
         self.handle_collisions(collisions)
+
+    def take_hit(self, damage: int) -> None:
+        if self.i_frames > 0:
+            return
+
+        self.health -= damage
+        print(self.health)

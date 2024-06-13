@@ -1,5 +1,4 @@
 import pygame
-from player import Player
 from util.type import Colour
 
 from .enemyabc import EnemyABC
@@ -21,11 +20,11 @@ class Sense(EnemyABC):
         self.sense_width: int = sense_width
         self.sense_height: int = sense_height
 
-    def check_for_player(self, player: Player) -> bool:
-        return player.detect_collision_rect(self.sense_x, self.sense_y, self.sense_width, self.sense_height)
+    def check_for_player(self) -> bool:
+        return self.player.detect_collision_rect(self.sense_x, self.sense_y, self.sense_width, self.sense_height)
 
-    def _tick_sense(self, player: Player) -> None:
-        self.alerted = self.check_for_player(player)
+    def _tick_sense(self) -> None:
+        self.alerted = self.check_for_player()
 
     def draw_sense(
         self,
@@ -48,6 +47,6 @@ class Sense(EnemyABC):
         if width < 0 or height < 0:
             return
         s = pygame.Surface((width, height))
-        s.set_alpha(128)
+        s.set_alpha(60)
         s.fill(colours[1 if self.alerted else 0])
         surface.blit(s, (x, y))

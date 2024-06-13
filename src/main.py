@@ -4,7 +4,7 @@ import sys
 
 import pygame
 from camera import Camera
-from enemy import Enemy
+from enemy import Zombie
 from map import Map
 from player import Player
 from util import key_handler
@@ -26,7 +26,8 @@ def main():
 
     enemies = []
     for wall in current_map.walls:
-        enemies.append(Enemy(current_map, platform=wall, size=(10, 20), speed=100, sense_size=(200, 150), atk_range=10))
+        for i in range(2):
+            enemies.append(Zombie(player, current_map, wall))
 
     font = pygame.font.SysFont("Rubik", 20)
 
@@ -61,7 +62,8 @@ def main():
         key_handler.tick(dt)
         player.tick(dt, move_types)
         for enemy in enemies:
-            enemy.tick(dt, player)
+            enemy.tick(dt)
+
         camera.tick_move(dt)
 
         # --- Wrapping logic --- #

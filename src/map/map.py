@@ -39,7 +39,7 @@ class Map:
 
         if load:
             # self.save_path = random.choice(list(zone_dir.iterdir()))
-            self.save_path = zone_dir / "5.json"
+            self.save_path = zone_dir / "1.json"
             map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
             self.width = int(map_data.width)
             self.height = int(map_data.height)

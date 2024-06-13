@@ -1,7 +1,6 @@
 from random import random, uniform
 
 from map import Wall
-from player import Player
 from util.func import clamp
 from util.type import Side
 
@@ -75,21 +74,27 @@ class Movement(EnemyABC):
             ),
         )
 
-    def _tick_move(self, dt: float, player: Player) -> None:
+    def _tick_move(self, dt: float) -> None:
         """Updates this Enemy's position and has a chance to start idle movement if not currently moving.
 
         Parameters
         ----------
         dt : float
             The seconds between this tick and the last.
-        player : Player
-            The player.
         """
+
+        if self.atk_stop_mv:
+            return
 
         if self.alerted:
             self.move_target = clamp(
-                player.x - min(self.width + self.atk_range, abs(player.x - self.x)) * self.facing.value,
-                self.area[1],
+                self.player.x
+                - min(
+                    (self if self.facing is Side.RIGHT else self.player).width + self.atk_width * 0.8,
+                    abs(self.player.x - self.x),
+                )
+                * self.facing.value,
+                self.area[1] - self.width,
                 self.area[0],
             )
             self.moving = True

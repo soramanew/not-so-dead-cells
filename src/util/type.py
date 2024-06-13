@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from functools import wraps
-from types import MethodType
 from typing import TYPE_CHECKING
 
 import pygame
@@ -51,19 +49,3 @@ class Collision:
 
     def __iter__(self):
         return iter((self.direction, self.entity))
-
-
-def _reset_run_once(self):
-    self.has_run = False
-
-
-def run_once(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            wrapper.has_run = True
-            return f(*args, **kwargs)
-
-    wrapper.has_run = False
-    wrapper.reset = MethodType(_reset_run_once, wrapper)
-    return wrapper

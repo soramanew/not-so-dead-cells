@@ -1,1 +1,1 @@
-from .enemy import Enemy
+from .types import *
