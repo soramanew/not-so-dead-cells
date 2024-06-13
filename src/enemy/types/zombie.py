@@ -3,9 +3,10 @@ from player import Player
 
 from ..attack import SwordAttack
 from ..enemy import Enemy
+from ..movement import GroundIdleMovement
 
 
-class Zombie(Enemy, SwordAttack):
+class Zombie(Enemy, GroundIdleMovement, SwordAttack):
     def __init__(self, player: Player, current_map: Map, platform: Wall):
         super().__init__(
             player,

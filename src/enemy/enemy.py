@@ -6,11 +6,10 @@ from map import Map, Wall
 from player import Player
 from util.type import Colour, Side, Size, Vec2
 
-from .movement import Movement
 from .sense import Sense
 
 
-class Enemy(Hitbox, Movement, Sense):
+class Enemy(Hitbox, Sense):
     @property
     def head_x(self) -> float:
         return self.x + self._get_dep_facing(self._head_x) * self.width
