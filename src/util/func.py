@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .type import Rect
+from .type import Line, Rect, Vec2
 
 
 def get_project_root():
@@ -91,3 +91,30 @@ def strict_eq(a, b) -> bool:
     """
 
     return type(a).__name__ == type(b).__name__
+
+
+def line_line(l1: Line, l2: Line) -> Vec2 | None:
+    """Line to line intersection.
+
+    Credit to https://www.jeffreythompson.org/collision-detection/line-line.php
+
+    Parameters
+    ----------
+    l1 : Line
+        The first line.
+    l2 : Line
+        The second line.
+
+    Returns
+    -------
+    Vec2 | None
+        The intersection point or None if not intersecting.
+    """
+
+    (x1, y1), (x2, y2) = l1
+    (x3, y3), (x4, y4) = l2
+    u_a = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
+    u_b = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
+    if 0 <= u_a <= 1 and 0 <= u_b <= 1:
+        return x1 + (u_a * (x2 - x1)), y1 + (u_a * (y2 - y1))
+    return None

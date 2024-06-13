@@ -29,7 +29,6 @@ class Enemy(Hitbox, Movement, Sense):
         current_map: Map,
         platform: Wall,  # The platform this enemy is on
         size: Size,
-        speed: float,
         sense_size: Size,
         atk_width: float,
         atk_windup: float,
@@ -75,7 +74,6 @@ class Enemy(Hitbox, Movement, Sense):
             y=y,
             width=width,
             height=height,
-            speed=speed,
             sense_x=sense_anchor[0],
             sense_y=sense_anchor[1],
             sense_width=sense_size[0],

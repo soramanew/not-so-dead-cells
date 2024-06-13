@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import pygame
 from util.func import comp_as_int, strict_eq
-from util.type import Colour, Drawable
+from util.type import Colour, Drawable, Rect
 
 
 class BoxABC(ABC):
@@ -205,3 +205,6 @@ class Box(BoxABC, Drawable):
             )
         else:
             return False
+
+    def __iter__(self) -> Rect:
+        return iter((self.x, self.y, self.width, self.height))
