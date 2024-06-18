@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import pygame
-from util.func import comp_as_int, strict_eq
+from util.func import comp_as_int, normalise_for_drawing, strict_eq
 from util.type import Colour, Drawable, Rect
 
 
@@ -109,7 +109,9 @@ class Box(BoxABC, Drawable):
 
     @width.setter
     def width(self, value: int) -> None:
-        self._width = value
+        if value < 0:
+            self.x -= value
+        self._width = abs(value)
 
     @property
     def height(self) -> int:
@@ -118,7 +120,9 @@ class Box(BoxABC, Drawable):
 
     @height.setter
     def height(self, value: int) -> None:
-        self._height = value
+        if value < 0:
+            self.y -= value
+        self._height = abs(value)
 
     @property
     def center_x(self) -> float:
@@ -169,17 +173,9 @@ class Box(BoxABC, Drawable):
             The scale to draw this box.
         """
 
-        x = (self.x + x_off) * scale
-        y = (self.y + y_off) * scale
-        width = self.width * scale
-        height = self.height * scale
-        if x < 0:
-            width += x
-            x = 0
-        if y < 0:
-            height += y
-            y = 0
-        surface.fill(colour, (x, y, width, height))
+        x, y, width, height = normalise_for_drawing(*self, x_off, y_off, scale)
+        if width > 0 and height > 0:
+            surface.fill(colour, (x, y, width, height))
 
     def to_json(self) -> dict[str, float | int]:
         """Converts this box to JSON format.

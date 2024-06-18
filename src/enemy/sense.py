@@ -1,6 +1,6 @@
 import pygame
 from map import Wall
-from util.func import line_line
+from util.func import line_line, normalise_for_drawing
 from util.type import Colour, Line, Rect
 
 from .enemyabc import EnemyABC
@@ -68,23 +68,12 @@ class Sense(EnemyABC):
         self,
         surface: pygame.Surface,
         colours: tuple[Colour, Colour],
-        x_off: float = 0,
-        y_off: float = 0,
-        scale: float = 1,
+        x_off: float,
+        y_off: float,
+        scale: float,
     ) -> None:
-        x = (self.sense_x + x_off) * scale
-        y = (self.sense_y + y_off) * scale
-        width = self.sense_width * scale
-        height = self.sense_height * scale
-
-        if x < 0:
-            width += x
-            x = 0
-        if y < 0:
-            height += y
-            y = 0
-
-        if width < 0 or height < 0:
+        x, y, width, height = normalise_for_drawing(*self.sense_area, x_off, y_off, scale)
+        if width <= 0 or height <= 0:
             return
 
         s = pygame.Surface((width, height))

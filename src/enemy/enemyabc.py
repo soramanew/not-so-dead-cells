@@ -1,9 +1,10 @@
 from abc import abstractmethod
 
+import pygame
 from box import BoxABC
 from map import Map, Wall
 from player import Player
-from util.type import Side
+from util.type import Colour, Side
 
 
 class EnemyABC(BoxABC):
@@ -18,6 +19,8 @@ class EnemyABC(BoxABC):
     health: int
     damage: int
     alerted: bool
+    vx: float
+    vy: float
 
     @property
     @abstractmethod
@@ -36,6 +39,11 @@ class EnemyABC(BoxABC):
 
     @property
     @abstractmethod
+    def arm_y(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
     def atk_stop_mv(self) -> bool:
         """If the enemy is stopped due to attacking."""
         pass
@@ -45,5 +53,21 @@ class EnemyABC(BoxABC):
         pass
 
     @abstractmethod
-    def _tick_attack(self) -> None:
+    def _tick_sense(self, dt: float) -> None:
+        pass
+
+    @abstractmethod
+    def _tick_move(self) -> None:
+        pass
+
+    @abstractmethod
+    def _tick_attack(self, dt: float) -> None:
+        pass
+
+    @abstractmethod
+    def take_hit(self, damage: int, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    def draw_attack(self, surface: pygame.Surface, colour: Colour, x_off: float, y_off: float, scale: float) -> None:
         pass

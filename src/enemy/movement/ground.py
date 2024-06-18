@@ -1,8 +1,8 @@
 from random import random, uniform
 
-from map import Wall
+from map import Map, Wall
 from util.func import clamp
-from util.type import Side
+from util.type import Direction, Side
 
 from ..enemyabc import EnemyABC
 
@@ -17,7 +17,9 @@ class GroundMovement(EnemyABC):
         super().__init__(**kwargs)
         self.speed: float = speed  # Movement speed (px/s)
         self.moving: bool = False
-        self.move_target: float
+        self.move_target: float = None
+        self.vx: float = 0  # x velocity due to knockback
+        self.vy: float = 0
         self.area: tuple[float, float] = self._get_area()
 
     def _get_area(self) -> tuple[float, float]:
@@ -111,6 +113,15 @@ class GroundMovement(EnemyABC):
                     0,
                     self.map.walls,
                 )
+
+        self.vx /= 1 + Map.AIR_RESISTANCE * dt
+        self.vy /= 1 + Map.AIR_RESISTANCE * dt
+        self.vy += Map.GRAVITY * dt
+
+        collisions = self.move(self.vx * dt, self.vy * dt, self.map.walls)
+        for direction, entity in collisions:
+            if direction == Direction.DOWN and isinstance(entity, Wall):
+                self.vy = 0
 
 
 class GroundIdleMovement(GroundMovement):

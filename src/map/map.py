@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 import json
-import math
 import random
 from collections.abc import Callable
+from math import ceil, floor
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from box import Box
 from util.func import get_project_root, strict_eq
 from util.type import Side
 
 from .wall import Wall
+
+if TYPE_CHECKING:
+    from enemy.enemy import Enemy
+    from item import Pickup
 
 type Cell = set[Box]
 type Row = list[Cell | None]
@@ -57,6 +63,27 @@ class Map:
         self.cols = self.width // self.cell_size
         self.grid: Grid = [None] * self.rows
         self.walls: set[Wall] = self._load_walls(map_data.walls) if load else set()
+        self.enemies: set[Enemy] = set()
+        self.pickups: set[Pickup] = set()
+
+    def spawn_enemies(self, player):  # FIXME temp
+        from enemy import Zombie
+        from item.modifier import DamageMod
+        from item.pickup import WeaponPickup
+        from item.weapon import BalancedBlade
+
+        for wall in self.walls:
+            for i in range(2):
+                enemy = Zombie(player, self, wall)
+                self.enemies.add(enemy)
+                self.add_box(enemy)
+            pickup = WeaponPickup(self, BalancedBlade([DamageMod()]), wall)
+            self.pickups.add(pickup)
+            self.add_box(pickup)
+
+    def tick(self, dt: float) -> None:
+        for enemy in self.enemies:
+            enemy.tick(dt)
 
     def _to_cells(self, x: float, y: float, width: int, height: int) -> tuple[int, int, int, int]:
         """Converts the given rectangle to the cell coordinates of each side (left, top, right, bottom).
@@ -79,10 +106,10 @@ class Map:
         """
 
         return (
-            math.floor(x / self.cell_size),
-            math.floor(y / self.cell_size),
-            math.ceil((x + width) / self.cell_size),
-            math.ceil((y + height) / self.cell_size),
+            floor(x / self.cell_size),
+            floor(y / self.cell_size),
+            ceil((x + width) / self.cell_size),
+            ceil((y + height) / self.cell_size),
         )
 
     def _load_walls(self, walls: list[SimpleNamespace]) -> set[Wall]:
@@ -99,14 +126,17 @@ class Map:
         Returns
         -------
         set of Wall
-            The set of walls as Walles.
+            The set of walls as Walls.
         """
 
         wall_set = set()
         for wall in walls:
             box = Wall(float(wall.x), float(wall.y), int(wall.w), int(wall.h))
             wall_set.add(box)
-            self.add_box(box)
+
+        # Remove duplicates
+        for wall in wall_set:
+            self.add_box(wall)
 
         return wall_set
 
@@ -122,7 +152,7 @@ class Map:
         """
 
         self.objects.add(box)
-        start_col, start_row, end_col, end_row = self._to_cells(box.x, box.y, box.width, box.height)
+        start_col, start_row, end_col, end_row = self._to_cells(*box)
         for row in range(start_row, end_row + 1):
             for col in range(start_col, end_col + 1):
                 self._add_to_cell(box, row, col)

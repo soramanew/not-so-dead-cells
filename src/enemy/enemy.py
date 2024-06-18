@@ -4,7 +4,7 @@ import pygame
 from box import Hitbox
 from map import Map, Wall
 from player import Player
-from util.type import Colour, Side, Size, Vec2
+from util.type import Side, Size, Vec2
 
 from .sense import Sense
 
@@ -22,6 +22,10 @@ class Enemy(Hitbox, Sense):
     def front(self) -> float:
         return self.left if self.facing is Side.LEFT else self.right
 
+    @property
+    def arm_y(self) -> float:
+        return self.y + self.height * self._arm_y
+
     def __init__(
         self,
         player: Player,
@@ -30,11 +34,7 @@ class Enemy(Hitbox, Sense):
         size: Size,
         sense_size: Size,
         atk_width: float,
-        atk_windup: float,
-        atk_speed: float,
-        atk_length: float,
         health: int,
-        damage: int,
         pos: Vec2 = (None, None),
         facing: Side = None,
         head_pos: Vec2 = (0.7, 0.3),  # Head position in direction facing as ratio (width, height)
@@ -59,11 +59,7 @@ class Enemy(Hitbox, Sense):
         self.facing: Side = facing
         self._head_x, self._head_y = head_pos
         self.atk_width: int = atk_width
-        self.atk_windup: float = atk_windup
-        self.atk_speed: float = atk_speed
-        self.atk_length: float = atk_length
         self.health: int = health
-        self.damage: int = damage
 
         self.alerted: bool = False
         self.stopped: bool = False
@@ -90,15 +86,9 @@ class Enemy(Hitbox, Sense):
         self._tick_sense()
         self._tick_move(dt)
         self._tick_attack(dt)
+        # TODO iframes
 
-    def draw(
-        self,
-        surface: pygame.Surface,
-        colour: Colour = (0, 0, 255),
-        x_off: float = 0,
-        y_off: float = 0,
-        scale: float = 1,
-    ) -> None:
-        super().draw(surface, colour, x_off, y_off, scale)
+    def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
+        super().draw(surface, (255, 0, 0), x_off, y_off, scale)
         self.draw_sense(surface, ((0, 255, 0), (200, 50, 50)), x_off, y_off, scale)
         self.draw_attack(surface, (165, 30, 30), x_off, y_off, scale)

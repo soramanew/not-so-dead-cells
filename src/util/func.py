@@ -113,8 +113,26 @@ def line_line(l1: Line, l2: Line) -> Vec2 | None:
 
     (x1, y1), (x2, y2) = l1
     (x3, y3), (x4, y4) = l2
-    u_a = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
-    u_b = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
-    if 0 <= u_a <= 1 and 0 <= u_b <= 1:
-        return x1 + (u_a * (x2 - x1)), y1 + (u_a * (y2 - y1))
+    denominator = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+    if denominator:
+        u_a = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator
+        u_b = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator
+        if 0 <= u_a <= 1 and 0 <= u_b <= 1:
+            return x1 + (u_a * (x2 - x1)), y1 + (u_a * (y2 - y1))
     return None
+
+
+def normalise_for_drawing(
+    x: float, y: float, width: int, height: int, x_off: float = 0, y_off: float = 0, scale: float = 1
+) -> Rect:
+    x = (x + x_off) * scale
+    y = (y + y_off) * scale
+    width *= scale
+    height *= scale
+    if x < 0:
+        width += x
+        x = 0
+    if y < 0:
+        height += y
+        y = 0
+    return x, y, width, height

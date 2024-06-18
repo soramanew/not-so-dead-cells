@@ -8,6 +8,7 @@ import pygame
 
 if TYPE_CHECKING:
     from box import Hitbox
+    from player import Player
 
 type Vec2 = tuple[float, float]
 type Line = tuple[Vec2, Vec2]
@@ -19,6 +20,12 @@ type Colour = tuple[int, int, int]
 class Drawable(ABC):
     @abstractmethod
     def draw(self, surface: pygame.Surface, x_off: float, y_off: float, **kwargs):
+        pass
+
+
+class Interactable(ABC):
+    @abstractmethod
+    def interact(self, player: Player):
         pass
 
 
@@ -40,6 +47,9 @@ class PlayerControl(Enum):
     JUMP = "jump"
     ROLL = "roll"
     SLAM = "slam"
+    INTERACT = "interact"
+    ATTACK_START = "start_attack"
+    ATTACK_STOP = "stop_attack"
 
 
 class Collision:

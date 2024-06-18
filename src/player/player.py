@@ -1,9 +1,17 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pygame
 from box import Hitbox
 from map import Map, Wall
 from util import key_handler
 from util.decor import run_once
 from util.func import clamp
-from util.type import Collision, Direction, PlayerControl, Side, Vec2
+from util.type import Collision, Direction, Interactable, PlayerControl, Side, Vec2
+
+if TYPE_CHECKING:
+    from item import Weapon
 
 
 def _roll_height_fn(x):
@@ -54,6 +62,9 @@ class Player(Hitbox):
     # The max health of the player
     MAX_HEALTH: float = 100
 
+    # Range around the player that it can interact with objects
+    INTERACT_RANGE: float = 5
+
     @property
     def health(self) -> int:
         return self._health
@@ -63,6 +74,10 @@ class Player(Hitbox):
         if value < self._health:
             self.i_frames = Player.I_FRAMES
         self._health = value
+
+    @property
+    def arm_y(self) -> float:
+        return self.y + self.width * 0.4
 
     # ---------------------------- Constructor ---------------------------- #
 
@@ -85,6 +100,7 @@ class Player(Hitbox):
         self.wall_climb_time: float = 0
         self._health: int = Player.MAX_HEALTH
         self.i_frames: float = 0
+        self.weapon: Weapon = None
 
     # ------------------------------ Getters ------------------------------ #
 
@@ -133,6 +149,29 @@ class Player(Hitbox):
         if not self.slamming and PlayerControl.SLAM in move_types:
             self._slam()
 
+        if not self.is_rolling() and not self.slamming:
+            if PlayerControl.INTERACT in move_types:
+                self._interact()
+            elif self.weapon is not None:
+                if PlayerControl.ATTACK_START in move_types:
+                    self.weapon.start_attack()
+                elif PlayerControl.ATTACK_STOP in move_types:
+                    self.weapon.stop_attack()
+
+    def _interact(self) -> None:
+        for i in self.current_map.get_rect(
+            self.x - Player.INTERACT_RANGE,
+            self.y - Player.INTERACT_RANGE,
+            self.width + Player.INTERACT_RANGE * 2,
+            self.height + Player.INTERACT_RANGE * 2,
+            lambda o: isinstance(o, Interactable),
+        ):
+            i.interact(self)
+
+    def _interrupt_attack(self) -> None:
+        if self.weapon:
+            self.weapon.interrupt()
+
     def _x_control(self, direction: Side, dt: float) -> None:
         """Adds velocity (accelerates) in the x direction and changes facing direction.
 
@@ -161,6 +200,8 @@ class Player(Hitbox):
             if not stopped_rolling:
                 return
 
+        self._interrupt_attack()
+
         # Cancel ledge climbing
         self.ledge_climbing = None
 
@@ -181,6 +222,7 @@ class Player(Hitbox):
         self.ledge_climbing = None
         if self.slamming:
             self.slamming = False
+        self._interrupt_attack()
         self.roll_time = Player.ROLL_LENGTH
 
     def _stop_rolling(self) -> bool:
@@ -219,6 +261,7 @@ class Player(Hitbox):
             if not stopped_rolling:
                 return
         self.ledge_climbing = None
+        self._interrupt_attack()
 
         self.vy = Player.SLAM_STRENGTH
         self.slamming = True
@@ -480,6 +523,8 @@ class Player(Hitbox):
     def tick(self, dt: float, moves: list[PlayerControl]) -> None:
         self.handle_moves(dt, *moves)
         self.tick_changes(dt)
+        if self.weapon is not None:
+            self.weapon.tick(dt)
         collisions = self.update_position(dt)
         self.handle_collisions(collisions)
 
@@ -488,4 +533,13 @@ class Player(Hitbox):
             return
 
         self.health -= damage
-        print(self.health)
+        print(f"Player hit: {self.health}")
+
+    def switch_weapon(self, weapon: Weapon) -> None:
+        # TODO drop current weapon
+        self.weapon = weapon
+        weapon.player = self
+        print(f"Weapon changed: {weapon}")
+
+    def draw(self, surface: pygame.Surface, **kwargs):
+        super().draw(surface, colour=(0, 255, 0), **kwargs)

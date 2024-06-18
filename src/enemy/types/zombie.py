@@ -1,5 +1,6 @@
 from map import Map, Wall
 from player import Player
+from util.type import Direction, Vec2
 
 from ..attack import SwordAttack
 from ..enemy import Enemy
@@ -18,7 +19,7 @@ class Zombie(Enemy, GroundIdleMovement, SwordAttack):
             xray=False,
             atk_width=30,
             atk_windup=0.3,
-            atk_speed=3,
+            atk_speed=1.4,
             atk_length=0.2,
             health=800,
             damage=20,
@@ -26,3 +27,11 @@ class Zombie(Enemy, GroundIdleMovement, SwordAttack):
             atk_height=40,
             atk_height_tick=8,
         )
+
+    def take_hit(self, damage: int, kb: Vec2 = None, direction: Direction = None, **kwargs):
+        self.health -= damage
+        print(f"Zombie hit: {self.health}")
+        if kb is not None:
+            if direction is not None:
+                self.vx += kb[0] * direction.value
+            self.vy += kb[1]

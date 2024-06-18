@@ -7,8 +7,10 @@
         "funcs",
         "Hitbox",
         "Hitboxes",
+        "Interactable",
         "KEYDOWN",
         "KEYUP",
+        "knockback",
         "pygame",
         "rotatedbox",
         "VIDEORESIZE"

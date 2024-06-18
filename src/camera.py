@@ -120,4 +120,4 @@ class Camera(Box):
         # TODO: render map texture
         if debug:
             self.render_debug(window, current_map)
-        self._render_w_off(self.target, window, colour=(0, 255, 0))
+            self._render_w_off(self.target, window)
