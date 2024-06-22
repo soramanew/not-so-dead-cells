@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import random
 from collections.abc import Callable
-from math import ceil, floor
+from math import ceil, copysign, floor
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
 from box import Box
-from util.func import get_project_root, strict_eq
+from util.func import get_project_root
 from util.type import Side
 
 from .wall import Wall
@@ -25,11 +25,29 @@ type Grid = list[Row | None]
 
 class Map:
     GRAVITY: int = 800
-    AIR_RESISTANCE: float = 0.05
+    AIR_RESISTANCE: float = 0.0003
 
     @staticmethod
     def storage() -> Path:
         return get_project_root() / "assets/maps"
+
+    @classmethod
+    def get_air_resistance(cls, v: float, a: float) -> float:
+        """Calculates air resistance based on the given velocity and area.
+
+        Parameters
+        ----------
+        v : float
+            The velocity.
+        a : float
+            The surface area.
+
+        Returns
+        -------
+        float
+            The air resistance.
+        """
+        return copysign((a * (cls.AIR_RESISTANCE * v**2) / 2), v)
 
     def __init__(
         self,
@@ -45,18 +63,19 @@ class Map:
 
         if load:
             # self.save_path = random.choice(list(zone_dir.iterdir()))
-            self.save_path = zone_dir / "1.json"
+            self.save_path = zone_dir / "2.json"
             map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
             self.width = int(map_data.width)
             self.height = int(map_data.height)
             self.cell_size = int(map_data.cell_size)
-            self.init_dir = Side[map_data.init_dir]
+            self.init_dir = Side(map_data.init_dir)
             self.player_spawn = tuple(map_data.spawn)
         else:
             self.save_path = zone_dir / (str(int(max(zone_dir.iterdir()).stem) + 1) + ".json")
             self.width = width
             self.height = height
             self.cell_size = cell_size
+            self.init_dir = Side.RIGHT
             self.player_spawn = (0, 0, 10, 30)
 
         self.rows = self.height // self.cell_size
@@ -76,14 +95,16 @@ class Map:
             for i in range(2):
                 enemy = Zombie(player, self, wall)
                 self.enemies.add(enemy)
-                self.add_box(enemy)
+                self.add(enemy)
             pickup = WeaponPickup(self, BalancedBlade([DamageMod()]), wall)
             self.pickups.add(pickup)
-            self.add_box(pickup)
+            self.add(pickup)
 
     def tick(self, dt: float) -> None:
         for enemy in self.enemies:
+            self._remove(enemy, False)
             enemy.tick(dt)
+            self._add(enemy, False)
 
     def _to_cells(self, x: float, y: float, width: int, height: int) -> tuple[int, int, int, int]:
         """Converts the given rectangle to the cell coordinates of each side (left, top, right, bottom).
@@ -136,11 +157,25 @@ class Map:
 
         # Remove duplicates
         for wall in wall_set:
-            self.add_box(wall)
+            self.add(wall)
 
         return wall_set
 
-    def add_box(self, box: Box) -> None:
+    def remove(self, box: Box) -> None:
+        self._remove(box, True)
+
+    def _remove(self, box: Box, remove_from_list: bool) -> None:
+        if remove_from_list:
+            self.objects.remove(box)
+        start_col, start_row, end_col, end_row = self._to_cells(*box)
+        for row in range(start_row, end_row + 1):
+            for col in range(start_col, end_col + 1):
+                self.grid[row][col].remove(box)
+
+    def add(self, box: Box) -> None:
+        self._add(box, True)
+
+    def _add(self, box: Box, add_to_list: bool) -> None:
         """Adds the given box to all cells in this map that intersect it.
 
         This method also adds the given box to this map's objects set.
@@ -149,9 +184,12 @@ class Map:
         ----------
         box : Box
             The box to insert into this map.
+        add_to_list : bool
+            Whether to add the box to the objects list.
         """
 
-        self.objects.add(box)
+        if add_to_list:
+            self.objects.add(box)
         start_col, start_row, end_col, end_row = self._to_cells(*box)
         for row in range(start_row, end_row + 1):
             for col in range(start_col, end_col + 1):
@@ -252,7 +290,7 @@ class Map:
 
         if wall not in self.walls:
             self.walls.add(wall)
-            self.add_box(wall)
+            self.add(wall)
 
     def set_player_spawn(self, x: float, y: float, width: int, height: int) -> None:
         """Sets the player spawn for this map.
@@ -292,7 +330,7 @@ class Map:
             "height": self.height,
             "cell_size": self.cell_size,
             "spawn": self.player_spawn,
-            "init_dir": self.init_dir,
+            "init_dir": self.init_dir.value,
             "walls": [wall.to_json() for wall in self.walls],
         }
 
@@ -300,12 +338,3 @@ class Map:
             file.write(json.dumps(json_obj))
 
         return json_obj
-
-    def __hash__(self) -> int:
-        return hash((self.width, self.height, frozenset(self.objects)))
-
-    def __eq__(self, other) -> bool:
-        if strict_eq(self, other):
-            return self.width == other.width and self.height == other.height and self.objects == other.objects
-        else:
-            return False

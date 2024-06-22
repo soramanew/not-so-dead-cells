@@ -57,42 +57,6 @@ def normalise_rect(x: float, y: float, width: int, height: int) -> Rect:
     return x, y, width, height
 
 
-def comp_as_int(a: float, b: float) -> bool:
-    """Compares two floats by casting them to ints first then comparing.
-
-    Parameters
-    ----------
-    a : float
-        A float to compare.
-    b : float
-        The other float to compare.
-
-    Returns
-    -------
-    If the int representations of the two floats are equal.
-    """
-
-    return int(a) == int(b)
-
-
-def strict_eq(a, b) -> bool:
-    """Checks if the classes of both parameters are the same.
-
-    Parameters
-    ----------
-    a : Any
-        The first element to compare.
-    b : Any
-        The other element to compare.
-
-    Returns
-    -------
-    Whether the two elements are the same class.
-    """
-
-    return type(a).__name__ == type(b).__name__
-
-
 def line_line(l1: Line, l2: Line) -> Vec2 | None:
     """Line to line intersection.
 

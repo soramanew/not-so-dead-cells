@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import pygame
-from util.func import comp_as_int, normalise_for_drawing, strict_eq
+from util.func import normalise_for_drawing
 from util.type import Colour, Drawable, Rect
 
 
@@ -186,21 +186,9 @@ class Box(BoxABC, Drawable):
             The JSON representation of this box.
         """
         return {"x": self.x, "y": self.y, "w": self.width, "h": self.height}
-        # return "{" + '"x":{x},"y":{y},"w":{w},"h":{h}'.format(x=self.x, y=self.y, w=self.width, h=self.height) + "}"
-
-    def __hash__(self) -> int:
-        return hash((int(self.x), int(self.y), self.width, self.height))
-
-    def __eq__(self, other) -> bool:
-        if strict_eq(self, other):
-            return (
-                comp_as_int(self.x, other.x)
-                and comp_as_int(self.y, other.y)
-                and self.width == other.width
-                and self.height == other.height
-            )
-        else:
-            return False
 
     def __iter__(self) -> Rect:
         return iter((self.x, self.y, self.width, self.height))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__} {{{self.left=}, {self.top=}, {self.right=}, {self.bottom=}}}"

@@ -32,6 +32,7 @@ class Enemy(Hitbox, Sense):
         current_map: Map,
         platform: Wall,  # The platform this enemy is on
         size: Size,
+        mass: float,
         sense_size: Size,
         atk_width: float,
         health: int,
@@ -60,9 +61,11 @@ class Enemy(Hitbox, Sense):
         self._head_x, self._head_y = head_pos
         self.atk_width: int = atk_width
         self.health: int = health
+        self.mass: float = mass
 
         self.alerted: bool = False
         self.stopped: bool = False
+        self.i_frames: float = 0
 
         super().__init__(
             x=x,
@@ -86,7 +89,16 @@ class Enemy(Hitbox, Sense):
         self._tick_sense()
         self._tick_move(dt)
         self._tick_attack(dt)
-        # TODO iframes
+        self.i_frames -= dt
+
+    def take_hit(self, damage: int, **kwargs) -> None:
+        if self.i_frames <= 0:
+            self.i_frames = self.I_FRAMES
+            self._take_hit(damage, **kwargs)
+
+    def _take_hit(self, damage: int, **kwargs) -> None:
+        self.health -= damage
+        print(f"[DEBUG] {self.__class__.__name__} hit: {self.health}")
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
         super().draw(surface, (255, 0, 0), x_off, y_off, scale)

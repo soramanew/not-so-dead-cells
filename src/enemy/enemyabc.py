@@ -8,6 +8,8 @@ from util.type import Colour, Side
 
 
 class EnemyABC(BoxABC):
+    I_FRAMES: float
+
     player: Player
     map: Map
     platform: Wall
@@ -16,6 +18,7 @@ class EnemyABC(BoxABC):
     atk_windup: float
     atk_speed: float
     atk_length: float
+    mass: float
     health: int
     damage: int
     alerted: bool
@@ -65,7 +68,7 @@ class EnemyABC(BoxABC):
         pass
 
     @abstractmethod
-    def take_hit(self, damage: int, **kwargs) -> None:
+    def _take_hit(self, damage: int, **kwargs) -> None:
         pass
 
     @abstractmethod

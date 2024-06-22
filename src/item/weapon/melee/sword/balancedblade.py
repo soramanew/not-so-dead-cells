@@ -12,8 +12,8 @@ class BalancedBlade(Sword):
             atk_width=20,
             atk_height=40,
             damage=30,
-            atk_speed=0.4,
-            atk_length=0.8,
-            kb=(10, -5),
+            atk_speed=0.1,
+            atk_length=0.1,
+            kb=(100, -80),
             modifiers=modifiers,
         )

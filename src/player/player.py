@@ -79,6 +79,10 @@ class Player(Hitbox):
     def arm_y(self) -> float:
         return self.y + self.width * 0.4
 
+    @property
+    def front(self) -> float:
+        return self.left if self.facing is Side.LEFT else self.right
+
     # ---------------------------- Constructor ---------------------------- #
 
     def __init__(self, current_map: Map):
@@ -149,7 +153,9 @@ class Player(Hitbox):
         if not self.slamming and PlayerControl.SLAM in move_types:
             self._slam()
 
-        if not self.is_rolling() and not self.slamming:
+        if not (
+            self.slamming or self.is_rolling() or (self.wall_col_dir and not self.on_platform) or self.ledge_climbing
+        ):
             if PlayerControl.INTERACT in move_types:
                 self._interact()
             elif self.weapon is not None:
@@ -199,8 +205,6 @@ class Player(Hitbox):
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
-
-        self._interrupt_attack()
 
         # Cancel ledge climbing
         self.ledge_climbing = None
@@ -293,12 +297,10 @@ class Player(Hitbox):
 
         self._reset_collision_attrs()
 
-        self._handle_down_wall_collision.reset()
-        self._handle_side_wall_collision.reset()
-
         for direction, entity in collisions:
             if direction is Direction.DOWN and isinstance(entity, Wall):
                 self._handle_down_wall_collision()
+                break
 
         reset_wall_climb = True
         for direction, entity in collisions:
@@ -306,6 +308,7 @@ class Player(Hitbox):
                 if not self.is_rolling():
                     self._handle_side_wall_collision(direction.value, entity)
                 reset_wall_climb = False
+                break
 
         if reset_wall_climb:
             self._start_wall_climb.reset()
@@ -322,7 +325,6 @@ class Player(Hitbox):
         self.on_platform = False
         self.wall_col_dir = None
 
-    @run_once
     def _handle_down_wall_collision(self) -> None:
         """Actions on downwards wall collisions.
 
@@ -335,7 +337,6 @@ class Player(Hitbox):
         self.vy = 0
         self.wall_climb_time = -1
 
-    @run_once
     def _handle_side_wall_collision(self, side: Side, wall: Wall) -> None:
         can_climb_ledge = self.top - wall.top < self.base_height * Player.LEDGE_CLIMB_HEIGHT
 
@@ -361,8 +362,10 @@ class Player(Hitbox):
         if left_key_down or right_key_down:
             self.wall_col_dir = side
             self.slamming = False
-            if not (can_climb_ledge or self.on_platform):
-                self._start_wall_climb()
+            if not self.on_platform:
+                self._interrupt_attack()
+                if not can_climb_ledge:
+                    self._start_wall_climb()
 
     @run_once
     def _start_wall_climb(self) -> None:
@@ -377,10 +380,12 @@ class Player(Hitbox):
             The time between this tick and the last tick in seconds
         """
 
-        # Apply air resistance and friction
         self.controlled_vx /= 1 + Player.CONTROL_SPEED_DECAY * dt
-        self.vx /= 1 + (Map.AIR_RESISTANCE + (Wall.FRICTION if self.on_platform else 0)) * dt
-        self.vy /= 1 + Map.AIR_RESISTANCE * dt
+        # Apply air resistance and friction
+        if self.on_platform:
+            self.vx /= 1 + Wall.FRICTION * dt  # Not how friction works but yes
+        self.vx -= Map.get_air_resistance(self.vx, self.height) * dt
+        self.vy -= Map.get_air_resistance(self.vy, self.width) * dt
 
         # Tick invincibility frames
         self.i_frames -= dt
@@ -541,5 +546,7 @@ class Player(Hitbox):
         weapon.player = self
         print(f"Weapon changed: {weapon}")
 
-    def draw(self, surface: pygame.Surface, **kwargs):
-        super().draw(surface, colour=(0, 255, 0), **kwargs)
+    def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1):
+        super().draw(surface, (0, 255, 0), x_off, y_off, scale)
+        if self.weapon is not None:
+            self.weapon.draw(surface, (94, 101, 219), x_off, y_off, scale)

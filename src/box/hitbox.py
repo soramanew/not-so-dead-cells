@@ -6,12 +6,6 @@ from .box import Box
 
 
 class Hitbox(Box):
-    def __init__(self, x: float, y: float, width: int, height: int, **kwargs):
-        super().__init__(x, y, width, height, **kwargs)
-
-    def __str__(self) -> str:
-        return f"Hitbox [ {self.left=}, {self.top=}, {self.right=}, {self.bottom=} ]"
-
     def move(self, dx: float, dy: float, boxes: set[Hitbox] | None = None) -> list[Collision]:
         """Moves this Hitbox by a given amount while checking for collisions.
 

@@ -5,10 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Module",
+            "name": "Python Debugger: Main",
             "type": "debugpy",
             "request": "launch",
             "module": "main",
+            "cwd": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Python Debugger: Map Builder",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "map_builder.main",
             "cwd": "${workspaceFolder}/src"
         }
     ]

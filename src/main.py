@@ -28,6 +28,8 @@ def main():
 
     font = pygame.font.SysFont("Rubik", 20)
 
+    pause = False
+
     while True:
         # FPS = refresh rate or default 60
         dt = clock.tick(pygame.display.get_current_refresh_rate() or 60) / 1000  # To get in seconds
@@ -48,22 +50,28 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
                 key_handler.down(event.key)
-                if (key_handler.get(pygame.K_s) or key_handler.get(pygame.K_DOWN)) and event.key == pygame.K_SPACE:
+                jump = event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP
+                if (key_handler.get(pygame.K_s) or key_handler.get(pygame.K_DOWN)) and jump:
                     move_types.append(PlayerControl.SLAM)
-                elif event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP:
+                elif jump:
                     move_types.append(PlayerControl.JUMP)
-                elif event.key == pygame.K_LSHIFT:
+                elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
                     move_types.append(PlayerControl.ROLL)
                 elif event.key == pygame.K_e:
                     move_types.append(PlayerControl.INTERACT)
                 elif event.key == pygame.K_COMMA:
                     move_types.append(PlayerControl.ATTACK_START)
+                elif event.key == pygame.K_ESCAPE:
+                    pause = not pause
             elif event.type == pygame.KEYUP:
                 key_handler.up(event.key)
                 if event.key == pygame.K_COMMA:
                     move_types.append(PlayerControl.ATTACK_STOP)
 
             ui.process_events(event)
+
+        if pause:
+            continue
 
         key_handler.tick(dt)
         player.tick(dt, move_types)

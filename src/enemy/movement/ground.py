@@ -1,3 +1,4 @@
+from math import copysign
 from random import random, uniform
 
 from map import Map, Wall
@@ -13,11 +14,16 @@ class GroundMovement(EnemyABC):
     # The distance (pixels) between the enemy and it's move target to be considered as reached the target
     TARGET_THRESHOLD: float = 0.01
 
+    @property
+    def speed(self) -> float:
+        return self._speed * (1 if self.alerted else 0.8)  # Slower movement on idle
+
     def __init__(self, speed: float, **kwargs):
         super().__init__(**kwargs)
-        self.speed: float = speed  # Movement speed (px/s)
+        self._speed: float = speed  # Movement speed (px/s)
         self.moving: bool = False
         self.move_target: float = None
+        self.on_platform: bool = False
         self.vx: float = 0  # x velocity due to knockback
         self.vy: float = 0
         self.area: tuple[float, float] = self._get_area()
@@ -84,6 +90,28 @@ class GroundMovement(EnemyABC):
             The seconds between this tick and the last.
         """
 
+        force = (
+            Map.get_air_resistance(self.vx, self.height)
+            + (copysign(Map.GRAVITY * self.mass * Wall.FRICTION, self.vx) if self.on_platform else 0)
+        ) * dt
+        if abs(force) > abs(self.vx):
+            force = self.vx
+        self.vx -= force
+        self.vy += (Map.GRAVITY - Map.get_air_resistance(self.vy, self.width)) * dt
+
+        collisions = self.move(self.vx * dt, self.vy * dt, self.map.walls)
+        for direction, entity in collisions:
+            if direction == Direction.DOWN and isinstance(entity, Wall):
+                self.vy = 0
+                self.on_platform = True
+                if entity is not self.platform:
+                    self.platform = entity
+                    self.area = self._get_area()
+                    self.moving = False
+                    print(f"[DEBUG] Enemy changed platform: {entity} | Area: {self.area}")
+            else:
+                self.on_platform = False
+
         if self.atk_stop_mv:
             return
 
@@ -100,28 +128,22 @@ class GroundMovement(EnemyABC):
             )
             self.moving = True
 
-        if self.moving:
+        if self.moving and self.on_platform:
             # Tick movement
             if abs(self.x - self.move_target) < GroundMovement.TARGET_THRESHOLD:
                 self.moving = False
             else:
                 diff = self.move_target - self.x
                 self.facing = Side.LEFT if diff < 0 else Side.RIGHT
-                speed = self.speed * (1 if self.alerted else 0.8) * dt  # Slower movement on idle
+                speed = self.speed * dt
+                # If vx not same direction as facing, reduce it by speed
+                if self.vx * self.facing.value < 0:
+                    self.vx -= copysign(min(speed, abs(self.vx)), self.vx)
                 self.move_axis(
                     (diff if abs(diff) < speed else speed * self.facing.value),
                     0,
                     self.map.walls,
                 )
-
-        self.vx /= 1 + Map.AIR_RESISTANCE * dt
-        self.vy /= 1 + Map.AIR_RESISTANCE * dt
-        self.vy += Map.GRAVITY * dt
-
-        collisions = self.move(self.vx * dt, self.vy * dt, self.map.walls)
-        for direction, entity in collisions:
-            if direction == Direction.DOWN and isinstance(entity, Wall):
-                self.vy = 0
 
 
 class GroundIdleMovement(GroundMovement):

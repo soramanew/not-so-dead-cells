@@ -1,6 +1,6 @@
 from map import Map, Wall
 from player import Player
-from util.type import Direction, Vec2
+from util.type import Side, Vec2
 
 from ..attack import SwordAttack
 from ..enemy import Enemy
@@ -8,12 +8,15 @@ from ..movement import GroundIdleMovement
 
 
 class Zombie(Enemy, GroundIdleMovement, SwordAttack):
+    I_FRAMES: float = 0.3
+
     def __init__(self, player: Player, current_map: Map, platform: Wall):
         super().__init__(
             player,
             current_map,
             platform,
             size=(20, 35),
+            mass=2,
             speed=100,
             sense_size=(500, 300),
             xray=False,
@@ -28,10 +31,9 @@ class Zombie(Enemy, GroundIdleMovement, SwordAttack):
             atk_height_tick=8,
         )
 
-    def take_hit(self, damage: int, kb: Vec2 = None, direction: Direction = None, **kwargs):
-        self.health -= damage
-        print(f"Zombie hit: {self.health}")
+    def _take_hit(self, damage: int, kb: Vec2 = None, side: Side = None, **kwargs):
+        super()._take_hit(damage, **kwargs)
         if kb is not None:
-            if direction is not None:
-                self.vx += kb[0] * direction.value
+            if side is not None:
+                self.vx += kb[0] * side.value
             self.vy += kb[1]
