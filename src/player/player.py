@@ -8,7 +8,15 @@ from map import Map, Wall
 from util import key_handler
 from util.decor import run_once
 from util.func import clamp
-from util.type import Collision, Direction, Interactable, PlayerControl, Side, Vec2
+from util.type import (
+    Collision,
+    Direction,
+    Interactable,
+    PlayerControl,
+    Side,
+    Size,
+    Vec2,
+)
 
 if TYPE_CHECKING:
     from item import Weapon
@@ -39,9 +47,16 @@ class Player(Hitbox):
     ROLL_COOLDOWN: float = 0.3
 
     # The max speed the player can move downwards when not slamming (px/s)
-    DROP_SPEED_CAP: int = 800
+    DROP_SPEED_CAP: int = 600
+
     # The downwards velocity added on slam
-    SLAM_STRENGTH: int = 1200
+    SLAM_STRENGTH: int = 1400
+    # The damage range of slamming
+    SLAM_RANGE: Size = 40, 5
+    # The base damage of the slam
+    SLAM_DAMAGE: int = 0.03
+    # The base knockback of the slam
+    SLAM_KB: Vec2 = 0.1, -0.16
 
     # A multiplier to the wall sliding vy decay
     GRAB_STRENGTH: int = 60
@@ -82,6 +97,14 @@ class Player(Hitbox):
     @property
     def front(self) -> float:
         return self.left if self.facing is Side.LEFT else self.right
+
+    @property
+    def slam_damage(self) -> int:
+        return int(self.vy * Player.SLAM_DAMAGE)
+
+    @property
+    def slam_kb(self) -> Vec2:
+        return Player.SLAM_KB[0] * self.vy, Player.SLAM_KB[1] * self.vy
 
     # ---------------------------- Constructor ---------------------------- #
 
@@ -150,7 +173,7 @@ class Player(Hitbox):
         if not self.is_rolling() and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
             self._roll()
 
-        if not self.slamming and PlayerControl.SLAM in move_types:
+        if not self.slamming and not self.on_platform and PlayerControl.SLAM in move_types:
             self._slam()
 
         if not (
@@ -530,6 +553,18 @@ class Player(Hitbox):
         self.tick_changes(dt)
         if self.weapon is not None:
             self.weapon.tick(dt)
+        if self.slamming:
+            # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA CIRCULAR IMPORTSSSS
+            from enemy.enemy import Enemy
+
+            for enemy in self.current_map.get_rect(
+                self.left - Player.SLAM_RANGE[0],
+                self.top - Player.SLAM_RANGE[1],
+                self.width + Player.SLAM_RANGE[0] * 2,
+                self.height + Player.SLAM_RANGE[1] * 2,
+                lambda e: isinstance(e, Enemy),
+            ):
+                enemy.take_hit(self.slam_damage, kb=self.slam_kb, side=Side.LEFT if self.x > enemy.x else Side.RIGHT)
         collisions = self.update_position(dt)
         self.handle_collisions(collisions)
 

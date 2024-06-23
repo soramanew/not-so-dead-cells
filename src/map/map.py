@@ -101,10 +101,18 @@ class Map:
             self.add(pickup)
 
     def tick(self, dt: float) -> None:
+        to_remove = set()
         for enemy in self.enemies:
             self._remove(enemy, False)
             enemy.tick(dt)
-            self._add(enemy, False)
+            if enemy.health > 0:
+                self._add(enemy, False)
+            else:
+                to_remove.add(enemy)
+
+        for enemy in to_remove:
+            self.objects.remove(enemy)
+            self.enemies.remove(enemy)
 
     def _to_cells(self, x: float, y: float, width: int, height: int) -> tuple[int, int, int, int]:
         """Converts the given rectangle to the cell coordinates of each side (left, top, right, bottom).

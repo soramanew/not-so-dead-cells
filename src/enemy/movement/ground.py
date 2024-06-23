@@ -99,6 +99,7 @@ class GroundMovement(EnemyABC):
         self.vx -= force
         self.vy += (Map.GRAVITY - Map.get_air_resistance(self.vy, self.width)) * dt
 
+        self.on_platform = False
         collisions = self.move(self.vx * dt, self.vy * dt, self.map.walls)
         for direction, entity in collisions:
             if direction == Direction.DOWN and isinstance(entity, Wall):
@@ -109,8 +110,6 @@ class GroundMovement(EnemyABC):
                     self.area = self._get_area()
                     self.moving = False
                     print(f"[DEBUG] Enemy changed platform: {entity} | Area: {self.area}")
-            else:
-                self.on_platform = False
 
         if self.atk_stop_mv:
             return

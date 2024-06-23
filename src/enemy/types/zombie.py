@@ -24,7 +24,7 @@ class Zombie(Enemy, GroundIdleMovement, SwordAttack):
             atk_windup=0.3,
             atk_speed=1.4,
             atk_length=0.2,
-            health=800,
+            health=80,
             damage=20,
             arm_y=0.2,
             atk_height=40,
