@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import sqrt
 from typing import TYPE_CHECKING
 
 import pygame
@@ -79,6 +80,11 @@ class Player(Hitbox):
 
     # Range around the player that it can interact with objects
     INTERACT_RANGE: float = 5
+
+    # For enemy repulsion
+    G: int = 3000
+    ε: float = 0.1
+    REPULSION_CAP: int = 150
 
     @property
     def health(self) -> int:
@@ -173,7 +179,11 @@ class Player(Hitbox):
         if not self.is_rolling() and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
             self._roll()
 
-        if not self.slamming and not self.on_platform and PlayerControl.SLAM in move_types:
+        # Cannot slam if currently slamming, on a platform, climbing a ledge, or grabbing a wall
+        if (
+            not (self.slamming or self.on_platform or self.ledge_climbing or self.wall_col_dir)
+            and PlayerControl.SLAM in move_types
+        ):
             self._slam()
 
         if not (
@@ -548,6 +558,21 @@ class Player(Hitbox):
             else:
                 self.roll_time += dt
 
+    def tick_collision(self, dt: float) -> None:
+        from enemy.enemy import Enemy
+
+        for enemy in self.current_map.get_rect(*self, lambda e: isinstance(e, Enemy)):
+            # Get as ratio, 1 is touching edges, 0 is exact same spot
+            dx = (enemy.center_x - self.center_x) / ((self.width + enemy.width) / 2)
+            dy = (enemy.center_y - self.center_y) / ((self.height + enemy.height) / 2)
+            d = sqrt(dx**2 + dy**2)
+            # Gravity equation, g = GM/r^2, epsilon so no division by 0
+            gravity = ((Player.G * enemy.mass) / ((d + Player.ε) ** 2)) * dt
+            self.vx -= min(Player.REPULSION_CAP, gravity) * (dx / d)
+            if not self.slamming:
+                # Prevent bouncing and make player slide off enemies
+                self.vy -= min(Player.REPULSION_CAP / 10, gravity) * (dy / d)
+
     def tick(self, dt: float, moves: list[PlayerControl]) -> None:
         self.handle_moves(dt, *moves)
         self.tick_changes(dt)
@@ -565,6 +590,8 @@ class Player(Hitbox):
                 lambda e: isinstance(e, Enemy),
             ):
                 enemy.take_hit(self.slam_damage, kb=self.slam_kb, side=Side.LEFT if self.x > enemy.x else Side.RIGHT)
+        if not self.is_rolling():
+            self.tick_collision(dt)
         collisions = self.update_position(dt)
         self.handle_collisions(collisions)
 
