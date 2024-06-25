@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-import sys
-
 import pygame
 import pygame_gui
 from camera import Camera
@@ -44,7 +40,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                sys.exit()
+                return
             elif event.type == pygame.VIDEORESIZE:
                 camera.resize(*event.dict["size"])
             elif event.type == pygame.KEYDOWN:
@@ -67,6 +63,10 @@ def main():
                 key_handler.up(event.key)
                 if event.key == pygame.K_COMMA:
                     move_types.append(PlayerControl.ATTACK_STOP)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                move_types.append(PlayerControl.ATTACK_START)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                move_types.append(PlayerControl.ATTACK_STOP)
 
             ui.process_events(event)
 

@@ -11,6 +11,8 @@
         "KEYDOWN",
         "KEYUP",
         "knockback",
+        "MOUSEBUTTONDOWN",
+        "MOUSEBUTTONUP",
         "pygame",
         "rotatedbox",
         "VIDEORESIZE"

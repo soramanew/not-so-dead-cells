@@ -14,7 +14,7 @@ class NutCracker(MeleeWeapon):
             atk_height=50,
             damage=60,
             atk_windup=0.5,
-            atk_length=0.3,
+            atk_length=0.2,
             kb=(150, -120),
             modifiers=modifiers,
         )

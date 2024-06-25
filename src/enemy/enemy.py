@@ -4,12 +4,19 @@ import pygame
 from box import Hitbox
 from map import Map, Wall
 from player import Player
+from util.func import normalise_for_drawing
 from util.type import Side, Size, Vec2
 
 from .sense import Sense
 
 
 class Enemy(Hitbox, Sense):
+    H_BAR_OFF: float = 10
+    H_BAR_SIZE: Size = 40, 15
+    H_BAR_TIME: float = 10  # The time the health bar is rendered after an enemy is hit (s)
+    H_BAR_DAMAGE_DELAY: float = 1
+    H_BAR_DAMAGE_DECAY: float = 1.3
+
     @property
     def head_x(self) -> float:
         return self.x + self._get_dep_facing(self._head_x) * self.width
@@ -60,12 +67,15 @@ class Enemy(Hitbox, Sense):
         self.facing: Side = facing
         self._head_x, self._head_y = head_pos
         self.atk_width: int = atk_width
+        self.max_health: int = health
         self.health: int = health
         self.mass: float = mass
 
         self.alerted: bool = False
         self.stopped: bool = False
         self.i_frames: float = 0
+        self.h_bar_time: float = 0
+        self.h_bar_damage: float = 0
 
         super().__init__(
             x=x,
@@ -90,6 +100,9 @@ class Enemy(Hitbox, Sense):
         self._tick_move(dt)
         self._tick_attack(dt)
         self.i_frames -= dt
+        self.h_bar_time -= dt
+        if self.h_bar_time <= Enemy.H_BAR_TIME - Enemy.H_BAR_DAMAGE_DELAY:
+            self.h_bar_damage -= self.h_bar_damage * Enemy.H_BAR_DAMAGE_DECAY * dt
 
     def take_hit(self, damage: int, **kwargs) -> None:
         if self.i_frames <= 0:
@@ -97,8 +110,53 @@ class Enemy(Hitbox, Sense):
             self._take_hit(damage, **kwargs)
 
     def _take_hit(self, damage: int, **kwargs) -> None:
+        self.h_bar_time = Enemy.H_BAR_TIME
+        self.h_bar_damage += damage
         self.health -= damage
         print(f"[DEBUG] {self.__class__.__name__} hit: {self.health}")
+
+    def draw_health_bar(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
+        if self.h_bar_time <= 0:
+            return
+
+        h_bar_rect = (
+            self.center_x - Enemy.H_BAR_SIZE[0] / 2,
+            self.top - Enemy.H_BAR_OFF - Enemy.H_BAR_SIZE[1],
+            *Enemy.H_BAR_SIZE,
+        )
+        draw_rect = normalise_for_drawing(*h_bar_rect, x_off, y_off, scale)
+        if draw_rect[2] <= 0 or draw_rect[3] <= 0:
+            return
+        surface.fill((50, 50, 50), draw_rect)
+
+        border = 0.8, 0.6
+        inner_left = self.center_x - (Enemy.H_BAR_SIZE[0] * border[0]) / 2
+        inner_top = self.top - Enemy.H_BAR_OFF - Enemy.H_BAR_SIZE[1] * (border[1] + (1 - border[1]) / 2)
+        inner_width = Enemy.H_BAR_SIZE[0] * border[0]
+        inner_height = Enemy.H_BAR_SIZE[1] * border[1]
+
+        h_bar_rect = (inner_left, inner_top, inner_width, inner_height)
+        draw_rect = normalise_for_drawing(*h_bar_rect, x_off, y_off, scale)
+        if draw_rect[2] <= 0 or draw_rect[3] <= 0:
+            return
+        surface.fill((80, 80, 80), draw_rect)
+
+        h_bar_rect = (
+            inner_left,
+            inner_top,
+            ((self.health + self.h_bar_damage) / self.max_health) * inner_width,
+            inner_height,
+        )
+        draw_rect = normalise_for_drawing(*h_bar_rect, x_off, y_off, scale)
+        if draw_rect[2] <= 0 or draw_rect[3] <= 0:
+            return
+        surface.fill((120, 50, 50), draw_rect)
+
+        h_bar_rect = (inner_left, inner_top, (self.health / self.max_health) * inner_width, inner_height)
+        draw_rect = normalise_for_drawing(*h_bar_rect, x_off, y_off, scale)
+        if draw_rect[2] <= 0 or draw_rect[3] <= 0:
+            return
+        surface.fill((240, 10, 10), draw_rect)
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
         super().draw(surface, (255, 0, 0), x_off, y_off, scale)

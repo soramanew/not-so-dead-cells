@@ -560,6 +560,25 @@ class Player(Hitbox):
             else:
                 self.roll_time += dt
 
+    def tick_slam(self, dt: float) -> None:
+        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA CIRCULAR IMPORTSSSS
+        from enemy.enemy import Enemy
+
+        for enemy in self.current_map.get_rect(
+            self.left - Player.SLAM_RANGE[0],
+            self.top - Player.SLAM_RANGE[1],
+            self.width + Player.SLAM_RANGE[0] * 2,
+            self.height + Player.SLAM_RANGE[1] * 2,
+            lambda e: isinstance(e, Enemy),
+        ):
+            falloff = 1 - abs(self.x - enemy.x) / (Player.SLAM_RANGE[0] * 2)
+            kb_x, kb_y = self.slam_kb
+            enemy.take_hit(
+                int(self.slam_damage * falloff),
+                kb=(kb_x * falloff, kb_y * falloff),
+                side=Side.LEFT if self.x > enemy.x else Side.RIGHT,
+            )
+
     def tick_collision(self, dt: float) -> None:
         from enemy.enemy import Enemy
 
@@ -581,17 +600,7 @@ class Player(Hitbox):
         if self.weapon is not None:
             self.weapon.tick(dt)
         if self.slamming:
-            # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA CIRCULAR IMPORTSSSS
-            from enemy.enemy import Enemy
-
-            for enemy in self.current_map.get_rect(
-                self.left - Player.SLAM_RANGE[0],
-                self.top - Player.SLAM_RANGE[1],
-                self.width + Player.SLAM_RANGE[0] * 2,
-                self.height + Player.SLAM_RANGE[1] * 2,
-                lambda e: isinstance(e, Enemy),
-            ):
-                enemy.take_hit(self.slam_damage, kb=self.slam_kb, side=Side.LEFT if self.x > enemy.x else Side.RIGHT)
+            self.tick_slam(dt)
         if not self.is_rolling():
             self.tick_collision(dt)
         collisions = self.update_position(dt)

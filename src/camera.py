@@ -98,6 +98,7 @@ class Camera(Box):
         )
         for drawable in drawables:
             self._render_w_off(drawable, window)
+        self._render_w_off(self.target, window)
 
     def render(self, window: pygame.Surface, current_map: Map, debug: bool = False) -> None:
         """Renders the given map to the given surface through this camera's viewport.
@@ -120,4 +121,5 @@ class Camera(Box):
         # TODO: render map texture
         if debug:
             self.render_debug(window, current_map)
-            self._render_w_off(self.target, window)
+        for enemy in current_map.enemies:
+            enemy.draw_health_bar(window, x_off=-self.x, y_off=-self.y)
