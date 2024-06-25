@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import random
 from collections.abc import Callable
@@ -86,17 +87,19 @@ class Map:
         self.pickups: set[Pickup] = set()
 
     def spawn_enemies(self, player):  # FIXME temp
+        import item.weapon
         from enemy import Zombie
-        from item.modifier import DamageMod
         from item.pickup import WeaponPickup
-        from item.weapon import BalancedBlade
 
+        weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
         for wall in self.walls:
-            for i in range(2):
+            for i in range(1):
                 enemy = Zombie(player, self, wall)
                 self.enemies.add(enemy)
                 self.add(enemy)
-            pickup = WeaponPickup(self, BalancedBlade([DamageMod()]), wall)
+            weapon = random.choice(weapons)
+            mods = [random.choice(weapon.AVAILABLE_MODS)() for _ in range(random.randint(1, 3))]
+            pickup = WeaponPickup(self, weapon(mods), wall)
             self.pickups.add(pickup)
             self.add(pickup)
 

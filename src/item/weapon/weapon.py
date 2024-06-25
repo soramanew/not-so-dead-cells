@@ -26,11 +26,10 @@ class Weapon(Hitbox, Item):
         pass
 
     def __init__(self, damage: int, **kwargs):
-        super().__init__(x=0, y=0, **kwargs)
         self.damage: int = damage
         self.player: Player = None
         self.atk_time: float = 0
-        self.atk_cd: float = 0
+        super().__init__(x=0, y=0, **kwargs)
 
     @abstractmethod
     def start_attack(self) -> None:

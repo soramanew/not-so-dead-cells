@@ -1,1 +1,2 @@
-from .melee.sword.balancedblade import BalancedBlade
+from .melee.hammer import NutCracker
+from .melee.sword import RustySword

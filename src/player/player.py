@@ -97,6 +97,10 @@ class Player(Hitbox):
         self._health = value
 
     @property
+    def arm_x(self) -> float:
+        return self.x + self.width * (0.3 if self.facing is Side.LEFT else 0.7)
+
+    @property
     def arm_y(self) -> float:
         return self.y + self.width * 0.4
 
@@ -179,11 +183,8 @@ class Player(Hitbox):
         if not self.is_rolling() and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
             self._roll()
 
-        # Cannot slam if currently slamming, on a platform, climbing a ledge, or grabbing a wall
-        if (
-            not (self.slamming or self.on_platform or self.ledge_climbing or self.wall_col_dir)
-            and PlayerControl.SLAM in move_types
-        ):
+        # Cannot slam if currently slamming or on a platform
+        if not (self.slamming or self.on_platform) and PlayerControl.SLAM in move_types:
             self._slam()
 
         if not (
@@ -297,6 +298,7 @@ class Player(Hitbox):
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
+        self.wall_col_dir = None
         self.ledge_climbing = None
         self._interrupt_attack()
 
@@ -335,16 +337,17 @@ class Player(Hitbox):
                 self._handle_down_wall_collision()
                 break
 
-        reset_wall_climb = True
-        for direction, entity in collisions:
-            if (direction is Direction.RIGHT or direction is Direction.LEFT) and isinstance(entity, Wall):
-                if not self.is_rolling():
-                    self._handle_side_wall_collision(direction.value, entity)
-                reset_wall_climb = False
-                break
+        if not self.slamming:
+            reset_wall_climb = True
+            for direction, entity in collisions:
+                if (direction is Direction.RIGHT or direction is Direction.LEFT) and isinstance(entity, Wall):
+                    if not self.is_rolling():
+                        self._handle_side_wall_collision(direction.value, entity)
+                    reset_wall_climb = False
+                    break
 
-        if reset_wall_climb:
-            self._start_wall_climb.reset()
+            if reset_wall_climb:
+                self._start_wall_climb.reset()
 
     def _reset_collision_attrs(self) -> None:
         """Resets the attributes affected by methods called by handle_collision() to their default values.
@@ -394,7 +397,6 @@ class Player(Hitbox):
                 self.ledge_climbing = side, (wall.left, wall.top)
         if left_key_down or right_key_down:
             self.wall_col_dir = side
-            self.slamming = False
             if not self.on_platform:
                 self._interrupt_attack()
                 if not can_climb_ledge:
@@ -606,7 +608,7 @@ class Player(Hitbox):
         # TODO drop current weapon
         self.weapon = weapon
         weapon.player = self
-        print(f"Weapon changed: {weapon}")
+        print(f"[DEBUG] Weapon changed: {weapon.to_friendly_str()}")
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1):
         super().draw(surface, (0, 255, 0), x_off, y_off, scale)
