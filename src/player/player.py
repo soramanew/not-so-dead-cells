@@ -571,12 +571,12 @@ class Player(Hitbox):
             self.height + Player.SLAM_RANGE[1] * 2,
             lambda e: isinstance(e, Enemy),
         ):
-            falloff = 1 - abs(self.x - enemy.x) / (Player.SLAM_RANGE[0] * 2)
+            falloff = 1 - abs(self.center_x - enemy.center_x) / (Player.SLAM_RANGE[0] * 2)
             kb_x, kb_y = self.slam_kb
             enemy.take_hit(
                 int(self.slam_damage * falloff),
                 kb=(kb_x * falloff, kb_y * falloff),
-                side=Side.LEFT if self.x > enemy.x else Side.RIGHT,
+                side=Side.LEFT if self.center_x > enemy.center_x else Side.RIGHT,
             )
 
     def tick_collision(self, dt: float) -> None:
