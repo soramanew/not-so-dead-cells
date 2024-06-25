@@ -81,10 +81,10 @@ class Player(Hitbox):
     # Range around the player that it can interact with objects
     INTERACT_RANGE: float = 5
 
-    # For enemy repulsion
-    G: int = 3000
+    # For enemy soft collision
+    G: int = 8000
     ε: float = 0.1
-    REPULSION_CAP: int = 150
+    REPULSION_CAP: int = 200
 
     @property
     def health(self) -> int:
