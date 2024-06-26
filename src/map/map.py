@@ -117,6 +117,11 @@ class Map:
             self.objects.remove(enemy)
             self.enemies.remove(enemy)
 
+        for pickup in self.pickups:
+            self._remove(pickup, False)
+            pickup.tick(dt)
+            self._add(pickup, False)
+
     def _to_cells(self, x: float, y: float, width: int, height: int) -> tuple[int, int, int, int]:
         """Converts the given rectangle to the cell coordinates of each side (left, top, right, bottom).
 
@@ -172,6 +177,10 @@ class Map:
 
         return wall_set
 
+    def remove_pickup(self, pickup: Pickup) -> None:
+        self.remove(pickup)
+        self.pickups.remove(pickup)
+
     def remove(self, box: Box) -> None:
         self._remove(box, True)
 
@@ -182,6 +191,10 @@ class Map:
         for row in range(start_row, end_row + 1):
             for col in range(start_col, end_col + 1):
                 self.grid[row][col].remove(box)
+
+    def add_pickup(self, pickup: Pickup) -> None:
+        self.add(pickup)
+        self.pickups.add(pickup)
 
     def add(self, box: Box) -> None:
         self._add(box, True)

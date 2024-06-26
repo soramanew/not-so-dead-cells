@@ -5,6 +5,7 @@
         "drawables",
         "enemyabc",
         "funcs",
+        "Gabarito",
         "Hitbox",
         "Hitboxes",
         "Interactable",
@@ -14,6 +15,7 @@
         "MOUSEBUTTONDOWN",
         "MOUSEBUTTONUP",
         "pygame",
+        "Readex",
         "rotatedbox",
         "SRCALPHA",
         "VIDEORESIZE"

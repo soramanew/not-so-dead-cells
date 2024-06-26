@@ -75,7 +75,7 @@ def main():
                     move_types.append(PlayerControl.JUMP)
                 elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
                     move_types.append(PlayerControl.ROLL)
-                elif event.key == pygame.K_e:
+                elif event.key == pygame.K_f:
                     move_types.append(PlayerControl.INTERACT)
                 elif event.key == pygame.K_COMMA:
                     move_types.append(PlayerControl.ATTACK_START)

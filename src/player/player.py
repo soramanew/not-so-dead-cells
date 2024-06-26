@@ -638,7 +638,16 @@ class Player(Hitbox):
         print(f"Player hit: {self.health}")
 
     def switch_weapon(self, weapon: Weapon) -> None:
+        from item.pickup import WeaponPickup  # Damn you circular imports
+
         # TODO drop current weapon
+        if self.weapon:
+            self.current_map.add_pickup(
+                WeaponPickup(
+                    self.current_map, self.weapon, (self.center_x - 15, self.center_y - 15), width=30, height=30
+                )
+            )
+            # TODO pickup velocity
         self.weapon = weapon
         weapon.player = self
         print(f"[DEBUG] Weapon changed: {weapon.to_friendly_str()}")
