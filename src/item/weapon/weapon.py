@@ -44,5 +44,5 @@ class Weapon(Hitbox, Item):
         pass
 
     @abstractmethod
-    def tick(self, dt: float) -> None:
+    def tick(self, dt: float) -> int:
         pass

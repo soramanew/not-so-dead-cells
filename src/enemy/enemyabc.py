@@ -68,9 +68,5 @@ class EnemyABC(BoxABC):
         pass
 
     @abstractmethod
-    def _take_hit(self, damage: int, **kwargs) -> None:
-        pass
-
-    @abstractmethod
     def draw_attack(self, surface: pygame.Surface, colour: Colour, x_off: float, y_off: float, scale: float) -> None:
         pass

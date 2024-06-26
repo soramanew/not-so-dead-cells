@@ -108,7 +108,21 @@ def main():
         window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255)), (15, 15))
 
         # Draw GUI
-        window.blit(h_bar, (0, 0))
+        window.blit(h_bar, (0, 0))  # Health bar base
+        # Health bar health gain opportunity
+        if player.damage_health >= 1:
+            pygame.draw.rect(
+                window,
+                (213, 162, 59),
+                (
+                    h_bar_inner_rect[0],
+                    h_bar_inner_rect[1],
+                    h_bar_inner_rect[2] * ((player.health + player.damage_health) / Player.MAX_HEALTH),
+                    h_bar_inner_rect[3],
+                ),
+                border_radius=10,
+            )
+        # Actual health
         pygame.draw.rect(
             window,
             H_BAR_COLOUR,
@@ -120,6 +134,7 @@ def main():
             ),
             border_radius=10,
         )
+        # Health text
         player_health = h_bar_font.render(f"{player.health} / {Player.MAX_HEALTH}", True, (255, 255, 255))
         window.blit(
             player_health,

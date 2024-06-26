@@ -1,6 +1,5 @@
 from map import Map, Wall
 from player import Player
-from util.type import Side, Vec2
 
 from ..attack import SwordAttack
 from ..enemy import Enemy
@@ -30,10 +29,3 @@ class Zombie(Enemy, GroundIdleMovement, SwordAttack):
             atk_height=40,
             atk_height_tick=8,
         )
-
-    def _take_hit(self, damage: int, kb: Vec2 = None, side: Side = None, **kwargs):
-        super()._take_hit(damage, **kwargs)
-        if kb is not None:
-            if side is not None:
-                self.vx += kb[0] * side.value
-            self.vy += kb[1]

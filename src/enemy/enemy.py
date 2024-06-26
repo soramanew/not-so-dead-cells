@@ -14,7 +14,6 @@ class Enemy(Hitbox, Sense):
     H_BAR_OFF: float = 10
     H_BAR_SIZE: Size = 40, 15
     H_BAR_TIME: float = 10  # The time the health bar is rendered after an enemy is hit (s)
-    H_BAR_DAMAGE_DELAY: float = 1
     H_BAR_DAMAGE_DECAY: float = 1.3
 
     @property
@@ -101,19 +100,41 @@ class Enemy(Hitbox, Sense):
         self._tick_attack(dt)
         self.i_frames -= dt
         self.h_bar_time -= dt
-        if self.h_bar_time <= Enemy.H_BAR_TIME - Enemy.H_BAR_DAMAGE_DELAY:
-            self.h_bar_damage -= self.h_bar_damage * Enemy.H_BAR_DAMAGE_DECAY * dt
+        self.h_bar_damage -= self.h_bar_damage * Enemy.H_BAR_DAMAGE_DECAY * dt
 
-    def take_hit(self, damage: int, **kwargs) -> None:
+    def take_hit(self, damage: int, **kwargs) -> int:
         if self.i_frames <= 0:
             self.i_frames = self.I_FRAMES
-            self._take_hit(damage, **kwargs)
+            return self._take_hit(damage, **kwargs)
+        return 0
 
-    def _take_hit(self, damage: int, **kwargs) -> None:
+    def _take_hit(self, damage: int, kb: Vec2 = None, side: Side = None, **kwargs) -> int:
+        """Called when an enemy takes a hit.
+
+        Parameters
+        ----------
+        damage : int
+            The damage done in the hit.
+        kb : Vec2, optional
+            The knockback done in the hit.
+        side : Side, optional
+            The direction of the knockback.
+
+        Returns
+        -------
+        int
+            The damage taken due to the hit. This can be different to the given damage due to damage reduction, etc.
+        """
+
         self.h_bar_time = Enemy.H_BAR_TIME
         self.h_bar_damage += damage
         self.health -= damage
         print(f"[DEBUG] {self.__class__.__name__} hit: {self.health}")
+        if kb is not None:
+            if side is not None:
+                self.vx += kb[0] * side.value
+            self.vy += kb[1]
+        return damage
 
     def draw_health_bar(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
         if self.h_bar_time <= 0:

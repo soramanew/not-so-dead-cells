@@ -74,9 +74,10 @@ class Player(Hitbox):
 
     # Invincibility frames after taking damage in seconds
     I_FRAMES: float = 0.3
-
     # The max health of the player
     MAX_HEALTH: float = 100
+    # The decay of the health able to be regained after taking damage
+    DAMAGE_HEALTH_DECAY: float = 1
 
     # Range around the player that it can interact with objects
     INTERACT_RANGE: float = 5
@@ -137,6 +138,7 @@ class Player(Hitbox):
         self.wall_climb_time: float = 0
         self._health: int = Player.MAX_HEALTH
         self.i_frames: float = 0
+        self.damage_health: float = 0
         self.weapon: Weapon = None
 
     # ------------------------------ Getters ------------------------------ #
@@ -424,6 +426,10 @@ class Player(Hitbox):
 
         # Tick invincibility frames
         self.i_frames -= dt
+        if self.damage_health > 0:
+            self.damage_health -= max(8, self.damage_health) * Player.DAMAGE_HEALTH_DECAY * dt
+            if self.damage_health < 0:
+                self.damage_health = 0
 
         self._tick_roll(dt)
 
@@ -560,6 +566,17 @@ class Player(Hitbox):
             else:
                 self.roll_time += dt
 
+    def _regain_health(self, damage: int) -> None:
+        # Health is int so if not >= 1 then it will be rounded to 0
+        if self.damage_health >= 1 and self.health < Player.MAX_HEALTH:
+            damage /= 4  # Not full damage is regained
+            if damage > self.damage_health:
+                damage = self.damage_health
+            self.damage_health -= damage
+            self.health += int(damage)
+            if self.health > Player.MAX_HEALTH:
+                self.health = Player.MAX_HEALTH
+
     def tick_slam(self, dt: float) -> None:
         # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA CIRCULAR IMPORTSSSS
         from enemy.enemy import Enemy
@@ -573,11 +590,12 @@ class Player(Hitbox):
         ):
             falloff = 1 - abs(self.center_x - enemy.center_x) / (Player.SLAM_RANGE[0] * 2)
             kb_x, kb_y = self.slam_kb
-            enemy.take_hit(
+            damage = enemy.take_hit(
                 int(self.slam_damage * falloff),
                 kb=(kb_x * falloff, kb_y * falloff),
                 side=Side.LEFT if self.center_x > enemy.center_x else Side.RIGHT,
             )
+            self._regain_health(damage)
 
     def tick_collision(self, dt: float) -> None:
         from enemy.enemy import Enemy
@@ -598,7 +616,8 @@ class Player(Hitbox):
         self.handle_moves(dt, *moves)
         self.tick_changes(dt)
         if self.weapon is not None:
-            self.weapon.tick(dt)
+            damage = self.weapon.tick(dt)
+            self._regain_health(damage)
         if self.slamming:
             self.tick_slam(dt)
         if not self.is_rolling():
@@ -610,6 +629,7 @@ class Player(Hitbox):
         if self.i_frames > 0:
             return
 
+        self.damage_health += damage
         self.health -= damage
         print(f"Player hit: {self.health}")
 

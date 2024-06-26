@@ -62,17 +62,20 @@ class MeleeWeapon(Weapon):
         self.stop_attack()
         self.atk_time = 0
 
-    def tick(self, dt: float) -> None:
+    def tick(self, dt: float) -> int:
         # Start attack if attacking
         if self.attacking and self.atk_time <= 0:
             self.atk_time = self.atk_windup + self.atk_length
 
         # Do attack
+        damage = 0
         if 0 < self.atk_time <= self.atk_length:
             for enemy in self.player.current_map.get_rect(*self, lambda e: isinstance(e, Enemy)):
-                enemy.take_hit(self.damage, kb=self.kb, side=self.player.facing)
+                damage += enemy.take_hit(self.damage, kb=self.kb, side=self.player.facing)
 
         self.atk_time -= dt
+
+        return damage
 
     def draw(
         self,
