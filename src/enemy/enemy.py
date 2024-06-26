@@ -48,7 +48,6 @@ class Enemy(Hitbox, Sense, Sprite):
         atk_width: float,
         health: int,
         sprite: str,
-        sprite_y: Vec2 = (0, 0),
         pos: Vec2 = (None, None),
         facing: Side = None,
         head_pos: Vec2 = (0.7, 0.3),  # Head position in direction facing as ratio (width, height)
@@ -76,7 +75,6 @@ class Enemy(Hitbox, Sense, Sprite):
         self.max_health: int = health
         self.health: int = health
         self.mass: float = mass
-        self.sprite_y: int = sprite_y
 
         self.alerted: bool = False
         self.stopped: bool = False
@@ -202,7 +200,7 @@ class Enemy(Hitbox, Sense, Sprite):
         surface.blit(
             sprite,
             (self.center_x + x_off - sprite.width / 2, self.y + y_off),
-            (0, self.sprite_y, sprite.width, sprite.height - self.sprite_y),
+            (0, sprite.height - self.height, sprite.width, self.height),
         )
         # self.draw_sense(surface, ((0, 255, 0), (200, 50, 50)), x_off, y_off, scale)
         # self.draw_attack(surface, (165, 30, 30), x_off, y_off, scale)

@@ -35,7 +35,6 @@ class Skelebone(Enemy, GroundIdleMovement, SwordAttack):
             health=80,
             damage=10,
             sprite="skelebone",
-            sprite_y=54,
         )
 
     def _get_real_atk_area(self) -> Rect:
