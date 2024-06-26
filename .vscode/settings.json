@@ -17,6 +17,7 @@
         "pygame",
         "Readex",
         "rotatedbox",
+        "skelebone",
         "SRCALPHA",
         "VIDEORESIZE"
     ]

@@ -8,9 +8,10 @@ from util.func import normalise_for_drawing
 from util.type import Side, Size, Vec2
 
 from .sense import Sense
+from .sprite import Sprite
 
 
-class Enemy(Hitbox, Sense):
+class Enemy(Hitbox, Sense, Sprite):
     H_BAR_OFF: float = 10
     H_BAR_SIZE: Size = 40, 15
     H_BAR_TIME: float = 10  # The time the health bar is rendered after an enemy is hit (s)
@@ -32,6 +33,10 @@ class Enemy(Hitbox, Sense):
     def arm_y(self) -> float:
         return self.y + self.height * self._arm_y
 
+    @property
+    def dead(self) -> bool:
+        return self.health <= 0
+
     def __init__(
         self,
         player: Player,
@@ -42,6 +47,8 @@ class Enemy(Hitbox, Sense):
         sense_size: Size,
         atk_width: float,
         health: int,
+        sprite: str,
+        sprite_y: Vec2 = (0, 0),
         pos: Vec2 = (None, None),
         facing: Side = None,
         head_pos: Vec2 = (0.7, 0.3),  # Head position in direction facing as ratio (width, height)
@@ -69,12 +76,14 @@ class Enemy(Hitbox, Sense):
         self.max_health: int = health
         self.health: int = health
         self.mass: float = mass
+        self.sprite_y: int = sprite_y
 
         self.alerted: bool = False
         self.stopped: bool = False
         self.i_frames: float = 0
         self.h_bar_time: float = 0
         self.h_bar_damage: float = 0
+        self.death_finished: bool = False
 
         super().__init__(
             x=x,
@@ -85,6 +94,7 @@ class Enemy(Hitbox, Sense):
             sense_y=sense_anchor[1],
             sense_width=sense_size[0],
             sense_height=sense_size[1],
+            folder=sprite,
             **kwargs,
         )
 
@@ -95,12 +105,17 @@ class Enemy(Hitbox, Sense):
         return ratio if self.facing is Side.RIGHT else 1 - ratio
 
     def tick(self, dt: float) -> None:
-        self._tick_sense()
-        self._tick_move(dt)
-        self._tick_attack(dt)
-        self.i_frames -= dt
-        self.h_bar_time -= dt
-        self.h_bar_damage -= self.h_bar_damage * Enemy.H_BAR_DAMAGE_DECAY * dt
+        if self.dead:
+            self.h_bar_time = 0
+        else:
+            self._tick_sense()
+            self._tick_move(dt)
+            self._tick_attack(dt)
+            self.i_frames -= dt
+            self.h_bar_time -= dt
+            self.h_bar_damage -= self.h_bar_damage * Enemy.H_BAR_DAMAGE_DECAY * dt
+
+        self._tick_sprite(dt)
 
     def take_hit(self, damage: int, **kwargs) -> int:
         if self.i_frames <= 0:
@@ -182,6 +197,12 @@ class Enemy(Hitbox, Sense):
         surface.fill((240, 10, 10), draw_rect)
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
-        super().draw(surface, (255, 0, 0), x_off, y_off, scale)
+        # super().draw(surface, (255, 0, 0), x_off, y_off, scale)
+        sprite = self.current_sprite
+        surface.blit(
+            sprite,
+            (self.center_x + x_off - sprite.width / 2, self.y + y_off),
+            (0, self.sprite_y, sprite.width, sprite.height - self.sprite_y),
+        )
         # self.draw_sense(surface, ((0, 255, 0), (200, 50, 50)), x_off, y_off, scale)
-        self.draw_attack(surface, (165, 30, 30), x_off, y_off, scale)
+        # self.draw_attack(surface, (165, 30, 30), x_off, y_off, scale)

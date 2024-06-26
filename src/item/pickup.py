@@ -68,7 +68,7 @@ class Pickup(Hitbox, Interactable):
                 name.height + dps.height + desc.height + mods.height + PROMPT.height + y_off * 2,
             ),
             pygame.SRCALPHA,
-        )
+        ).convert_alpha()
         pygame.draw.rect(
             self.surface, (152, 138, 112, 230), (0, 0, self.surface.width, self.surface.height), border_radius=3
         )

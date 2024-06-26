@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 import pygame
 from util.func import normalise_for_drawing
-from util.type import Colour, Rect
+from util.type import Colour, EnemyState, Rect
 
 from ...enemyabc import EnemyABC
 
@@ -48,6 +48,9 @@ class MeleeAttack(EnemyABC):
             and self.player.detect_collision_rect(*self._get_real_atk_area())
         ):
             self.player.take_hit(self.damage)
+
+        if self.atk_time > 0:
+            self.state = EnemyState.ATTACKING
 
         self.atk_time -= dt
         self.atk_cd -= dt

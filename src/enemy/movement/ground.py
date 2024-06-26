@@ -3,7 +3,7 @@ from random import random, uniform
 
 from map import Map, Wall
 from util.func import clamp
-from util.type import Direction, Side
+from util.type import Direction, EnemyState, Side
 
 from ..enemyabc import EnemyABC
 
@@ -13,6 +13,15 @@ class GroundMovement(EnemyABC):
 
     # The distance (pixels) between the enemy and it's move target to be considered as reached the target
     TARGET_THRESHOLD: float = 0.01
+
+    @property
+    def moving(self) -> bool:
+        return self._moving
+
+    @moving.setter
+    def moving(self, value: bool) -> None:
+        self._moving = value
+        self.state = EnemyState.WALKING if value else EnemyState.IDLE
 
     @property
     def speed(self) -> float:

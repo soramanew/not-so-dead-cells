@@ -1,1 +1,1 @@
-from .zombie import Zombie
+from .skelebone import Skelebone

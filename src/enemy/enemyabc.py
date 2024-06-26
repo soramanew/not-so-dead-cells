@@ -4,7 +4,7 @@ import pygame
 from box import BoxABC
 from map import Map, Wall
 from player import Player
-from util.type import Colour, Side
+from util.type import Colour, EnemyState, Side
 
 
 class EnemyABC(BoxABC):
@@ -24,6 +24,8 @@ class EnemyABC(BoxABC):
     alerted: bool
     vx: float
     vy: float
+    state: EnemyState
+    death_finished: bool
 
     @property
     @abstractmethod
@@ -49,6 +51,16 @@ class EnemyABC(BoxABC):
     @abstractmethod
     def atk_stop_mv(self) -> bool:
         """If the enemy is stopped due to attacking."""
+        pass
+
+    @property
+    @abstractmethod
+    def current_sprite(self) -> pygame.Surface:
+        pass
+
+    @property
+    @abstractmethod
+    def dead(self) -> bool:
         pass
 
     @abstractmethod

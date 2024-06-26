@@ -77,7 +77,7 @@ class Map:
             self.height = height
             self.cell_size = cell_size
             self.init_dir = Side.RIGHT
-            self.player_spawn = (0, 0, 10, 30)
+            self.player_spawn = (0, 0, 20, 50)
 
         self.rows = self.height // self.cell_size
         self.cols = self.width // self.cell_size
@@ -88,13 +88,13 @@ class Map:
 
     def spawn_enemies(self, player):  # FIXME temp
         import item.weapon
-        from enemy import Zombie
+        from enemy import Skelebone
         from item.pickup import WeaponPickup
 
         weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
         for wall in self.walls:
             for i in range(1):
-                enemy = Zombie(player, self, wall)
+                enemy = Skelebone(player, self, wall)
                 self.enemies.add(enemy)
                 self.add(enemy)
             weapon = random.choice(weapons)
@@ -108,10 +108,10 @@ class Map:
         for enemy in self.enemies:
             self._remove(enemy, False)
             enemy.tick(dt)
-            if enemy.health > 0:
-                self._add(enemy, False)
-            else:
+            if enemy.death_finished:
                 to_remove.add(enemy)
+            else:
+                self._add(enemy, False)
 
         for enemy in to_remove:
             self.objects.remove(enemy)

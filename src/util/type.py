@@ -56,6 +56,14 @@ class PlayerControl(Enum):
     ATTACK_STOP = "stop_attack"
 
 
+class EnemyState(Enum):
+    ATTACKING = "attack"
+    DEAD = "dead"
+    # HURT = "hurt"
+    IDLE = "idle"
+    WALKING = "walk"
+
+
 class Collision:
     def __init__(self, direction: Direction, entity: Hitbox):
         self.direction = direction

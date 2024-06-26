@@ -604,7 +604,7 @@ class Player(Hitbox):
     def tick_collision(self, dt: float) -> None:
         from enemy.enemy import Enemy
 
-        for enemy in self.current_map.get_rect(*self, lambda e: isinstance(e, Enemy)):
+        for enemy in self.current_map.get_rect(*self, lambda e: isinstance(e, Enemy) and not e.dead):
             # Get as ratio, 1 is touching edges, 0 is exact same spot
             dx = (enemy.center_x - self.center_x) / ((self.width + enemy.width) / 2)
             dy = (enemy.center_y - self.center_y) / ((self.height + enemy.height) / 2)
