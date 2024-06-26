@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from abc import abstractmethod
+from typing import TYPE_CHECKING
 
 import pygame
 from box import BoxABC
 from map import Map, Wall
 from player import Player
 from util.type import Colour, EnemyState, Side
+
+if TYPE_CHECKING:
+    from .sprite import State
 
 
 class EnemyABC(BoxABC):
@@ -24,6 +30,7 @@ class EnemyABC(BoxABC):
     alerted: bool
     vx: float
     vy: float
+    states: dict[str, State]
     state: EnemyState
     death_finished: bool
 

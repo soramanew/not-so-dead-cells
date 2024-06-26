@@ -1,1 +1,1 @@
-from .sword import SwordAttack
+from .attacks import DiagonalUpOut

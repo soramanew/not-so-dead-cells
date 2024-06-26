@@ -40,6 +40,7 @@ class MeleeAttack(EnemyABC):
         ):
             self.atk_time = self.atk_windup + self.atk_length
             self.atk_cd = self.atk_speed
+            self.states[EnemyState.ATTACKING.value].time = 0
 
         # Do attack
         if (

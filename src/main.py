@@ -99,7 +99,7 @@ def main():
         camera.tick_move(dt)
 
         # Clear window
-        window.fill((0, 0, 0))
+        window.fill((255, 255, 255))
 
         # Draw stuff
         camera.render(window, current_map, debug=True)

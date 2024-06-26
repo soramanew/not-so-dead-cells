@@ -97,9 +97,9 @@ class Camera(Box):
             self.height,
             lambda client: isinstance(client, Drawable),
         )
+        self._render_w_off(self.player, window)
         for drawable in drawables:
             self._render_w_off(drawable, window)
-        self._render_w_off(self.player, window)
 
     def render(self, window: pygame.Surface, current_map: Map, debug: bool = False) -> None:
         """Renders the given map to the given surface through this camera's viewport.
