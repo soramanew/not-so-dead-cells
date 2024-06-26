@@ -1,7 +1,6 @@
 from random import uniform
 
 import pygame
-import pygame_gui
 from box import Hitbox
 from map import Map, Wall
 from player import Player
@@ -38,18 +37,18 @@ class Pickup(Hitbox, Interactable):
         self.item: Item = item
         # TODO draw item sprite and popup
 
-    def draw_popup(self, ui: pygame_gui.UIManager):
-        # FIXME maybe just draw rect + text not use pygame_gui
+    # def draw_popup(self, ui: pygame_gui.UIManager):
+    #     # FIXME maybe just draw rect + text not use pygame_gui
 
-        from item import Skill  # ARRGGHHH I HATE CIRCULAR IMPORTS
+    #     from item import Skill  # ARRGGHHH I HATE CIRCULAR IMPORTS
 
-        pygame_gui.elements.UITextBox(
-            f"<b><font face='Gabarito' size=20>{self.item.name}</font></b><br>"
-            f"<font face='Rubik' size=14>{round(self.item.dps)} DPS{f" ({self.item.cooldown} sec)" if isinstance(self.item, Skill) else ""}</font>"
-            "<hr>"
-            f"<font face='Rubik' size=14>{self.item.modifiers_str}</font>",
-            manager=ui,
-        )
+    #     pygame_gui.elements.UITextBox(
+    #         f"<b><font face='Gabarito' size=20>{self.item.name}</font></b><br>"
+    #         f"<font face='Rubik' size=14>{round(self.item.dps)} DPS{f" ({self.item.cooldown} sec)" if isinstance(self.item, Skill) else ""}</font>"
+    #         "<hr>"
+    #         f"<font face='Rubik' size=14>{self.item.modifiers_str}</font>",
+    #         manager=ui,
+    #     )
 
     def draw(self, surface: pygame.Surface, **kwargs) -> None:
         super().draw(surface, (74, 218, 192), **kwargs)

@@ -160,5 +160,5 @@ class Enemy(Hitbox, Sense):
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
         super().draw(surface, (255, 0, 0), x_off, y_off, scale)
-        self.draw_sense(surface, ((0, 255, 0), (200, 50, 50)), x_off, y_off, scale)
+        # self.draw_sense(surface, ((0, 255, 0), (200, 50, 50)), x_off, y_off, scale)
         self.draw_attack(surface, (165, 30, 30), x_off, y_off, scale)

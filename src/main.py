@@ -1,10 +1,31 @@
 import pygame
-import pygame_gui
 from camera import Camera
 from map import Map
 from player import Player
 from util import key_handler
-from util.type import PlayerControl
+from util.type import Colour, PlayerControl, Rect
+
+H_BAR_COLOUR: Colour = 82, 191, 118
+
+
+def _h_bar_rect(width: int, height: int) -> Rect:
+    h_bar_height = height * 0.04
+    return 50, height - h_bar_height - 50, width * 0.33, h_bar_height
+
+
+def _h_bar_inner_rect(width: int, height: int) -> Rect:
+    i_w = 0.97  # inner width
+    i_h = 0.7  # inner height
+    x, y, w, h = _h_bar_rect(width, height)
+    return x + w * (1 - i_w) / 2, y + h * (1 - i_h) / 2, w * i_w, h * i_h
+
+
+def _create_h_bar(width: int, height: int) -> tuple[pygame.Surface, Rect, pygame.font.SysFont]:
+    h_bar = pygame.Surface((width, height), pygame.SRCALPHA)
+    pygame.draw.rect(h_bar, (0, 0, 0, 100), _h_bar_rect(width, height), border_radius=3)
+    inner_rect = _h_bar_inner_rect(width, height)
+    pygame.draw.rect(h_bar, H_BAR_COLOUR, inner_rect, width=1, border_radius=10)
+    return h_bar, inner_rect, pygame.font.SysFont("Rubik", int(height * 0.02))
 
 
 def main():
@@ -20,9 +41,9 @@ def main():
     current_map.spawn_enemies(player)
     camera = Camera(player, *window_size)
 
-    ui = pygame_gui.UIManager(window_size)
+    font_rubik = pygame.font.SysFont("Rubik", 20)
 
-    font = pygame.font.SysFont("Rubik", 20)
+    h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window_size)
 
     pause = False
 
@@ -43,6 +64,7 @@ def main():
                 return
             elif event.type == pygame.VIDEORESIZE:
                 camera.resize(*event.dict["size"])
+                h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*event.dict["size"])
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
                 key_handler.down(event.key)
@@ -68,8 +90,6 @@ def main():
             elif event.type == pygame.MOUSEBUTTONUP:
                 move_types.append(PlayerControl.ATTACK_STOP)
 
-            ui.process_events(event)
-
         if pause:
             continue
 
@@ -78,8 +98,6 @@ def main():
         current_map.tick(dt)
         camera.tick_move(dt)
 
-        ui.update(dt)
-
         # Clear window
         window.fill((0, 0, 0))
 
@@ -87,10 +105,29 @@ def main():
         camera.render(window, current_map, debug=True)
 
         # FPS monitor
-        window.blit(font.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255)), (15, 15))
+        window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255)), (15, 15))
 
-        # GUI
-        ui.draw_ui(window)
+        # Draw GUI
+        window.blit(h_bar, (0, 0))
+        pygame.draw.rect(
+            window,
+            H_BAR_COLOUR,
+            (
+                h_bar_inner_rect[0],
+                h_bar_inner_rect[1],
+                h_bar_inner_rect[2] * (player.health / Player.MAX_HEALTH),
+                h_bar_inner_rect[3],
+            ),
+            border_radius=10,
+        )
+        player_health = h_bar_font.render(f"{player.health} / {Player.MAX_HEALTH}", True, (255, 255, 255))
+        window.blit(
+            player_health,
+            (
+                h_bar_inner_rect[0] + h_bar_inner_rect[2] / 2 - player_health.width / 2,
+                h_bar_inner_rect[1] + h_bar_inner_rect[3] / 2 - player_health.height / 2,
+            ),
+        )
 
         # Update window
         pygame.display.update()
