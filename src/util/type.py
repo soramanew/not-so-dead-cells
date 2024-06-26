@@ -19,13 +19,17 @@ type Colour = tuple[int, int, int]
 
 class Drawable(ABC):
     @abstractmethod
-    def draw(self, surface: pygame.Surface, x_off: float, y_off: float, **kwargs):
+    def draw(self, surface: pygame.Surface, x_off: float, y_off: float, **kwargs) -> None:
         pass
 
 
 class Interactable(ABC):
     @abstractmethod
-    def interact(self, player: Player):
+    def interact(self, player: Player) -> None:
+        pass
+
+    @abstractmethod
+    def draw_popup(self, surface: pygame.Surface, x_off: float, y_off: float, **kwargs) -> None:
         pass
 
 

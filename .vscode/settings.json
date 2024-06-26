@@ -15,6 +15,7 @@
         "MOUSEBUTTONUP",
         "pygame",
         "rotatedbox",
+        "SRCALPHA",
         "VIDEORESIZE"
     ]
 }

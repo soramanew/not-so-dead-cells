@@ -1,16 +1,17 @@
 import pygame
 from box import Box
 from map import Map
-from util.type import Drawable
+from player import Player
+from util.type import Drawable, Interactable
 
 
 class Camera(Box):
     # The length of the animation of the camera moving to center on the target
     TARGET_MOVE_ANIM_LENGTH = 0.5
 
-    def __init__(self, target: Box, width: int, height: int, x: float = 0, y: float = 0) -> None:
+    def __init__(self, player: Player, width: int, height: int, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y, width, height)
-        self.target = target
+        self.player: Player = player
 
     def move(self, x: float, y: float) -> None:
         """Moves this camera's viewport by the given amount.
@@ -51,8 +52,8 @@ class Camera(Box):
             The time between this tick and the last.
         """
 
-        dx = (self.target.center_x - self.center_x) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
-        dy = (self.target.center_y - self.center_y) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
+        dx = (self.player.center_x - self.center_x) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
+        dy = (self.player.center_y - self.center_y) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
         self.move(dx, dy)
 
     def _render_w_off(self, target: Drawable, window: pygame.Surface, **kwargs) -> None:
@@ -98,7 +99,7 @@ class Camera(Box):
         )
         for drawable in drawables:
             self._render_w_off(drawable, window)
-        self._render_w_off(self.target, window)
+        self._render_w_off(self.player, window)
 
     def render(self, window: pygame.Surface, current_map: Map, debug: bool = False) -> None:
         """Renders the given map to the given surface through this camera's viewport.
@@ -123,3 +124,5 @@ class Camera(Box):
             self.render_debug(window, current_map)
         for enemy in current_map.enemies:
             enemy.draw_health_bar(window, x_off=-self.x, y_off=-self.y)
+        for i in current_map.get_rect(*self.player.interact_range, lambda e: isinstance(e, Interactable)):
+            i.draw_popup(window, x_off=-self.x, y_off=-self.y)

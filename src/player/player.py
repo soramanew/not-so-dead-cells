@@ -14,6 +14,7 @@ from util.type import (
     Direction,
     Interactable,
     PlayerControl,
+    Rect,
     Side,
     Size,
     Vec2,
@@ -80,7 +81,7 @@ class Player(Hitbox):
     DAMAGE_HEALTH_DECAY: float = 1
 
     # Range around the player that it can interact with objects
-    INTERACT_RANGE: float = 5
+    INTERACT_RANGE: float = 10
 
     # For enemy soft collision
     G: int = 8000
@@ -116,6 +117,15 @@ class Player(Hitbox):
     @property
     def slam_kb(self) -> Vec2:
         return Player.SLAM_KB[0] * self.vy, Player.SLAM_KB[1] * self.vy
+
+    @property
+    def interact_range(self) -> Rect:
+        return (
+            self.x - Player.INTERACT_RANGE,
+            self.y - Player.INTERACT_RANGE,
+            self.width + Player.INTERACT_RANGE * 2,
+            self.height + Player.INTERACT_RANGE * 2,
+        )
 
     # ---------------------------- Constructor ---------------------------- #
 
@@ -201,13 +211,7 @@ class Player(Hitbox):
                     self.weapon.stop_attack()
 
     def _interact(self) -> None:
-        for i in self.current_map.get_rect(
-            self.x - Player.INTERACT_RANGE,
-            self.y - Player.INTERACT_RANGE,
-            self.width + Player.INTERACT_RANGE * 2,
-            self.height + Player.INTERACT_RANGE * 2,
-            lambda o: isinstance(o, Interactable),
-        ):
+        for i in self.current_map.get_rect(*self.interact_range, lambda o: isinstance(o, Interactable)):
             i.interact(self)
 
     def _interrupt_attack(self) -> None:

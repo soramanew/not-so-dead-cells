@@ -110,6 +110,7 @@ def main():
         # Draw GUI
         window.blit(h_bar, (0, 0))  # Health bar base
         # Health bar health gain opportunity
+        border = 0 if player.health < Player.MAX_HEALTH else -1
         if player.damage_health >= 1:
             pygame.draw.rect(
                 window,
@@ -121,8 +122,11 @@ def main():
                     h_bar_inner_rect[3],
                 ),
                 border_radius=10,
+                border_top_right_radius=border,
+                border_bottom_right_radius=border,
             )
         # Actual health
+        border = 0 if player.health + player.damage_health < Player.MAX_HEALTH else -1
         pygame.draw.rect(
             window,
             H_BAR_COLOUR,
@@ -133,6 +137,8 @@ def main():
                 h_bar_inner_rect[3],
             ),
             border_radius=10,
+            border_top_right_radius=border,
+            border_bottom_right_radius=border,
         )
         # Health text
         player_health = h_bar_font.render(f"{player.health} / {Player.MAX_HEALTH}", True, (255, 255, 255))

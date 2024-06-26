@@ -126,6 +126,8 @@ class Enemy(Hitbox, Sense):
             The damage taken due to the hit. This can be different to the given damage due to damage reduction, etc.
         """
 
+        if damage > self.health:
+            damage = self.health
         self.h_bar_time = Enemy.H_BAR_TIME
         self.h_bar_damage += damage
         self.health -= damage
