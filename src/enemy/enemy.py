@@ -199,8 +199,7 @@ class Enemy(Hitbox, Sense, Sprite):
         sprite = self.current_sprite
         surface.blit(
             sprite,
-            (self.center_x + x_off - sprite.width / 2, self.y + y_off),
-            (0, sprite.height - self.height, sprite.width, self.height),
+            (self.center_x + x_off - sprite.width / 2, self.y + y_off - (sprite.height - self.height)),
         )
         # self.draw_sense(surface, ((0, 255, 0), (200, 50, 50)), x_off, y_off, scale)
         # self.draw_attack(surface, (165, 30, 30), x_off, y_off, scale)

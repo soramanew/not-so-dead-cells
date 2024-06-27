@@ -120,9 +120,6 @@ class GroundMovement(EnemyABC):
                     self.moving = False
                     print(f"[DEBUG] Enemy changed platform: {entity} | Area: {self.area}")
 
-        if self.atk_stop_mv:
-            return
-
         if self.alerted:
             self.move_target = clamp(
                 self.player.x
@@ -135,6 +132,9 @@ class GroundMovement(EnemyABC):
                 self.area[0],
             )
             self.moving = True
+
+        if self.attacking:
+            return
 
         if self.moving and self.on_platform:
             # Tick movement

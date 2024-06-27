@@ -16,10 +16,6 @@ class MeleeAttack(EnemyABC):
     def _get_real_atk_area(self) -> Rect:
         pass
 
-    @property
-    def atk_stop_mv(self) -> bool:
-        return self.atk_time > self.atk_length
-
     def __init__(self, arm_y: float, damage: int, atk_windup: float, atk_speed: float, atk_length: float, **kwargs):
         super().__init__(**kwargs)
         self._arm_y: float = arm_y
@@ -29,6 +25,7 @@ class MeleeAttack(EnemyABC):
         self.atk_length: float = atk_length
         self.atk_time: float = 0
         self.atk_cd: float = 0
+        self.attacking: bool = False
 
     def _tick_attack(self, dt: float) -> None:
         # Warn for attack
@@ -41,6 +38,7 @@ class MeleeAttack(EnemyABC):
             self.atk_time = self.atk_windup + self.atk_length
             self.atk_cd = self.atk_speed
             self.states[EnemyState.ATTACKING.value].time = 0
+            self.attacking = True
 
         # Do attack
         if (
@@ -52,6 +50,9 @@ class MeleeAttack(EnemyABC):
 
         if self.atk_time > 0:
             self.state = EnemyState.ATTACKING
+        elif self.attacking:
+            self.state = EnemyState.IDLE
+            self.attacking = False
 
         self.atk_time -= dt
         self.atk_cd -= dt

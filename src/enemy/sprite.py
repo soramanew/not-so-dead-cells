@@ -63,6 +63,7 @@ class State:
             if loop:
                 self.time -= self.num_sprites / SPRITES_PER_SECOND
             else:
+                # Set to last frame
                 self.time = (self.num_sprites - 1) / SPRITES_PER_SECOND
         return self.frame >= self.num_sprites - 1
 

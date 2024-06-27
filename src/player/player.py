@@ -614,7 +614,7 @@ class Player(Hitbox):
             self.vx -= min(Player.REPULSION_CAP, gravity) * (dx / d)
             if not self.slamming:
                 # Prevent bouncing and make player slide off enemies
-                self.vy -= min(Player.REPULSION_CAP / 10, gravity) * (dy / d)
+                self.vy -= (min(Player.REPULSION_CAP, gravity) / 30) * (dy / d)
 
     def tick(self, dt: float, moves: list[PlayerControl]) -> None:
         self.handle_moves(dt, *moves)

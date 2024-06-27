@@ -24,6 +24,7 @@ class EnemyABC(BoxABC):
     atk_windup: float
     atk_speed: float
     atk_length: float
+    attacking: bool
     mass: float
     health: int
     damage: int
@@ -52,12 +53,6 @@ class EnemyABC(BoxABC):
     @property
     @abstractmethod
     def arm_y(self) -> float:
-        pass
-
-    @property
-    @abstractmethod
-    def atk_stop_mv(self) -> bool:
-        """If the enemy is stopped due to attacking."""
         pass
 
     @property
