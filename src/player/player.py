@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 from math import sqrt
-from typing import TYPE_CHECKING
 
 import pygame
+import state
 from box import Hitbox
-from map import Map, Wall
+from item import Weapon
+from item.pickup import WeaponPickup
+from map import Gate, Map, Wall
 from util import key_handler
 from util.decor import run_once
 from util.func import clamp
@@ -19,9 +19,6 @@ from util.type import (
     Size,
     Vec2,
 )
-
-if TYPE_CHECKING:
-    from item import Weapon
 
 
 def _roll_height_fn(x):
@@ -79,6 +76,10 @@ class Player(Hitbox):
     MAX_HEALTH: float = 100
     # The decay of the health able to be regained after taking damage
     DAMAGE_HEALTH_DECAY: float = 1
+    # Size
+    WIDTH: int = 20
+    HEIGHT: int = 50
+    MIN_HEIGHT: int = 15
 
     # Range around the player that it can interact with objects
     INTERACT_RANGE: float = 10
@@ -129,18 +130,15 @@ class Player(Hitbox):
 
     # ---------------------------- Constructor ---------------------------- #
 
-    def __init__(self, current_map: Map):
-        super().__init__(*current_map.player_spawn)
-        self.current_map: Map = current_map
+    def __init__(self):
+        super().__init__(0, 0, Player.WIDTH, Player.HEIGHT)
         self.vx: float = 0  # The velocity of the player in the x direction (- left, + right)
         self.vy: float = 0  # The velocity of the player in the y direction (- up, + down)
         self.controlled_vx: float = 0  # The velocity of the player in the x direction caused by user controls
-        self.facing: Side = current_map.init_dir  # The direction the player is currently facing
+        self.facing: Side = Side.RIGHT  # The direction the player is currently facing
         self.jumps: int = Player.JUMPS  # How many jumps the player has left (is reset when touching ground)
         self.roll_cooldown: float = 0  # The time until the player can roll again in seconds
         self.slamming: bool = False  # If the player is currently slamming
-        self.base_height: int = current_map.player_spawn[3]
-        self.min_roll_height: int = current_map.player_spawn[3] // 3
         self.on_platform: bool = False
         self.roll_time: float = 0
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
@@ -160,6 +158,25 @@ class Player(Hitbox):
         return not self.slamming and (self.jumps > 0 or self.wall_col_dir)
 
     # ------------------------------ Methods ------------------------------ #
+
+    def to_default_values(self, x: float, y: float, facing: Side) -> None:
+        self.x = x
+        self.y = y
+        self.facing = facing
+        self.height = Player.HEIGHT
+        self.vx = 0
+        self.vy = 0
+        self.controlled_vx = 0
+        self.jumps = Player.JUMPS
+        self.roll_cooldown = 0
+        self.slamming = False
+        self.on_platform = False
+        self.roll_time = 0
+        self.wall_col_dir = None
+        self.ledge_climbing = None
+        self.wall_climb_time = 0
+        self.i_frames = 0
+        self.damage_health = 0
 
     def handle_moves(self, dt: float, *move_types: PlayerControl) -> None:
         """Handles movement commands.
@@ -211,8 +228,10 @@ class Player(Hitbox):
                     self.weapon.stop_attack()
 
     def _interact(self) -> None:
-        for i in self.current_map.get_rect(*self.interact_range, lambda o: isinstance(o, Interactable)):
-            i.interact(self)
+        for i in state.current_map.get_rect(*self.interact_range, lambda o: isinstance(o, Interactable)):
+            i.interact()
+            if isinstance(i, Gate):
+                break
 
     def _interrupt_attack(self) -> None:
         if self.weapon:
@@ -278,15 +297,12 @@ class Player(Hitbox):
             Whether the player stopped rolling or not.
         """
 
-        walls_above = self.current_map.get_rect(
-            self.x,
-            self.y + self.height - self.base_height,
-            self.width,
-            self.base_height,
+        walls_above = state.current_map.get_rect(
+            self.x, self.y + self.height - Player.HEIGHT, self.width, Player.HEIGHT, lambda e: isinstance(e, Wall)
         )
         for wall in walls_above:
             if (
-                wall.top < self.top + self.height - self.base_height < wall.bottom
+                wall.top < self.top + self.height - Player.HEIGHT < wall.bottom
                 and wall.left < self.right
                 and wall.right > self.left
             ):
@@ -325,7 +341,7 @@ class Player(Hitbox):
             A list of collisions with the player which happened due to this movement.
         """
 
-        return self.move(self.vx * dt, self.vy * dt, self.current_map.walls)
+        return self.move(self.vx * dt, self.vy * dt, state.current_map.walls)
 
     def handle_collisions(self, collisions: list[Collision]) -> None:
         """Handles player actions on collisions.
@@ -380,17 +396,17 @@ class Player(Hitbox):
         self.wall_climb_time = -1
 
     def _handle_side_wall_collision(self, side: Side, wall: Wall) -> None:
-        can_climb_ledge = self.top - wall.top < self.base_height * Player.LEDGE_CLIMB_HEIGHT
+        can_climb_ledge = self.top - wall.top < Player.HEIGHT * Player.LEDGE_CLIMB_HEIGHT
 
         if can_climb_ledge:
-            walls_above = self.current_map.get_rect(
+            walls_above = state.current_map.get_rect(
                 self.left,
-                wall.top - self.base_height,
+                wall.top - Player.HEIGHT,
                 self.width,
-                self.top - (wall.top - self.base_height),
+                self.top - (wall.top - Player.HEIGHT),
             )
             for wall_a in walls_above:
-                if wall_a.bottom + self.base_height > wall.top:
+                if wall_a.bottom + Player.HEIGHT > wall.top:
                     can_climb_ledge = False
 
         left_key_down = key_handler.get_control(PlayerControl.LEFT)
@@ -467,9 +483,9 @@ class Player(Hitbox):
             self.ledge_climbing = None
             return
 
-        self.controlled_vx = self.base_height * Player.LEDGE_CLIMB_SPEED * side.value
+        self.controlled_vx = Player.HEIGHT * Player.LEDGE_CLIMB_SPEED * side.value
         if self.bottom >= target[1]:
-            self.vy = -self.base_height * Player.LEDGE_CLIMB_SPEED
+            self.vy = -Player.HEIGHT * Player.LEDGE_CLIMB_SPEED
 
     def _tick_roll(self, dt: float) -> None:
         """Updates roll-related properties.
@@ -514,24 +530,21 @@ class Player(Hitbox):
             The time between this tick and the last.
         """
 
-        walls_above = self.current_map.get_rect(
-            self.x,
-            self.y + self.height - self.base_height,
-            self.width,
-            self.base_height,
+        walls_above = state.current_map.get_rect(
+            self.x, self.y + self.height - Player.HEIGHT, self.width, Player.HEIGHT, lambda e: isinstance(e, Wall)
         )
         if self.is_rolling():
             roll_height = clamp(
-                int(self.base_height * _roll_height_fn(self.roll_time / Player.ROLL_LENGTH)),
-                self.base_height,
-                self.min_roll_height,
+                int(Player.HEIGHT * _roll_height_fn(self.roll_time / Player.ROLL_LENGTH)),
+                Player.HEIGHT,
+                Player.MIN_HEIGHT,
             )
 
             do_change = True
             if roll_height > self.height:
                 for wall in walls_above:
                     if (
-                        wall.top < self.top + self.height - self.base_height < wall.bottom
+                        wall.top < self.top + self.height - Player.HEIGHT < wall.bottom
                         and wall.left < self.right
                         and wall.right > self.left
                     ):
@@ -543,14 +556,14 @@ class Player(Hitbox):
                 self.height = roll_height
             else:
                 self.roll_time += dt
-        elif self.height != self.base_height:
+        elif self.height != Player.HEIGHT:
             # If not rolling and height is not base_height (e.g. when rolling is interrupted via jumping),
             # transition height to base height
-            diff = self.base_height - self.height
+            diff = Player.HEIGHT - self.height
             # If gap is small just snap it to base_height (if not it will never reach base_height)
-            if diff < self.base_height / 10:
+            if diff < Player.HEIGHT / 10:
                 new_top = self.top - diff
-                new_height = self.base_height
+                new_height = Player.HEIGHT
             # Otherwise transition it
             else:
                 diff //= 3
@@ -585,7 +598,7 @@ class Player(Hitbox):
         # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA CIRCULAR IMPORTSSSS
         from enemy.enemy import Enemy
 
-        for enemy in self.current_map.get_rect(
+        for enemy in state.current_map.get_rect(
             self.left - Player.SLAM_RANGE[0],
             self.top - Player.SLAM_RANGE[1],
             self.width + Player.SLAM_RANGE[0] * 2,
@@ -604,7 +617,7 @@ class Player(Hitbox):
     def tick_collision(self, dt: float) -> None:
         from enemy.enemy import Enemy
 
-        for enemy in self.current_map.get_rect(*self, lambda e: isinstance(e, Enemy) and not e.dead):
+        for enemy in state.current_map.get_rect(*self, lambda e: isinstance(e, Enemy) and not e.dead):
             # Get as ratio, 1 is touching edges, 0 is exact same spot
             dx = (enemy.center_x - self.center_x) / ((self.width + enemy.width) / 2)
             dy = (enemy.center_y - self.center_y) / ((self.height + enemy.height) / 2)
@@ -638,18 +651,12 @@ class Player(Hitbox):
         print(f"Player hit: {self.health}")
 
     def switch_weapon(self, weapon: Weapon) -> None:
-        from item.pickup import WeaponPickup  # Damn you circular imports
-
         # TODO drop current weapon
         if self.weapon:
-            self.current_map.add_pickup(
-                WeaponPickup(
-                    self.current_map, self.weapon, (self.center_x - 15, self.center_y - 15), width=30, height=30
-                )
+            state.current_map.add_pickup(
+                WeaponPickup(self.weapon, (self.center_x - 15, self.center_y - 15), width=30, height=30)
             )
-            # TODO pickup velocity
         self.weapon = weapon
-        weapon.player = self
         print(f"[DEBUG] Weapon changed: {weapon.to_friendly_str()}")
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1):

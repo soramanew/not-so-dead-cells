@@ -8,7 +8,6 @@ import pygame
 
 if TYPE_CHECKING:
     from box import Hitbox
-    from player import Player
 
 type Vec2 = tuple[float, float]
 type Line = tuple[Vec2, Vec2]
@@ -25,7 +24,7 @@ class Drawable(ABC):
 
 class Interactable(ABC):
     @abstractmethod
-    def interact(self, player: Player) -> None:
+    def interact(self) -> None:
         pass
 
     @abstractmethod

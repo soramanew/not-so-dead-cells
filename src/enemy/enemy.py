@@ -2,8 +2,7 @@ import random
 
 import pygame
 from box import Hitbox
-from map import Map, Wall
-from player import Player
+from map import Wall
 from util.func import normalise_for_drawing
 from util.type import Side, Size, Vec2
 
@@ -39,8 +38,6 @@ class Enemy(Hitbox, Sense, Sprite):
 
     def __init__(
         self,
-        player: Player,
-        current_map: Map,
         platform: Wall,  # The platform this enemy is on
         size: Size,
         mass: float,
@@ -66,8 +63,6 @@ class Enemy(Hitbox, Sense, Sprite):
             facing = Side.RIGHT if random.getrandbits(1) else Side.LEFT  # Random init dir
 
         # Init
-        self.player: Player = player
-        self.map: Map = current_map
         self.platform: Wall = platform
         self.facing: Side = facing
         self._head_x, self._head_y = head_pos

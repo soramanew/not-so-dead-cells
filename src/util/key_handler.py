@@ -1,4 +1,4 @@
-import pygame.key
+import pygame
 
 from .type import PlayerControl
 

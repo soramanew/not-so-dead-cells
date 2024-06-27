@@ -1,4 +1,5 @@
 import pygame
+import state
 from camera import Camera
 from map import Map
 from player import Player
@@ -35,10 +36,10 @@ def main():
     pygame.display.set_caption("Not so Dead Cells")
     clock = pygame.time.Clock()
 
-    current_map = Map("prisoners_quarters", window.size)
-    player = Player(current_map)
-    current_map.spawn_enemies(player)
-    camera = Camera(player, *window.size)
+    state.player = Player()
+    state.current_map = Map("prisoners_quarters")
+    state.current_map.spawn_enemies()
+    camera = Camera()
 
     font_rubik = pygame.font.SysFont("Rubik", 20)
 
@@ -64,7 +65,7 @@ def main():
             elif event.type == pygame.VIDEORESIZE:
                 new_size = event.dict["size"]
                 camera.resize(*new_size)
-                current_map.background.resize(*new_size)
+                state.current_map.background.resize(*new_size)
                 h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*new_size)
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
@@ -95,16 +96,16 @@ def main():
             continue
 
         key_handler.tick(dt)
-        player.tick(dt, move_types)
-        current_map.tick(dt)
+        state.player.tick(dt, move_types)
+        state.current_map.tick(dt)
         cam_movement = camera.tick_move(dt)
-        current_map.background.tick(*cam_movement)
+        state.current_map.background.tick(*cam_movement)
 
         # Clear window
         window.fill((255, 255, 255))
 
         # Draw stuff
-        camera.render(window, current_map, debug=True)
+        camera.render(window)
 
         # FPS monitor
         window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (0, 0, 0)), (15, 15))
@@ -112,15 +113,15 @@ def main():
         # Draw GUI
         window.blit(h_bar, (0, 0))  # Health bar base
         # Health bar health gain opportunity
-        border = 0 if player.health < Player.MAX_HEALTH else -1
-        if player.damage_health >= 1:
+        border = 0 if state.player.health < Player.MAX_HEALTH else -1
+        if state.player.damage_health >= 1:
             pygame.draw.rect(
                 window,
                 (213, 162, 59),
                 (
                     h_bar_inner_rect[0],
                     h_bar_inner_rect[1],
-                    h_bar_inner_rect[2] * ((player.health + player.damage_health) / Player.MAX_HEALTH),
+                    h_bar_inner_rect[2] * ((state.player.health + state.player.damage_health) / Player.MAX_HEALTH),
                     h_bar_inner_rect[3],
                 ),
                 border_radius=10,
@@ -128,14 +129,14 @@ def main():
                 border_bottom_right_radius=border,
             )
         # Actual health
-        border = 0 if player.health + player.damage_health < Player.MAX_HEALTH else -1
+        border = 0 if state.player.health + state.player.damage_health < Player.MAX_HEALTH else -1
         pygame.draw.rect(
             window,
             H_BAR_COLOUR,
             (
                 h_bar_inner_rect[0],
                 h_bar_inner_rect[1],
-                h_bar_inner_rect[2] * (player.health / Player.MAX_HEALTH),
+                h_bar_inner_rect[2] * (state.player.health / Player.MAX_HEALTH),
                 h_bar_inner_rect[3],
             ),
             border_radius=10,
@@ -143,7 +144,7 @@ def main():
             border_bottom_right_radius=border,
         )
         # Health text
-        player_health = h_bar_font.render(f"{player.health} / {Player.MAX_HEALTH}", True, (255, 255, 255))
+        player_health = h_bar_font.render(f"{state.player.health} / {Player.MAX_HEALTH}", True, (255, 255, 255))
         window.blit(
             player_health,
             (

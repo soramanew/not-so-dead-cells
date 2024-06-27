@@ -1,4 +1,5 @@
 import pygame
+import state
 from enemy.enemy import Enemy
 from util.func import normalise_for_drawing, normalise_rect
 from util.type import Colour, Rect, Side, Vec2
@@ -12,20 +13,20 @@ class MeleeWeapon(Weapon):
 
     @property
     def atk_top(self) -> float:
-        return self.player.arm_y - self.atk_height / 2
+        return state.player.arm_y - self.atk_height / 2
 
     @property
     def atk_area(self) -> Rect:
         return normalise_rect(
-            self.player.arm_x,
+            state.player.arm_x,
             self.atk_top,
-            self.atk_width * self.player.facing.value,
+            self.atk_width * state.player.facing.value,
             self.atk_height,
         )
 
     @Weapon.left.getter
     def left(self) -> float:
-        return self.player.arm_x - (self.width if self.player.facing is Side.LEFT else 0)
+        return state.player.arm_x - (self.width if state.player.facing is Side.LEFT else 0)
 
     @Weapon.top.getter
     def top(self) -> float:
@@ -72,8 +73,8 @@ class MeleeWeapon(Weapon):
         # Do attack
         damage = 0
         if 0 < self.atk_time <= self.atk_length:
-            for enemy in self.player.current_map.get_rect(*self, lambda e: isinstance(e, Enemy)):
-                damage += enemy.take_hit(self.damage, kb=self.kb, side=self.player.facing)
+            for enemy in state.current_map.get_rect(*self, lambda e: isinstance(e, Enemy)):
+                damage += enemy.take_hit(self.damage, kb=self.kb, side=state.player.facing)
 
         self.atk_time -= dt
 

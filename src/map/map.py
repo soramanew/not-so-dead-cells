@@ -9,9 +9,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
+import state
 from box import Box
 from util.func import get_project_root
-from util.type import Side, Size
+from util.type import Side
 
 from .background import Background
 from .wall import Wall
@@ -19,6 +20,8 @@ from .wall import Wall
 if TYPE_CHECKING:
     from enemy.enemy import Enemy
     from item import Pickup
+
+    from .gate import Gate
 
 type Cell = set[Box]
 type Row = list[Cell | None]
@@ -54,7 +57,6 @@ class Map:
     def __init__(
         self,
         zone: str,
-        viewport: Size,
         load: bool = True,
         width: int = 2000,
         height: int = 2000,
@@ -79,7 +81,7 @@ class Map:
             self.height = height
             self.cell_size = cell_size
             self.init_dir = Side.RIGHT
-            self.player_spawn = (0, 0, 20, 50)
+            self.player_spawn = (0, 0)
 
         self.rows = self.height // self.cell_size
         self.cols = self.width // self.cell_size
@@ -87,25 +89,36 @@ class Map:
         self.walls: set[Wall] = self._load_walls(map_data.walls) if load else set()
         self.enemies: set[Enemy] = set()
         self.pickups: set[Pickup] = set()
-        self.background: Background = Background(*viewport)
+        self.gates: set[Gate] = set()
+        self.background: Background = Background()
 
-    def spawn_enemies(self, player):  # FIXME temp
+        # Reset player to default values, move to spawn and change facing to init dir
+        state.player.to_default_values(*self.player_spawn, self.init_dir)
+
+    def spawn_enemies(self):  # FIXME temp
         import enemy
         import item.weapon
         from item.pickup import WeaponPickup
+
+        from .gate import Gate
 
         enemies = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
         weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
         for wall in self.walls:
             for i in range(1):
-                enemy = random.choice(enemies)(player, self, wall)
+                enemy = random.choice(enemies)(wall)
                 self.enemies.add(enemy)
                 self.add(enemy)
-            weapon = random.choice(weapons)
-            mods = [random.choice(weapon.AVAILABLE_MODS)() for _ in range(random.randint(1, 3))]
-            pickup = WeaponPickup(self, weapon(mods), wall)
+
+            Weapon = random.choice(weapons)
+            mods = [random.choice(Weapon.AVAILABLE_MODS)() for _ in range(random.randint(1, 3))]
+            pickup = WeaponPickup(Weapon(mods), wall)
             self.pickups.add(pickup)
             self.add(pickup)
+
+            gate = Gate(random.uniform(wall.left, wall.right - 100), wall.top - 150, 100, 150)
+            self.gates.add(gate)
+            self.add(gate)
 
     def tick(self, dt: float) -> None:
         to_remove = set()

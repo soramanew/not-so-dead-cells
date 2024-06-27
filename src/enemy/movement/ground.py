@@ -1,6 +1,7 @@
 from math import copysign
 from random import random, uniform
 
+import state
 from map import Map, Wall
 from util.func import clamp
 from util.type import Direction, EnemyState, Side
@@ -48,7 +49,7 @@ class GroundMovement(EnemyABC):
             The x bounds in which this enemy can move.
         """
 
-        obstacles = self.map.get_rect(
+        obstacles = state.current_map.get_rect(
             self.platform.x,
             self.platform.y - self.height,
             self.platform.width,
@@ -109,7 +110,7 @@ class GroundMovement(EnemyABC):
         self.vy += (Map.GRAVITY - Map.get_air_resistance(self.vy, self.width)) * dt
 
         self.on_platform = False
-        collisions = self.move(self.vx * dt, self.vy * dt, self.map.walls)
+        collisions = self.move(self.vx * dt, self.vy * dt, state.current_map.walls)
         for direction, entity in collisions:
             if direction == Direction.DOWN and isinstance(entity, Wall):
                 self.vy = 0
@@ -122,10 +123,10 @@ class GroundMovement(EnemyABC):
 
         if self.alerted:
             self.move_target = clamp(
-                self.player.x
+                state.player.x
                 - min(
-                    (self if self.facing is Side.RIGHT else self.player).width + self.atk_width * 0.8,
-                    abs(self.player.x - self.x),
+                    (self if self.facing is Side.RIGHT else state.player).width + self.atk_width * 0.8,
+                    abs(state.player.x - self.x),
                 )
                 * self.facing.value,
                 self.area[1] - self.width,
@@ -150,7 +151,7 @@ class GroundMovement(EnemyABC):
                 self.move_axis(
                     (diff if abs(diff) < speed else speed * self.facing.value),
                     0,
-                    self.map.walls,
+                    state.current_map.walls,
                 )
 
 

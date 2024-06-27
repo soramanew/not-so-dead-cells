@@ -1,4 +1,5 @@
 import pygame
+import state
 from map import Wall
 from util.func import line_line, normalise_for_drawing
 from util.type import Colour, Line, Rect
@@ -44,15 +45,15 @@ class Sense(EnemyABC):
         self._sense_surface.set_alpha(40)
 
     def check_for_player(self) -> bool:
-        player_in_bounds = self.player.detect_collision_rect(*self.sense_area)
+        player_in_bounds = state.player.detect_collision_rect(*self.sense_area)
 
         # Early return if xray or player isn't in sense area
         if self.xray or not player_in_bounds:
             return player_in_bounds
 
-        obstacles = self.map.get_rect(*self.sense_area, lambda o: isinstance(o, Wall))
+        obstacles = state.current_map.get_rect(*self.sense_area, lambda o: isinstance(o, Wall))
         head = self.head_x, self.head_y
-        p_left, p_top, p_right, p_bottom = self.player.left, self.player.top, self.player.right, self.player.bottom
+        p_left, p_top, p_right, p_bottom = state.player.left, state.player.top, state.player.right, state.player.bottom
 
         intersections = 0
         for corner in (p_left, p_top), (p_left, p_bottom), (p_right, p_top), (p_right, p_bottom):
@@ -83,17 +84,22 @@ class Sense(EnemyABC):
         self._sense_surface.fill(colour)
 
         s2 = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        if self.player.detect_collision_rect(*self.sense_area):
+        if state.player.detect_collision_rect(*self.sense_area):
             head = self.head_x, self.head_y
             head_off = (head[0] + x_off) * scale, (head[1] + y_off) * scale
-            p_left, p_top, p_right, p_bottom = self.player.left, self.player.top, self.player.right, self.player.bottom
+            p_left, p_top, p_right, p_bottom = (
+                state.player.left,
+                state.player.top,
+                state.player.right,
+                state.player.bottom,
+            )
             if self.xray:
                 for corner in (p_left, p_top), (p_left, p_bottom), (p_right, p_top), (p_right, p_bottom):
                     pygame.draw.line(
                         s2, (*colour, 120), head_off, ((corner[0] + x_off) * scale, (corner[1] + y_off) * scale)
                     )
             else:
-                obstacles = self.map.get_rect(*self.sense_area, lambda o: isinstance(o, Wall))
+                obstacles = state.current_map.get_rect(*self.sense_area, lambda o: isinstance(o, Wall))
                 for corner in (p_left, p_top), (p_left, p_bottom), (p_right, p_top), (p_right, p_bottom):
                     intersects = False
                     for o in obstacles:

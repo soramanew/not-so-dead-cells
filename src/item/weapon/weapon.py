@@ -1,7 +1,6 @@
 from abc import abstractmethod
 
 from box import Hitbox
-from player import Player
 
 from ..item import Item
 
@@ -27,7 +26,6 @@ class Weapon(Hitbox, Item):
 
     def __init__(self, damage: int, **kwargs):
         self.damage: int = damage
-        self.player: Player = None
         self.atk_time: float = 0
         super().__init__(x=0, y=0, **kwargs)
 

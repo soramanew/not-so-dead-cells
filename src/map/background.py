@@ -3,7 +3,8 @@ from util.func import get_project_root
 
 
 class Background:
-    def __init__(self, width: int, height: int):
+    def __init__(self):
+        width, height = pygame.display.get_window_size()
         self.width: int = width
         self.height: int = height
 

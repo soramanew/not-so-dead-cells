@@ -1,7 +1,6 @@
 import pygame
+import state
 from box import Box
-from map import Map
-from player import Player
 from util.type import Drawable, Interactable, Vec2
 
 
@@ -9,10 +8,10 @@ class Camera(Box):
     # The length of the animation of the camera moving to center on the target
     TARGET_MOVE_ANIM_LENGTH = 0.5
 
-    def __init__(self, player: Player, width: int, height: int, x: float = 0, y: float = 0) -> None:
+    def __init__(self, x: float = 0, y: float = 0) -> None:
+        width, height = pygame.display.get_window_size()
         super().__init__(x, y, width, height)
-        self.player: Player = player
-        self.move(self.player.center_x - self.center_x, self.player.center_y - self.center_y)
+        self.move(state.player.center_x - self.center_x, state.player.center_y - self.center_y)
 
     def move(self, x: float, y: float) -> None:
         """Moves this camera's viewport by the given amount.
@@ -58,8 +57,8 @@ class Camera(Box):
             The amount the viewport moved by.
         """
 
-        dx = (self.player.center_x - self.center_x) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
-        dy = (self.player.center_y - self.center_y) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
+        dx = (state.player.center_x - self.center_x) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
+        dy = (state.player.center_y - self.center_y) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
         self.move(dx, dy)
         return dx, dy
 
@@ -80,35 +79,7 @@ class Camera(Box):
 
         target.draw(window, x_off=-self.x, y_off=-self.y, **kwargs)
 
-    def render_debug(self, window: pygame.Surface, current_map: Map) -> None:
-        """Renders the given map in debug mode to the given surface through this camera's viewport.
-
-        This method renders the map's Drawables.
-
-        See Also
-        --------
-        _render_w_off()
-
-        Parameters
-        ----------
-        window : pygame.Surface
-            The surface to render to.
-        current_map : Map
-            The map to render in debug mode.
-        """
-
-        drawables = current_map.get_rect(
-            self.x,
-            self.y,
-            self.width,
-            self.height,
-            lambda client: isinstance(client, Drawable),
-        )
-        self._render_w_off(self.player, window)
-        for drawable in drawables:
-            self._render_w_off(drawable, window)
-
-    def render(self, window: pygame.Surface, current_map: Map, debug: bool = False) -> None:
+    def render(self, window: pygame.Surface) -> None:
         """Renders the given map to the given surface through this camera's viewport.
 
         See Also
@@ -120,17 +91,29 @@ class Camera(Box):
         ----------
         window : pygame.Surface
             The surface to render to.
-        current_map : Map
-            The map to render.
-        debug : bool, default = False
-            Whether to render the map in debug mode or not.
         """
 
-        # TODO: render map texture
-        current_map.background.draw(window)
-        if debug:
-            self.render_debug(window, current_map)
-        for enemy in current_map.enemies:
+        # Background
+        state.current_map.background.draw(window)
+
+        # Player
+        self._render_w_off(state.player, window)
+
+        # Entities (enemies, etc)
+        drawables = state.current_map.get_rect(
+            self.x,
+            self.y,
+            self.width,
+            self.height,
+            lambda client: isinstance(client, Drawable),
+        )
+        for drawable in drawables:
+            self._render_w_off(drawable, window)
+
+        # Enemy health bars
+        for enemy in state.current_map.enemies:
             enemy.draw_health_bar(window, x_off=-self.x, y_off=-self.y)
-        for i in current_map.get_rect(*self.player.interact_range, lambda e: isinstance(e, Interactable)):
+
+        # Interactable popups
+        for i in state.current_map.get_rect(*state.player.interact_range, lambda e: isinstance(e, Interactable)):
             i.draw_popup(window, x_off=-self.x, y_off=-self.y)

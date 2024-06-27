@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 import pygame
+import state
 from util.func import normalise_for_drawing
 from util.type import Colour, EnemyState, Rect
 
@@ -36,7 +37,7 @@ class MeleeAttack(EnemyABC):
             self.alerted
             and self.atk_time <= 0
             and self.atk_cd <= 0
-            and self.player.detect_collision_rect(*self._get_atk_area())
+            and state.player.detect_collision_rect(*self._get_atk_area())
         ):
             self.atk_time = self.atk_windup + self.atk_length
             self.atk_cd = self.atk_speed
@@ -47,9 +48,9 @@ class MeleeAttack(EnemyABC):
         if (
             self.atk_time > 0
             and self.atk_time <= self.atk_length
-            and self.player.detect_collision_rect(*self._get_real_atk_area())
+            and state.player.detect_collision_rect(*self._get_real_atk_area())
         ):
-            self.player.take_hit(self.damage)
+            state.player.take_hit(self.damage)
 
         if self.atk_time > 0:
             self.state = EnemyState.ATTACKING

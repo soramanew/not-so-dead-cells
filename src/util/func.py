@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from .type import Line, Rect, Vec2
+import pygame
+
+from .type import Colour, Line, Rect, Vec2
 
 
 def get_project_root():
@@ -100,3 +102,8 @@ def normalise_for_drawing(
         height += y
         y = 0
     return x, y, width, height
+
+
+def render_interact_text(text: str, colour: Colour = (255, 255, 255)) -> pygame.Surface:
+    # Damn it I have to create the font here because if not pygame.font won't be initialized yet
+    return pygame.font.SysFont("Readex Pro", 16).render(f"[F] {text}", True, colour)

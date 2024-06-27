@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING
 
 import pygame
 from box import BoxABC
-from map import Map, Wall
-from player import Player
+from map import Wall
 from util.type import Colour, EnemyState, Side
 
 if TYPE_CHECKING:
@@ -16,8 +15,6 @@ if TYPE_CHECKING:
 class EnemyABC(BoxABC):
     I_FRAMES: float
 
-    player: Player
-    map: Map
     platform: Wall
     facing: Side
     atk_width: int

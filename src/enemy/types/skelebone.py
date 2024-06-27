@@ -1,7 +1,6 @@
 import math
 
-from map import Map, Wall
-from player import Player
+from map import Wall
 from util.func import normalise_rect
 from util.type import Rect, Side
 
@@ -21,10 +20,8 @@ class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
     def current_atk_time(self) -> float:
         return (self.atk_time - ATK_END_TIME) / (self.atk_length - ATK_END_TIME)
 
-    def __init__(self, player: Player, current_map: Map, platform: Wall):
+    def __init__(self, platform: Wall):
         super().__init__(
-            player,
-            current_map,
             platform,
             size=(40, 74),
             mass=2,

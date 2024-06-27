@@ -1,23 +1,18 @@
 from random import random, uniform
 
 import pygame
+import state
 from box import Hitbox
 from map import Map, Wall
-from player import Player
-from util.func import normalise_for_drawing
+from util.func import normalise_for_drawing, render_interact_text
 from util.type import Direction, Interactable, Vec2
 
 from item import Item
-
-TITLE_FONT: pygame.font.SysFont = pygame.font.SysFont("Gabarito", 20, bold=True)
-TEXT_FONT: pygame.font.SysFont = pygame.font.SysFont("Rubik", 16)
-PROMPT = pygame.font.SysFont("Readex Pro", 16).render("[F] to pick up", True, (255, 255, 255))
 
 
 class Pickup(Hitbox, Interactable):
     def __init__(
         self,
-        current_map: Map,
         item: Item,
         platform_or_pos: Wall | Vec2,
         width: int = 30,
@@ -31,7 +26,7 @@ class Pickup(Hitbox, Interactable):
                 x = uniform(platform_or_pos.left, platform_or_pos.right - width)
                 y = platform_or_pos.top - height
                 # Check for collisions
-                if not current_map.get_rect(
+                if not state.current_map.get_rect(
                     x, y, width, height, lambda o: o is not platform_or_pos and isinstance(o, Wall)
                 ):
                     break
@@ -45,12 +40,15 @@ class Pickup(Hitbox, Interactable):
             vy = -uniform(100, 200)
 
         super().__init__(x, y, width, height)
-        self.map: Map = current_map
         self.item: Item = item
         self.vx: float = vx
         self.vy: float = vy
 
         from item import Skill  # ARRGGHHH I HATE CIRCULAR IMPORTS
+
+        TITLE_FONT: pygame.font.SysFont = pygame.font.SysFont("Gabarito", 20, bold=True)
+        TEXT_FONT: pygame.font.SysFont = pygame.font.SysFont("Rubik", 16)
+        PROMPT: pygame.Surface = render_interact_text("Pick Up")
 
         x_off = 15
         y_off = 15
@@ -91,7 +89,7 @@ class Pickup(Hitbox, Interactable):
     def tick(self, dt: float) -> None:
         self.vx -= Map.get_air_resistance(self.vx, self.height) * dt
         self.vy += (Map.GRAVITY - Map.get_air_resistance(self.vy, self.width)) * dt
-        collisions = self.move(self.vx * dt, self.vy * dt, self.map.walls)
+        collisions = self.move(self.vx * dt, self.vy * dt, state.current_map.walls)
         for direction, entity in collisions:
             if direction is Direction.DOWN and isinstance(entity, Wall):
                 self.vx = 0
@@ -114,6 +112,6 @@ class Pickup(Hitbox, Interactable):
 
 
 class WeaponPickup(Pickup):
-    def interact(self, player: Player) -> None:
-        player.switch_weapon(self.item)
-        self.map.remove_pickup(self)
+    def interact(self) -> None:
+        state.player.switch_weapon(self.item)
+        state.current_map.remove_pickup(self)
