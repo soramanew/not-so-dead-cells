@@ -46,6 +46,8 @@ class MeleeWeapon(Weapon):
         self.atk_length: float = atk_length  # Length of swing
         self.kb: Vec2 = kb
 
+        self._surface: pygame.Surface = pygame.Surface((atk_width, atk_height)).convert()
+
         # Apply modifiers
         super().__init__(**kwargs)
 
@@ -92,14 +94,13 @@ class MeleeWeapon(Weapon):
         if width <= 0 or height <= 0:
             return
 
-        s = pygame.Surface((width, height))
-        s.set_alpha(120)
-        s.fill(colour)
-        surface.blit(s, (x, y))
+        self._surface.set_alpha(120)
+        self._surface.fill(colour)
+        surface.blit(self._surface, (x, y))
 
         if self.atk_time <= self.atk_length:
             x, y, width, height = normalise_for_drawing(*self, x_off, y_off, scale)
             if width <= 0 or height <= 0:
                 return
-            s.set_alpha(180)
-            surface.blit(s, (x, y), (0, 0, width, height))
+            self._surface.set_alpha(180)
+            surface.blit(self._surface, (x, y), (0, 0, width, height))

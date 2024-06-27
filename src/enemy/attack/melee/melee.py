@@ -27,6 +27,9 @@ class MeleeAttack(EnemyABC):
         self.atk_cd: float = 0
         self.attacking: bool = False
 
+        atk_area = self._get_atk_area()
+        self._atk_surface = pygame.Surface((atk_area[2], atk_area[3])).convert()
+
     def _tick_attack(self, dt: float) -> None:
         # Warn for attack
         if (
@@ -72,13 +75,12 @@ class MeleeAttack(EnemyABC):
         if width <= 0 or height <= 0:
             return
 
-        s = pygame.Surface((width, height))
-        s.set_alpha(80)
-        s.fill(colour)
-        surface.blit(s, (x, y))
+        self._atk_surface.set_alpha(80)
+        self._atk_surface.fill(colour)
+        surface.blit(self._atk_surface, (x, y))
 
         x, y, width, height = normalise_for_drawing(*self._get_real_atk_area(), x_off, y_off, scale)
         if width <= 0 or height <= 0:
             return
-        s.set_alpha(150)
-        surface.blit(s, (x, y), (0, 0, width, height))
+        self._atk_surface.set_alpha(150)
+        surface.blit(self._atk_surface, (x, y), (0, 0, width, height))

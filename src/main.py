@@ -21,7 +21,7 @@ def _h_bar_inner_rect(width: int, height: int) -> Rect:
 
 
 def _create_h_bar(width: int, height: int) -> tuple[pygame.Surface, Rect, pygame.font.SysFont]:
-    h_bar = pygame.Surface((width, height), pygame.SRCALPHA)
+    h_bar = pygame.Surface((width, height), pygame.SRCALPHA).convert_alpha()
     pygame.draw.rect(h_bar, (0, 0, 0, 100), _h_bar_rect(width, height), border_radius=3)
     inner_rect = _h_bar_inner_rect(width, height)
     pygame.draw.rect(h_bar, H_BAR_COLOUR, inner_rect, width=1, border_radius=10)
@@ -31,19 +31,18 @@ def _create_h_bar(width: int, height: int) -> tuple[pygame.Surface, Rect, pygame
 def main():
     pygame.init()
 
-    window_size = 1200, 800
-    window = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+    window = pygame.display.set_mode((1200, 800), pygame.RESIZABLE)
     pygame.display.set_caption("Not so Dead Cells")
     clock = pygame.time.Clock()
 
-    current_map = Map("prisoners_quarters")
+    current_map = Map("prisoners_quarters", window.size)
     player = Player(current_map)
     current_map.spawn_enemies(player)
-    camera = Camera(player, *window_size)
+    camera = Camera(player, *window.size)
 
     font_rubik = pygame.font.SysFont("Rubik", 20)
 
-    h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window_size)
+    h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window.size)
 
     pause = False
 
@@ -63,8 +62,10 @@ def main():
                 pygame.quit()
                 return
             elif event.type == pygame.VIDEORESIZE:
-                camera.resize(*event.dict["size"])
-                h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*event.dict["size"])
+                new_size = event.dict["size"]
+                camera.resize(*new_size)
+                current_map.background.resize(*new_size)
+                h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*new_size)
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
                 key_handler.down(event.key)
@@ -96,7 +97,8 @@ def main():
         key_handler.tick(dt)
         player.tick(dt, move_types)
         current_map.tick(dt)
-        camera.tick_move(dt)
+        cam_movement = camera.tick_move(dt)
+        current_map.background.tick(*cam_movement)
 
         # Clear window
         window.fill((255, 255, 255))
@@ -105,7 +107,7 @@ def main():
         camera.render(window, current_map, debug=True)
 
         # FPS monitor
-        window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255)), (15, 15))
+        window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (0, 0, 0)), (15, 15))
 
         # Draw GUI
         window.blit(h_bar, (0, 0))  # Health bar base

@@ -2,7 +2,7 @@ import pygame
 from box import Box
 from map import Map
 from player import Player
-from util.type import Drawable, Interactable
+from util.type import Drawable, Interactable, Vec2
 
 
 class Camera(Box):
@@ -12,6 +12,7 @@ class Camera(Box):
     def __init__(self, player: Player, width: int, height: int, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y, width, height)
         self.player: Player = player
+        self.move(self.player.center_x - self.center_x, self.player.center_y - self.center_y)
 
     def move(self, x: float, y: float) -> None:
         """Moves this camera's viewport by the given amount.
@@ -41,7 +42,7 @@ class Camera(Box):
         self.width = width
         self.height = height
 
-    def tick_move(self, dt: float) -> None:
+    def tick_move(self, dt: float) -> Vec2:
         """Moves this camera's viewport to center on the target.
 
         This is a tick method and thus should be called once per tick.
@@ -50,11 +51,17 @@ class Camera(Box):
         ----------
         dt : float
             The time between this tick and the last.
+
+        Returns
+        -------
+        Vec2
+            The amount the viewport moved by.
         """
 
         dx = (self.player.center_x - self.center_x) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
         dy = (self.player.center_y - self.center_y) / Camera.TARGET_MOVE_ANIM_LENGTH * dt
         self.move(dx, dy)
+        return dx, dy
 
     def _render_w_off(self, target: Drawable, window: pygame.Surface, **kwargs) -> None:
         """Renders the given target to the given surface through this camera's viewport.
@@ -120,6 +127,7 @@ class Camera(Box):
         """
 
         # TODO: render map texture
+        current_map.background.draw(window)
         if debug:
             self.render_debug(window, current_map)
         for enemy in current_map.enemies:

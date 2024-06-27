@@ -11,8 +11,9 @@ from typing import TYPE_CHECKING, Any
 
 from box import Box
 from util.func import get_project_root
-from util.type import Side
+from util.type import Side, Size
 
+from .background import Background
 from .wall import Wall
 
 if TYPE_CHECKING:
@@ -53,6 +54,7 @@ class Map:
     def __init__(
         self,
         zone: str,
+        viewport: Size,
         load: bool = True,
         width: int = 2000,
         height: int = 2000,
@@ -64,7 +66,7 @@ class Map:
 
         if load:
             # self.save_path = random.choice(list(zone_dir.iterdir()))
-            self.save_path = zone_dir / "2.json"
+            self.save_path = zone_dir / "1.json"
             map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
             self.width = int(map_data.width)
             self.height = int(map_data.height)
@@ -85,6 +87,7 @@ class Map:
         self.walls: set[Wall] = self._load_walls(map_data.walls) if load else set()
         self.enemies: set[Enemy] = set()
         self.pickups: set[Pickup] = set()
+        self.background: Background = Background(*viewport)
 
     def spawn_enemies(self, player):  # FIXME temp
         import enemy

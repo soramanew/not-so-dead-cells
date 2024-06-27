@@ -68,7 +68,7 @@ class State:
         return self.frame >= self.num_sprites - 1
 
 
-class Sprite(EnemyABC, pygame.sprite.Sprite):
+class Sprite(EnemyABC):
     @property
     def current_state(self) -> State:
         return self.states[self.state.value]

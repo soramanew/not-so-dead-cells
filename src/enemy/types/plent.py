@@ -27,8 +27,8 @@ class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
             platform,
             size=(40, 50),
             head_pos=(0.6, 0.6),
-            mass=2,
-            speed=100,
+            mass=1.4,
+            speed=70,
             sense_size=(500, 300),
             xray=False,
             atk_width=45,
@@ -39,7 +39,7 @@ class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
             atk_speed=2,
             atk_length=ATTACK_TIME * 4 / 6,
             health=50,
-            damage=30,
+            damage=20,
             sprite="plent",
         )
 

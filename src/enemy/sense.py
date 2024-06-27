@@ -40,6 +40,9 @@ class Sense(EnemyABC):
         self.sense_height: int = sense_height
         self.xray: bool = xray
 
+        self._sense_surface: pygame.Surface = pygame.Surface((sense_width, sense_height)).convert()
+        self._sense_surface.set_alpha(40)
+
     def check_for_player(self) -> bool:
         player_in_bounds = self.player.detect_collision_rect(*self.sense_area)
 
@@ -76,10 +79,8 @@ class Sense(EnemyABC):
         if width <= 0 or height <= 0:
             return
 
-        s = pygame.Surface((width, height))
-        s.set_alpha(20)
         colour = colours[1 if self.alerted else 0]
-        s.fill(colour)
+        self._sense_surface.fill(colour)
 
         s2 = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
         if self.player.detect_collision_rect(*self.sense_area):
@@ -106,5 +107,5 @@ class Sense(EnemyABC):
                         ((corner[0] + x_off) * scale, (corner[1] + y_off) * scale),
                     )
 
-        surface.blit(s, (x, y))
+        surface.blit(self._sense_surface, (x, y))
         surface.blit(s2, (0, 0))

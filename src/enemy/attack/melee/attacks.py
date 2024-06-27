@@ -10,9 +10,9 @@ class DiagonalUpOut(MeleeAttack):
         return self.arm_y - self.atk_height / 2
 
     def __init__(self, atk_height: float, atk_height_tick: float, **kwargs):
-        super().__init__(**kwargs)
         self.atk_height: float = atk_height
         self.atk_height_tick: float = atk_height_tick
+        super().__init__(**kwargs)
 
     def _get_atk_area(self) -> Rect:
         return normalise_rect(
