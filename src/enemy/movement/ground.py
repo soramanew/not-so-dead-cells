@@ -164,7 +164,7 @@ class GroundIdleMovement(GroundMovement):
         super()._tick_move(dt)
 
         if not self.moving:
-            if random() < GroundIdleMovement.MOVE_CHANCE:
+            if random() < self.MOVE_CHANCE:  # self so can override
                 # Start moving
                 self.move_target = uniform(self.area[0], self.area[1] - self.width)
                 self.moving = True

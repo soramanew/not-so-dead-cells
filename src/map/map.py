@@ -87,14 +87,15 @@ class Map:
         self.pickups: set[Pickup] = set()
 
     def spawn_enemies(self, player):  # FIXME temp
+        import enemy
         import item.weapon
-        from enemy import Skelebone
         from item.pickup import WeaponPickup
 
+        enemies = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
         weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
         for wall in self.walls:
             for i in range(1):
-                enemy = Skelebone(player, self, wall)
+                enemy = random.choice(enemies)(player, self, wall)
                 self.enemies.add(enemy)
                 self.add(enemy)
             weapon = random.choice(weapons)
