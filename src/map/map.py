@@ -102,8 +102,8 @@ class Map:
             Apple,
             DamageScroll,
             HealthScroll,
-            Kebab,
-            Meatloaf,
+            LemonPie,
+            Sausages,
             WeaponPickup,
         )
 
@@ -111,7 +111,7 @@ class Map:
 
         enemies = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
         weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
-        foods_and_scrolls = [Apple, Meatloaf, Kebab, HealthScroll, DamageScroll]
+        foods_and_scrolls = [Apple, LemonPie, Sausages]
         for wall in self.walls:
             for i in range(1):
                 enemy = random.choice(enemies)(wall)
@@ -125,7 +125,7 @@ class Map:
             # self.add(pickup)
 
             for i in range(3):
-                food_or_scroll = foods_and_scrolls[0](wall)  # random.choice(foods_and_scrolls)(wall)
+                food_or_scroll = random.choice(foods_and_scrolls)(wall)
                 self.pickups.add(food_or_scroll)
                 self.add(food_or_scroll)
 

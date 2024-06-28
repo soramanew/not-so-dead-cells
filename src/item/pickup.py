@@ -228,30 +228,69 @@ class Apple(Food):
         )
 
 
-class Kebab(Food):
+class LemonPie(Food):
     def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
-            "Half-eaten Kebab",
+            "Half-eaten Lemon Pie",
             "Who threw this away? I hope they didn't have herpes...",
             30,
-            "",
+            "lemon_pie",
             platform_or_pos,
             vx,
             vy,
         )
 
 
-class Meatloaf(Food):
+class Sausages(Food):
     def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
-            "Slimy Meatloaf",
-            "Is there really no good food around here?",
+            "Mystery Sausages",
+            "",  # Desc overridden
             50,
-            "",
+            "sausages",
             platform_or_pos,
             vx,
             vy,
         )
+
+    def _create_popup(self) -> pygame.Surface:
+        """Pygame doesn't support fallback fonts so I have to make this special."""
+
+        title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
+        text_font = pygame.font.SysFont("Rubik", 16)
+        unicode_font = pygame.font.SysFont("Noto Sans", 16)
+
+        x_off = 15
+        y_off = 15
+
+        name = title_font.render(self.name, True, (214, 202, 178))
+        effect = text_font.render(f"Heals {self.heal}HP", True, (220, 220, 220))
+        desc1 = text_font.render("These look more like ", True, (255, 255, 255))
+        desc2 = unicode_font.render("s̵̡̧̠̫͚̪͙̜̗͓̎̇̅̅̃͛̿h̸̢͎͚̱̪̝̠̟̟̱͕͚͔͗̂̄ͅî̷̱̝͖̣̲͚͎̘̒͗̕t̶̝̖͔̙̲͍̻̝͓͙̎̒̔", True, (255, 255, 255))
+        desc3 = text_font.render(" than sausages.", True, (255, 255, 255))
+        prompt = render_interact_text("Eat")
+
+        surface = pygame.Surface(
+            (
+                max(name.width, effect.width, desc1.width + desc2.width + desc3.width, prompt.width) + x_off * 2,
+                name.height + effect.height + max(desc1.height, desc3.height) + prompt.height + y_off * 2,
+            ),
+            pygame.SRCALPHA,
+        ).convert_alpha()
+
+        _draw_border(surface)
+
+        surface.blit(name, (x_off, y_off))
+        y_off += name.height
+        surface.blit(effect, (x_off, y_off))
+        y_off += effect.height
+        surface.blit(desc1, (x_off, y_off))
+        x_off += desc1.width
+        surface.blit(desc2, (x_off, y_off - desc2.height / 2))
+        surface.blit(desc3, (x_off + desc2.width, y_off))
+        surface.blit(prompt, ((surface.width - prompt.width) / 2, surface.height - prompt.height - 12))
+
+        return surface
 
 
 class Scroll(Pickup):
