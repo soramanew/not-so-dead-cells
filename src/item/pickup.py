@@ -46,7 +46,7 @@ class Pickup(Hitbox, Interactable):
         # Scale to slightly larger than sprite
         self.sunburst = pygame.transform.scale(self.sunburst, (width * 1.5, height * 1.5))
         # Tint by sprite colour
-        self.sunburst.fill(pygame.transform.average_color(self.sprite), special_flags=pygame.BLEND_ADD)
+        self.sunburst.fill((*pygame.transform.average_color(self.sprite)[:3], 255), special_flags=pygame.BLEND_ADD)
 
         if isinstance(platform_or_pos, Wall):
             # Platform
@@ -222,6 +222,19 @@ class Apple(Food):
             "I really don't think you should eat this, but you have a tough stomach right?",
             10,
             "apple",
+            platform_or_pos,
+            vx,
+            vy,
+        )
+
+
+class Toe(Food):
+    def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
+        super().__init__(
+            "Mutilated Toe",
+            "You know, I heard witches make pretty good stews with these...",
+            20,
+            "toe",
             platform_or_pos,
             vx,
             vy,

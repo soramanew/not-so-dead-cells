@@ -104,6 +104,7 @@ class Map:
             HealthScroll,
             LemonPie,
             Sausages,
+            Toe,
             WeaponPickup,
         )
 
@@ -111,7 +112,7 @@ class Map:
 
         enemies = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
         weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
-        foods_and_scrolls = [Apple, LemonPie, Sausages]
+        foods_and_scrolls = [Apple, Toe, LemonPie, Sausages]
         for wall in self.walls:
             for i in range(1):
                 enemy = random.choice(enemies)(wall)
