@@ -1,5 +1,6 @@
 from abc import abstractmethod
 
+import state
 from box import Hitbox
 
 from ..item import Item
@@ -25,7 +26,7 @@ class Weapon(Hitbox, Item):
         pass
 
     def __init__(self, damage: int, **kwargs):
-        self.damage: int = damage
+        self.damage: int = int(damage * state.difficulty * 0.8)  # Scales less than difficulty
         self.atk_time: float = 0
         super().__init__(x=0, y=0, **kwargs)
 

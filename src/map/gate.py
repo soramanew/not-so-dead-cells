@@ -24,6 +24,9 @@ class Gate(Box, Interactable):
     def interact(self) -> None:
         from map import Map  # Damn you circular imports
 
+        diff = round(state.difficulty, 2)
+        state.difficulty *= 1.1
+        print(f"[DEBUG] Difficulty {diff} -> {round(state.difficulty, 2)}")
         state.current_map = Map("prisoners_quarters")
         state.current_map.spawn_enemies()
 

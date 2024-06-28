@@ -20,7 +20,7 @@ class MeleeAttack(EnemyABC):
     def __init__(self, arm_y: float, damage: int, atk_windup: float, atk_speed: float, atk_length: float, **kwargs):
         super().__init__(**kwargs)
         self._arm_y: float = arm_y
-        self.damage: int = damage
+        self.damage: int = int(damage * state.difficulty * 1.1)  # Damage scales faster than health
         self.atk_windup: float = atk_windup
         self.atk_speed: float = atk_speed
         self.atk_length: float = atk_length

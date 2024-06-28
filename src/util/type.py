@@ -61,6 +61,7 @@ class EnemyState(Enum):
     # HURT = "hurt"
     IDLE = "idle"
     WALKING = "walk"
+    ALERTED = "alerted"
 
 
 class Collision:

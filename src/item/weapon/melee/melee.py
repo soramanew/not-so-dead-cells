@@ -71,14 +71,15 @@ class MeleeWeapon(Weapon):
             self.atk_time = self.atk_windup + self.atk_length
 
         # Do attack
-        damage = 0
+        damage = int(self.damage * state.player.damage_mul)  # Apply player damage multiplier
+        damage_dealt = 0
         if 0 < self.atk_time <= self.atk_length:
             for enemy in state.current_map.get_rect(*self, lambda e: isinstance(e, Enemy)):
-                damage += enemy.take_hit(self.damage, kb=self.kb, side=state.player.facing)
+                damage_dealt += enemy.take_hit(damage, kb=self.kb, side=state.player.facing)
 
         self.atk_time -= dt
 
-        return damage
+        return damage_dealt
 
     def draw(
         self,

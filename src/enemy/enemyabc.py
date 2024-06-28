@@ -26,6 +26,7 @@ class EnemyABC(BoxABC):
     health: int
     damage: int
     alerted: bool
+    can_sense_player: bool
     vx: float
     vy: float
     states: dict[str, State]
@@ -50,6 +51,11 @@ class EnemyABC(BoxABC):
     @property
     @abstractmethod
     def arm_y(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def alerting(self) -> bool:
         pass
 
     @property

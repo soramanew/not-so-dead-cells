@@ -21,8 +21,8 @@ class GroundMovement(EnemyABC):
 
     @moving.setter
     def moving(self, value: bool) -> None:
-        self._moving = value
-        self.state = EnemyState.WALKING if value else EnemyState.IDLE
+        # Can only move when on platform
+        self._moving = value and self.on_platform
 
     @property
     def speed(self) -> float:
@@ -31,9 +31,9 @@ class GroundMovement(EnemyABC):
     def __init__(self, speed: float, **kwargs):
         super().__init__(**kwargs)
         self._speed: float = speed  # Movement speed (px/s)
+        self.on_platform: bool = False
         self.moving: bool = False
         self.move_target: float = None
-        self.on_platform: bool = False
         self.vx: float = 0  # x velocity due to knockback
         self.vy: float = 0
         self.area: tuple[float, float] = self._get_area()
@@ -121,7 +121,7 @@ class GroundMovement(EnemyABC):
                     self.moving = False
                     print(f"[DEBUG] Enemy changed platform: {entity} | Area: {self.area}")
 
-        if self.alerted:
+        if self.can_sense_player:
             self.move_target = clamp(
                 state.player.x
                 - min(
@@ -134,10 +134,10 @@ class GroundMovement(EnemyABC):
             )
             self.moving = True
 
-        if self.attacking:
+        if self.attacking or self.alerting:
             return
 
-        if self.moving and self.on_platform:
+        if self.moving:
             # Tick movement
             if abs(self.x - self.move_target) < GroundMovement.TARGET_THRESHOLD:
                 self.moving = False
@@ -153,6 +153,8 @@ class GroundMovement(EnemyABC):
                     0,
                     state.current_map.walls,
                 )
+
+        self.state = EnemyState.WALKING if self.moving else EnemyState.IDLE
 
 
 class GroundIdleMovement(GroundMovement):

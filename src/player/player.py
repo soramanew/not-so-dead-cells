@@ -128,6 +128,19 @@ class Player(Hitbox):
             self.height + Player.INTERACT_RANGE * 2,
         )
 
+    @property
+    def health_mul(self) -> float:
+        return self._health_mul
+
+    @health_mul.setter
+    def health_mul(self, value: float) -> None:
+        self._health_mul = value
+
+        # Update max & current health
+        current_health = self.health / self.max_health
+        self.max_health = int(Player.MAX_HEALTH * value)
+        self.health = int(self.max_health * current_health)
+
     # ---------------------------- Constructor ---------------------------- #
 
     def __init__(self):
@@ -144,10 +157,15 @@ class Player(Hitbox):
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
         self.ledge_climbing: tuple[Side, Vec2] | None = None
         self.wall_climb_time: float = 0
-        self._health: int = Player.MAX_HEALTH
+        self.max_health: int = Player.MAX_HEALTH
+        self._health: int = self.max_health
         self.i_frames: float = 0
         self.damage_health: float = 0
         self.weapon: Weapon = None
+        self.damage_scrolls: int = 0
+        self.damage_mul: float = 1  # Damage multiplier
+        self.health_scrolls: int = 0
+        self._health_mul: float = 1  # Health multiplier
 
     # ------------------------------ Getters ------------------------------ #
 
@@ -583,16 +601,19 @@ class Player(Hitbox):
             else:
                 self.roll_time += dt
 
+    def heal(self, amount: int) -> None:
+        if self.damage_health > 0:
+            self.damage_health -= min(amount, self.damage_health)
+        self.health = min(self.health + amount, self.max_health)
+
     def _regain_health(self, damage: int) -> None:
         # Health is int so if not >= 1 then it will be rounded to 0
-        if self.damage_health >= 1 and self.health < Player.MAX_HEALTH:
+        if self.damage_health >= 1 and self.health < self.max_health:
             damage /= 4  # Not full damage is regained
             if damage > self.damage_health:
                 damage = self.damage_health
             self.damage_health -= damage
-            self.health += int(damage)
-            if self.health > Player.MAX_HEALTH:
-                self.health = Player.MAX_HEALTH
+            self.health = min(int(self.health + damage), self.max_health)
 
     def tick_slam(self, dt: float) -> None:
         # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA CIRCULAR IMPORTSSSS

@@ -28,6 +28,8 @@ class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
             speed=100,
             sense_size=(500, 300),
             xray=False,
+            alert_delay=(1 / SPRITES_PER_SECOND) * 3,
+            alert_retain_length=7.5,
             atk_width=40,
             atk_height=60,
             atk_height_tick=8,

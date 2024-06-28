@@ -1,6 +1,7 @@
 import random
 
 import pygame
+import state
 from box import Hitbox
 from map import Wall
 from util.func import normalise_for_drawing
@@ -67,8 +68,8 @@ class Enemy(Hitbox, Sense, Sprite):
         self.facing: Side = facing
         self._head_x, self._head_y = head_pos
         self.atk_width: int = atk_width
-        self.max_health: int = health
-        self.health: int = health
+        self.max_health: int = int(health * state.difficulty)
+        self.health: int = self.max_health
         self.mass: float = mass
 
         self.alerted: bool = False
@@ -101,8 +102,8 @@ class Enemy(Hitbox, Sense, Sprite):
         if self.dead:
             self.h_bar_time = 0
         else:
-            self._tick_sense()
             self._tick_move(dt)
+            self._tick_sense(dt)
             self._tick_attack(dt)
             self.i_frames -= dt
             self.h_bar_time -= dt

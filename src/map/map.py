@@ -98,12 +98,20 @@ class Map:
     def spawn_enemies(self):  # FIXME temp
         import enemy
         import item.weapon
-        from item.pickup import WeaponPickup
+        from item.pickup import (
+            Apple,
+            DamageScroll,
+            HealthScroll,
+            Kebab,
+            Meatloaf,
+            WeaponPickup,
+        )
 
         from .gate import Gate
 
         enemies = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
         weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
+        foods_and_scrolls = [Apple, Meatloaf, Kebab, HealthScroll, DamageScroll]
         for wall in self.walls:
             for i in range(1):
                 enemy = random.choice(enemies)(wall)
@@ -115,6 +123,10 @@ class Map:
             pickup = WeaponPickup(Weapon(mods), wall)
             self.pickups.add(pickup)
             self.add(pickup)
+
+            food_or_scroll = random.choice(foods_and_scrolls)(wall)
+            self.pickups.add(food_or_scroll)
+            self.add(food_or_scroll)
 
             gate = Gate(random.uniform(wall.left, wall.right - 100), wall.top - 150, 100, 150)
             self.gates.add(gate)

@@ -113,7 +113,7 @@ def main():
         # Draw GUI
         window.blit(h_bar, (0, 0))  # Health bar base
         # Health bar health gain opportunity
-        border = 0 if state.player.health < Player.MAX_HEALTH else -1
+        border = 0 if state.player.health < state.player.max_health else -1
         if state.player.damage_health >= 1:
             pygame.draw.rect(
                 window,
@@ -121,7 +121,8 @@ def main():
                 (
                     h_bar_inner_rect[0],
                     h_bar_inner_rect[1],
-                    h_bar_inner_rect[2] * ((state.player.health + state.player.damage_health) / Player.MAX_HEALTH),
+                    h_bar_inner_rect[2]
+                    * ((state.player.health + state.player.damage_health) / state.player.max_health),
                     h_bar_inner_rect[3],
                 ),
                 border_radius=10,
@@ -129,14 +130,14 @@ def main():
                 border_bottom_right_radius=border,
             )
         # Actual health
-        border = 0 if state.player.health + state.player.damage_health < Player.MAX_HEALTH else -1
+        border = 0 if state.player.health + state.player.damage_health < state.player.max_health else -1
         pygame.draw.rect(
             window,
             H_BAR_COLOUR,
             (
                 h_bar_inner_rect[0],
                 h_bar_inner_rect[1],
-                h_bar_inner_rect[2] * (state.player.health / Player.MAX_HEALTH),
+                h_bar_inner_rect[2] * (state.player.health / state.player.max_health),
                 h_bar_inner_rect[3],
             ),
             border_radius=10,
@@ -144,7 +145,7 @@ def main():
             border_bottom_right_radius=border,
         )
         # Health text
-        player_health = h_bar_font.render(f"{state.player.health} / {Player.MAX_HEALTH}", True, (255, 255, 255))
+        player_health = h_bar_font.render(f"{state.player.health} / {state.player.max_health}", True, (255, 255, 255))
         window.blit(
             player_health,
             (
