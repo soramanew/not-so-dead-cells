@@ -1,0 +1,1 @@
+SPRITES_PER_SECOND: int = 10

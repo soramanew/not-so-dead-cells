@@ -21,6 +21,7 @@
         "rotatedbox",
         "skelebone",
         "SRCALPHA",
+        "topleft",
         "VIDEORESIZE"
     ]
 }

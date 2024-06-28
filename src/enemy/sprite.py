@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pygame
+from constants import SPRITES_PER_SECOND
 from util.func import get_project_root
 from util.type import EnemyState, Side
 
@@ -10,7 +11,6 @@ type SpriteDirectionList = list[pygame.Surface]
 type SpriteList = tuple[SpriteDirectionList, SpriteDirectionList]  # Left, right
 
 SPRITE_SIZE: int = 128
-SPRITES_PER_SECOND: int = 10
 
 
 def _get_sprites_from_sheet(sheet: Path) -> SpriteList:

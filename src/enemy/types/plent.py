@@ -1,3 +1,4 @@
+from constants import SPRITES_PER_SECOND
 from map import Wall
 from util.func import normalise_rect
 from util.type import Rect, Side
@@ -5,7 +6,6 @@ from util.type import Rect, Side
 from ..attack import DiagonalUpOut
 from ..enemy import Enemy
 from ..movement import GroundIdleMovement
-from ..sprite import SPRITES_PER_SECOND
 
 ATTACK_TIME: int = (1 / SPRITES_PER_SECOND) * 6
 ATK_END_TIME: float = ATTACK_TIME * 3 / 6  # Time which is not attacking at the end of an attack anim

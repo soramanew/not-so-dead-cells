@@ -1,3 +1,4 @@
+import math
 from abc import abstractmethod
 from random import random, uniform
 
@@ -5,10 +6,12 @@ import pygame
 import state
 from box import Hitbox
 from map import Map, Wall
-from util.func import normalise_for_drawing, render_interact_text
+from util.func import get_project_root, normalise_for_drawing, render_interact_text
 from util.type import Direction, Interactable, Vec2
 
 from item import Item
+
+FLOAT_MAX: float = 0.1
 
 
 def _draw_border(surface: pygame.Surface) -> None:
@@ -21,9 +24,30 @@ class Pickup(Hitbox, Interactable):
     def _create_popup(self) -> pygame.Surface:
         pass
 
+    @property
+    def anim_offset(self) -> Vec2:
+        return self.height * math.sin(self.time * math.pi) * self.float_speed * FLOAT_MAX
+
     def __init__(
-        self, platform_or_pos: Wall | Vec2, width: int = 30, height: int = 30, vx: float = None, vy: float = None
+        self,
+        sprite: str,
+        platform_or_pos: Wall | Vec2,
+        vx: float = None,
+        vy: float = None,
     ):
+        self.sprite: pygame.Surface = pygame.image.load(
+            get_project_root() / "assets/sprites" / f"{sprite}.png"
+        ).convert_alpha()
+        width, height = self.sprite.size
+
+        self.sunburst: pygame.Surface = pygame.image.load(
+            get_project_root() / "assets/sprites/sunburst.png"
+        ).convert_alpha()
+        # Scale to slightly larger than sprite
+        self.sunburst = pygame.transform.scale(self.sunburst, (width * 1.5, height * 1.5))
+        # Tint by sprite colour
+        self.sunburst.fill(pygame.transform.average_color(self.sprite), special_flags=pygame.BLEND_ADD)
+
         if isinstance(platform_or_pos, Wall):
             # Platform
             while True:
@@ -47,6 +71,10 @@ class Pickup(Hitbox, Interactable):
         self.vx: float = vx
         self.vy: float = vy
 
+        self.rot_speed: float = uniform(0.5, 1.5) * (1 if random() < 0.5 else -1)
+        self.float_speed: float = uniform(0.5, 1.5)
+        self.time: float = 0
+
         self.surface: pygame.Surface = self._create_popup()
 
     def tick(self, dt: float) -> None:
@@ -59,10 +87,13 @@ class Pickup(Hitbox, Interactable):
                 self.vy = 0
                 break
 
+        if self.vx == 0 and self.vy == 0:
+            self.time += dt
+
     def draw_popup(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, **kwargs) -> None:
         x, y, _w, _h = normalise_for_drawing(
             self.center_x - self.surface.width / 2,
-            self.y - self.surface.height - 20,
+            self.y - self.surface.height - 20 - self.anim_offset,
             self.surface.width,
             self.surface.height,
             x_off,
@@ -70,22 +101,30 @@ class Pickup(Hitbox, Interactable):
         )
         surface.blit(self.surface, (x, y))
 
-    def draw(self, surface: pygame.Surface, **kwargs) -> None:
-        super().draw(surface, (74, 218, 192), **kwargs)
+    def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, **kwargs) -> None:
+        # super().draw(surface, (74, 218, 192), x_off, y_off, **kwargs)
+
+        # Rotate sunburst
+        sunburst = pygame.transform.rotate(self.sunburst, self.time * self.rot_speed * 10)
+        new_rect = sunburst.get_rect(
+            center=self.sunburst.get_rect(
+                topleft=(
+                    self.center_x - self.sunburst.width / 2 + x_off,
+                    self.center_y - self.sunburst.height / 2 + y_off - self.anim_offset,
+                )
+            ).center
+        )
+        # Draw sunburst
+        surface.blit(sunburst, new_rect)
+
+        # Actually draw sprite
+        surface.blit(self.sprite, (self.x + x_off, self.y - self.anim_offset + y_off))
 
 
 class WeaponPickup(Pickup):
-    def __init__(
-        self,
-        item: Item,
-        platform_or_pos: Wall | Vec2,
-        width: int = 30,
-        height: int = 30,
-        vx: float = None,
-        vy: float = None,
-    ):
+    def __init__(self, item: Item, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         self.item: Item = item
-        super().__init__(platform_or_pos, width, height, vx, vy)
+        super().__init__(item.sprite, platform_or_pos, vx, vy)
 
     def _create_popup(self) -> pygame.Surface:
         title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
@@ -131,16 +170,15 @@ class Food(Pickup):
         name: str,
         desc: str,
         heal: int,
+        sprite: str,
         platform_or_pos: Wall | Vec2,
-        width: int = 30,
-        height: int = 30,
         vx: float = None,
         vy: float = None,
     ):
         self.name: str = name
         self.desc: str = desc
         self.heal: int = int(heal * state.difficulty * 0.6)  # Player health & healing scales much slower
-        super().__init__(platform_or_pos, width, height, vx, vy)
+        super().__init__(sprite, platform_or_pos, vx, vy)
 
     def _create_popup(self) -> pygame.Surface:
         title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
@@ -178,48 +216,39 @@ class Food(Pickup):
 
 
 class Apple(Food):
-    def __init__(
-        self, platform_or_pos: Wall | Vec2, width: int = 30, height: int = 30, vx: float = None, vy: float = None
-    ):
+    def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
             "Mouldy Apple",
             "I really don't think you should eat this, but you have a tough stomach right?",
             10,
+            "apple",
             platform_or_pos,
-            width,
-            height,
             vx,
             vy,
         )
 
 
 class Kebab(Food):
-    def __init__(
-        self, platform_or_pos: Wall | Vec2, width: int = 30, height: int = 30, vx: float = None, vy: float = None
-    ):
+    def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
             "Half-eaten Kebab",
             "Who threw this away? I hope they didn't have herpes...",
             30,
+            "",
             platform_or_pos,
-            width,
-            height,
             vx,
             vy,
         )
 
 
 class Meatloaf(Food):
-    def __init__(
-        self, platform_or_pos: Wall | Vec2, width: int = 30, height: int = 30, vx: float = None, vy: float = None
-    ):
+    def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
             "Slimy Meatloaf",
             "Is there really no good food around here?",
             50,
+            "",
             platform_or_pos,
-            width,
-            height,
             vx,
             vy,
         )
@@ -232,15 +261,13 @@ class Scroll(Pickup):
         desc: str,
         amount: float,
         platform_or_pos: Wall | Vec2,
-        width: int = 30,
-        height: int = 30,
         vx: float = None,
         vy: float = None,
     ):
         self.type: str = scroll_type
         self.desc: str = desc
         self.amount: float = amount * (random() + 0.5)
-        super().__init__(platform_or_pos, width, height, vx, vy)
+        super().__init__(f"{scroll_type.lower()}_scroll", platform_or_pos, vx, vy)
 
     def _create_popup(self) -> pygame.Surface:
         title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
@@ -276,16 +303,12 @@ class Scroll(Pickup):
 
 
 class DamageScroll(Scroll):
-    def __init__(
-        self, platform_or_pos: Wall | Vec2, width: int = 30, height: int = 30, vx: float = None, vy: float = None
-    ):
+    def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
             "Damage",
             "Turns even the fluffiest bunny into a rage-fueled killing machine (batteries not included).",
             10,
             platform_or_pos,
-            width,
-            height,
             vx,
             vy,
         )
@@ -300,16 +323,12 @@ class DamageScroll(Scroll):
 
 
 class HealthScroll(Scroll):
-    def __init__(
-        self, platform_or_pos: Wall | Vec2, width: int = 30, height: int = 30, vx: float = None, vy: float = None
-    ):
+    def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
             "Health",
             "Instantly transforms you from a soft marshmallow to a slightly firmer marshmallow.",
             10,
             platform_or_pos,
-            width,
-            height,
             vx,
             vy,
         )

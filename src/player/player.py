@@ -75,7 +75,7 @@ class Player(Hitbox):
     # The max health of the player
     MAX_HEALTH: float = 100
     # The decay of the health able to be regained after taking damage
-    DAMAGE_HEALTH_DECAY: float = 1
+    DAMAGE_HEALTH_DECAY: float = 0.7
     # Size
     WIDTH: int = 20
     HEIGHT: int = 50

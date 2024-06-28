@@ -118,15 +118,16 @@ class Map:
                 self.enemies.add(enemy)
                 self.add(enemy)
 
-            Weapon = random.choice(weapons)
-            mods = [random.choice(Weapon.AVAILABLE_MODS)() for _ in range(random.randint(1, 3))]
-            pickup = WeaponPickup(Weapon(mods), wall)
-            self.pickups.add(pickup)
-            self.add(pickup)
+            # Weapon = random.choice(weapons)
+            # mods = [random.choice(Weapon.AVAILABLE_MODS)() for _ in range(random.randint(1, 3))]
+            # pickup = WeaponPickup(Weapon(mods), wall)
+            # self.pickups.add(pickup)
+            # self.add(pickup)
 
-            food_or_scroll = random.choice(foods_and_scrolls)(wall)
-            self.pickups.add(food_or_scroll)
-            self.add(food_or_scroll)
+            for i in range(3):
+                food_or_scroll = foods_and_scrolls[0](wall)  # random.choice(foods_and_scrolls)(wall)
+                self.pickups.add(food_or_scroll)
+                self.add(food_or_scroll)
 
             gate = Gate(random.uniform(wall.left, wall.right - 100), wall.top - 150, 100, 150)
             self.gates.add(gate)
