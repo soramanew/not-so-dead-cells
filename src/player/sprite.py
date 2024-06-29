@@ -1,16 +1,15 @@
 from pathlib import Path
 
 import pygame
+import state
 from constants import SPRITES_PER_SECOND
 from util.func import get_project_root
-from util.type import EnemyState, Side
-
-from .enemyabc import EnemyABC
+from util.type import Side
 
 type SpriteDirectionList = list[pygame.Surface]
 type SpriteList = tuple[SpriteDirectionList, SpriteDirectionList]  # Left, right
 
-SPRITE_SIZE: int = 128
+SPRITE_SIZE: int = 64
 
 
 def _get_sprites_from_sheet(sheet: Path) -> SpriteList:
@@ -34,13 +33,18 @@ class State:
     def frame(self) -> int:
         return int(self.time * SPRITES_PER_SECOND)
 
+    @frame.setter
+    def frame(self, value: int) -> None:
+        self.time = value / SPRITES_PER_SECOND
+
+    @property
+    def current_sprite(self) -> pygame.Surface:
+        return self.sprites[0 if state.player.facing is Side.LEFT else 1][self.frame]
+
     def __init__(self, sprites: SpriteList):
         self.sprites: SpriteList = sprites
         self.num_sprites: int = len(sprites[0])
         self.time: float = 0
-
-    def current_sprite(self, facing: Side) -> pygame.Surface:
-        return self.sprites[0 if facing is Side.LEFT else 1][self.frame]
 
     def tick(self, dt: float, loop: bool = True) -> bool:
         """Ticks this state's animation.
@@ -68,38 +72,40 @@ class State:
         return self.frame >= self.num_sprites - 1
 
 
-class Sprite(EnemyABC):
+class Sprite:
     @property
     def current_state(self) -> State:
-        return self.states[self.state.value]
+        return self.states[state.player.state.value]
 
     @property
     def current_sprite(self) -> pygame.Surface:
-        return self.current_state.current_sprite(self.facing)
+        return self.current_state.current_sprite
 
-    def __init__(self, folder: str, state: EnemyState = EnemyState.IDLE, **kwargs):
+    def __init__(self, folder: str, **kwargs):
         folder_path = get_project_root() / "assets/sprites" / folder
         self.states: dict[str, State] = {
             "attack": State(_get_sprites_from_sheet(folder_path / "Attack_1.png")),
             "dead": State(_get_sprites_from_sheet(folder_path / "Dead.png")),
             "idle": State(_get_sprites_from_sheet(folder_path / "Idle.png")),
             "walk": State(_get_sprites_from_sheet(folder_path / "Walk.png")),
-            "alerted": State(_get_sprites_from_sheet(folder_path / "Alerted.png")),
+            "sprint": State(_get_sprites_from_sheet(folder_path / "Sprint.png")),
+            "jump": State(_get_sprites_from_sheet(folder_path / "Jump.png")),
+            "climb": State(_get_sprites_from_sheet(folder_path / "Climb.png")),
+            "wall_slide": State(_get_sprites_from_sheet(folder_path / "Wall_Slide.png")),
             # "hurt": _get_sprites_from_sheet(folder_path / "Hurt.png")  # TODO stagger enemy and use when hurt
         }
 
         super().__init__(**kwargs)
-        self.state: EnemyState = state
 
-        self.death_time: float = 4  # Time remains stay for
+        # self.death_time: float = 4  # Time remains stay for
 
-    def _tick_sprite(self, dt: float) -> None:
-        if self.dead:
-            self.state = EnemyState.DEAD
-            end = self.current_state.tick(dt, False)
-            if end:
-                self.death_time -= dt
-            if self.death_time <= 0:
-                self.death_finished = True
-        else:
-            self.current_state.tick(dt)
+    def tick(self, dt: float) -> None:
+        # if self.dead:
+        #     self.state = PlayerState.DEAD
+        #     end = self.current_state.tick(dt, False)
+        #     if end:
+        #         self.death_time -= dt
+        #     if self.death_time <= 0:
+        #         self.death_finished = True
+        # else:
+        self.current_state.tick(dt)

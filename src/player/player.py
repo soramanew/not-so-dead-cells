@@ -14,11 +14,14 @@ from util.type import (
     Direction,
     Interactable,
     PlayerControl,
+    PlayerState,
     Rect,
     Side,
     Size,
     Vec2,
 )
+
+from .sprite import Sprite
 
 
 def _roll_height_fn(x):
@@ -79,8 +82,8 @@ class Player(Hitbox):
     # The decay of the health able to be regained after taking damage
     DAMAGE_HEALTH_DECAY: float = 0.7
     # Size
-    WIDTH: int = 20
-    HEIGHT: int = 50
+    WIDTH: int = 40
+    HEIGHT: int = 64
     MIN_HEIGHT: int = 15
 
     # Range around the player that it can interact with objects
@@ -147,6 +150,18 @@ class Player(Hitbox):
     def sprint_mul(self) -> float:
         return Player.SPRINT_MULTIPLIER if self.sprinting else 1
 
+    @property
+    def is_moving(self) -> bool:
+        return abs(self.vx) > 30
+
+    @property
+    def is_rolling(self) -> bool:
+        return self.roll_time > 0
+
+    @property
+    def can_jump(self) -> bool:
+        return not self.slamming and (self.jumps > 0 or self.wall_col_dir)
+
     # ---------------------------- Constructor ---------------------------- #
 
     def __init__(self):
@@ -173,14 +188,8 @@ class Player(Hitbox):
         self.damage_mul: float = 1  # Damage multiplier
         self.health_potions: int = 0
         self._health_mul: float = 1  # Health multiplier
-
-    # ------------------------------ Getters ------------------------------ #
-
-    def is_rolling(self) -> bool:
-        return self.roll_time > 0
-
-    def can_jump(self) -> bool:
-        return not self.slamming and (self.jumps > 0 or self.wall_col_dir)
+        self.state: PlayerState = PlayerState.IDLE
+        self.sprite: Sprite = Sprite("player/pink")
 
     # ------------------------------ Methods ------------------------------ #
 
@@ -221,20 +230,20 @@ class Player(Hitbox):
             The moves to perform.
         """
 
-        if not self.is_rolling() and PlayerControl.LEFT in move_types:
+        if not self.is_rolling and PlayerControl.LEFT in move_types:
             self._x_control(Side.LEFT, dt)
 
-        if not self.is_rolling() and PlayerControl.RIGHT in move_types:
+        if not self.is_rolling and PlayerControl.RIGHT in move_types:
             self._x_control(Side.RIGHT, dt)
 
         # NOTE: order matters for the below moves as they will override each other
 
         # Cannot jump if currently slamming or no jumps left
-        if self.can_jump() and PlayerControl.JUMP in move_types:
+        if self.can_jump and PlayerControl.JUMP in move_types:
             self._jump()
 
         # Cannot roll if currently rolling or roll is on cooldown
-        if not self.is_rolling() and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
+        if not self.is_rolling and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
             self._roll()
 
         # Cannot slam if currently slamming or on a platform
@@ -242,7 +251,7 @@ class Player(Hitbox):
             self._slam()
 
         if not (
-            self.slamming or self.is_rolling() or (self.wall_col_dir and not self.on_platform) or self.ledge_climbing
+            self.slamming or self.is_rolling or (self.wall_col_dir and not self.on_platform) or self.ledge_climbing
         ):
             if PlayerControl.INTERACT in move_types:
                 self._interact()
@@ -285,13 +294,16 @@ class Player(Hitbox):
         """Jump... Cancel rolling + decrement jump + add jump velocity."""
 
         # Cancel roll if rolling
-        if self.is_rolling():
+        if self.is_rolling:
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
 
         # Cancel ledge climbing
         self.ledge_climbing = None
+
+        # Reset sprite jump state time
+        self.sprite.states[PlayerState.JUMPING.value].time = 0
 
         # Set vy to negative jump strength
         self.vy = -Player.JUMP_STRENGTH
@@ -341,7 +353,7 @@ class Player(Hitbox):
     def _slam(self) -> None:
         """Cancel roll + slam"""
 
-        if self.is_rolling():
+        if self.is_rolling:
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
@@ -388,7 +400,7 @@ class Player(Hitbox):
             reset_wall_climb = True
             for direction, entity in collisions:
                 if (direction is Direction.RIGHT or direction is Direction.LEFT) and isinstance(entity, Wall):
-                    if not self.is_rolling():
+                    if not self.is_rolling:
                         self._handle_side_wall_collision(direction.value, entity)
                     reset_wall_climb = False
                     break
@@ -492,7 +504,7 @@ class Player(Hitbox):
         self._tick_wall_col(dt)
 
     def _tick_wall_col(self, dt: float) -> None:
-        if self.wall_col_dir and not (self.is_rolling() and self.slamming and self.ledge_climbing):
+        if self.wall_col_dir and not (self.is_rolling and self.slamming and self.ledge_climbing):
             if self.wall_climb_time > 0:
                 self.vy = -Player.WALL_CLIMB_STRENGTH
                 self.wall_climb_time -= dt
@@ -527,12 +539,12 @@ class Player(Hitbox):
         if self.roll_cooldown > 0:
             self.roll_cooldown -= dt
 
-        if self.is_rolling():
+        if self.is_rolling:
             self.i_frames = 0.001
             # Reduce roll time and set vx to roll speed if rolling
             self.roll_time -= dt
             self.vx = Player.ROLL_SPEED * self.facing.value
-            if not self.is_rolling():
+            if not self.is_rolling:
                 self._stop_rolling()
         else:
             # Otherwise set total vx to controlled vx
@@ -558,7 +570,7 @@ class Player(Hitbox):
         walls_above = state.current_map.get_rect(
             self.x, self.y + self.height - Player.HEIGHT, self.width, Player.HEIGHT, lambda e: isinstance(e, Wall)
         )
-        if self.is_rolling():
+        if self.is_rolling:
             roll_height = clamp(
                 int(Player.HEIGHT * _roll_height_fn(self.roll_time / Player.ROLL_LENGTH)),
                 Player.HEIGHT,
@@ -665,10 +677,33 @@ class Player(Hitbox):
             self._regain_health(damage)
         if self.slamming:
             self.tick_slam(dt)
-        if not self.is_rolling():
+        if not self.is_rolling:
             self.tick_collision(dt)
         collisions = self.update_position(dt)
         self.handle_collisions(collisions)
+
+        self.sprite.tick(dt)
+
+        if self.weapon and self.weapon.attacking:
+            self.state = PlayerState.ATTACKING
+        elif self.wall_col_dir or self.ledge_climbing:
+            self.state = PlayerState.WALL_SLIDING if self.vy > 0 else PlayerState.CLIMBING
+        elif not self.on_platform:
+            self.state = PlayerState.JUMPING
+
+            jump_state = self.sprite.states[PlayerState.JUMPING.value]
+            # Skip to falling sprite when falling
+            first_falling_frame = 1
+            if self.vy > 0 and jump_state.frame < first_falling_frame:
+                jump_state.frame = first_falling_frame
+            # Keep jump sprite at 2nd last when not on platform
+            target_sprite = jump_state.num_sprites - (3 if self.is_moving else 2)
+            if jump_state.frame > target_sprite:
+                jump_state.frame = target_sprite
+        elif self.is_moving:
+            self.state = PlayerState.SPRINTING if self.sprinting else PlayerState.WALKING
+        else:
+            self.state = PlayerState.IDLE
 
     def take_hit(self, damage: int) -> None:
         if self.i_frames > 0:
@@ -685,7 +720,11 @@ class Player(Hitbox):
         self.weapon = weapon
         print(f"[DEBUG] Weapon changed: {weapon.to_friendly_str()}")
 
-    def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1):
-        super().draw(surface, (0, 255, 0), x_off, y_off, scale)
+    def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0):
+        # super().draw(surface, (0, 255, 0), x_off, y_off)
+
+        sprite = self.sprite.current_sprite
+        surface.blit(sprite, (self.center_x + x_off - sprite.width / 2, self.bottom + y_off - sprite.height))
+
         if self.weapon is not None:
-            self.weapon.draw(surface, (94, 101, 219), x_off, y_off, scale)
+            self.weapon.draw(surface, (94, 101, 219), x_off, y_off)

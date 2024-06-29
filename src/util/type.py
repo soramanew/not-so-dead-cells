@@ -55,6 +55,18 @@ class PlayerControl(Enum):
     ATTACK_STOP = "stop_attack"
 
 
+class PlayerState(Enum):
+    ATTACKING = "attack"
+    DEAD = "dead"
+    # HURT = "hurt"
+    IDLE = "idle"
+    WALKING = "walk"
+    SPRINTING = "sprint"
+    JUMPING = "jump"
+    CLIMBING = "climb"
+    WALL_SLIDING = "wall_slide"
+
+
 class EnemyState(Enum):
     ATTACKING = "attack"
     DEAD = "dead"
