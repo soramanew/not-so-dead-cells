@@ -68,13 +68,16 @@ class Map:
 
         if load:
             # self.save_path = random.choice(list(zone_dir.iterdir()))
-            self.save_path = zone_dir / "1.json"
+            self.save_path = zone_dir / "9.json"
             map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
             self.width = int(map_data.width)
             self.height = int(map_data.height)
             self.cell_size = int(map_data.cell_size)
             self.init_dir = Side(map_data.init_dir)
             self.player_spawn = tuple(map_data.spawn)
+
+            # Reset player to default values, move to spawn and change facing to init dir
+            state.player.to_default_values(*self.player_spawn, self.init_dir)
         else:
             self.save_path = zone_dir / (str(int(max(zone_dir.iterdir()).stem) + 1) + ".json")
             self.width = width
@@ -91,9 +94,6 @@ class Map:
         self.pickups: set[Pickup] = set()
         self.gates: set[Gate] = set()
         self.background: Background = Background()
-
-        # Reset player to default values, move to spawn and change facing to init dir
-        state.player.to_default_values(*self.player_spawn, self.init_dir)
 
     def spawn_enemies(self):  # FIXME temp
         import enemy

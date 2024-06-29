@@ -30,6 +30,8 @@ class Player(Hitbox):
     CONTROL_ACCEL: int = 1000
     # The decay/s of the speed added by controlling the player
     CONTROL_SPEED_DECAY: int = 7
+    # The amount sprinting affects the control decay (i.e. speed /= 1 + (control decay / sprint mul) * dt)
+    SPRINT_MULTIPLIER: float = 1.2
 
     # The max number of jumps the player has
     JUMPS: int = 2
@@ -141,6 +143,10 @@ class Player(Hitbox):
         self.max_health = int(Player.MAX_HEALTH * value)
         self.health = int(self.max_health * current_health)
 
+    @property
+    def sprint_mul(self) -> float:
+        return Player.SPRINT_MULTIPLIER if self.sprinting else 1
+
     # ---------------------------- Constructor ---------------------------- #
 
     def __init__(self):
@@ -148,6 +154,7 @@ class Player(Hitbox):
         self.vx: float = 0  # The velocity of the player in the x direction (- left, + right)
         self.vy: float = 0  # The velocity of the player in the y direction (- up, + down)
         self.controlled_vx: float = 0  # The velocity of the player in the x direction caused by user controls
+        self.sprinting: bool = False
         self.facing: Side = Side.RIGHT  # The direction the player is currently facing
         self.jumps: int = Player.JUMPS  # How many jumps the player has left (is reset when touching ground)
         self.roll_cooldown: float = 0  # The time until the player can roll again in seconds
@@ -270,7 +277,7 @@ class Player(Hitbox):
         if self.ledge_climbing is not None and self.ledge_climbing[0] != direction:
             self.ledge_climbing = None
         # Apply acceleration
-        self.controlled_vx += Player.CONTROL_ACCEL * dt * direction.value
+        self.controlled_vx += Player.CONTROL_ACCEL * dt * direction.value * self.sprint_mul
         # Change direction facing
         self.facing = direction
 
@@ -455,7 +462,7 @@ class Player(Hitbox):
             The time between this tick and the last tick in seconds
         """
 
-        self.controlled_vx /= 1 + Player.CONTROL_SPEED_DECAY * dt
+        self.controlled_vx /= 1 + (Player.CONTROL_SPEED_DECAY / self.sprint_mul) * dt
         # Apply air resistance and friction
         if self.on_platform:
             self.vx /= 1 + Wall.FRICTION * dt  # Not how friction works but yes

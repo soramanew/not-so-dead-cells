@@ -70,22 +70,25 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
                 key_handler.down(event.key)
-                jump = event.key == pygame.K_SPACE or event.key == pygame.K_w or event.key == pygame.K_UP
-                if (key_handler.get(pygame.K_s) or key_handler.get(pygame.K_DOWN)) and jump:
+                if key_handler.get_control(PlayerControl.SLAM):
                     move_types.append(PlayerControl.SLAM)
-                elif jump:
+                elif key_handler.get_control(PlayerControl.JUMP):
                     move_types.append(PlayerControl.JUMP)
-                elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
-                    move_types.append(PlayerControl.ROLL)
                 elif event.key == pygame.K_f:
                     move_types.append(PlayerControl.INTERACT)
                 elif event.key == pygame.K_COMMA:
                     move_types.append(PlayerControl.ATTACK_START)
+                elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
+                    state.player.sprinting = True
                 elif event.key == pygame.K_ESCAPE:
                     pause = not pause
             elif event.type == pygame.KEYUP:
-                key_handler.up(event.key)
-                if event.key == pygame.K_COMMA:
+                time = key_handler.up(event.key)
+                if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
+                    if time < key_handler.TAP_THRESHOLD:
+                        move_types.append(PlayerControl.ROLL)
+                    state.player.sprinting = False
+                elif event.key == pygame.K_COMMA:
                     move_types.append(PlayerControl.ATTACK_STOP)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 move_types.append(PlayerControl.ATTACK_START)
