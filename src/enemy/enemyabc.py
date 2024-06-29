@@ -9,11 +9,14 @@ from map import Wall
 from util.type import Colour, EnemyState, Side
 
 if TYPE_CHECKING:
+    from item.pickup import Pickup
+
     from .sprite import State
 
 
 class EnemyABC(BoxABC):
     I_FRAMES: float
+    LOOT_POOL: list[Pickup]
 
     platform: Wall
     facing: Side

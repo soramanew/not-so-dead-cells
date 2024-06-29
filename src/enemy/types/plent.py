@@ -1,4 +1,13 @@
 from constants import SPRITES_PER_SECOND
+from item.pickup import (
+    Apple,
+    DamagePotion,
+    HealthPotion,
+    LemonPie,
+    Pickup,
+    Sausages,
+    Toe,
+)
 from map import Wall
 from util.func import normalise_rect
 from util.type import Rect, Side
@@ -12,6 +21,19 @@ ATK_END_TIME: float = ATTACK_TIME * 3 / 6  # Time which is not attacking at the 
 
 
 class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
+    # High chance for damage potion, then apple then rest equal
+    LOOT_POOL: list[Pickup] = [
+        Apple,
+        Apple,
+        Toe,
+        LemonPie,
+        Sausages,
+        DamagePotion,
+        DamagePotion,
+        DamagePotion,
+        HealthPotion,
+    ]
+
     I_FRAMES: float = 0.3
     MOVE_CHANCE: float = 0.003
 
@@ -41,6 +63,7 @@ class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
             health=50,
             damage=20,
             sprite="plent",
+            loot_chance=0.1,
         )
 
     def _get_real_atk_area(self) -> Rect:

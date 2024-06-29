@@ -1,6 +1,15 @@
 import math
 
 from constants import SPRITES_PER_SECOND
+from item.pickup import (
+    Apple,
+    DamagePotion,
+    HealthPotion,
+    LemonPie,
+    Pickup,
+    Sausages,
+    Toe,
+)
 from map import Wall
 from util.func import normalise_rect
 from util.type import Rect, Side
@@ -14,6 +23,21 @@ ATK_END_TIME: float = ATTACK_TIME * 3 / 7  # Time which is not attacking at the 
 
 
 class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
+    # High chance for toe, then health potion, apple & lemon pie, then sausage & damage pot lowest
+    LOOT_POOL: list[Pickup] = [
+        Apple,
+        Apple,
+        Toe,
+        Toe,
+        Toe,
+        LemonPie,
+        LemonPie,
+        Sausages,
+        DamagePotion,
+        HealthPotion,
+        HealthPotion,
+    ]
+
     I_FRAMES: float = 0.3
 
     @property
@@ -40,6 +64,7 @@ class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
             health=80,
             damage=10,
             sprite="skelebone",
+            loot_chance=0.12,
         )
 
     def _get_real_atk_area(self) -> Rect:

@@ -100,8 +100,8 @@ class Map:
         import item.weapon
         from item.pickup import (
             Apple,
-            DamageScroll,
-            HealthScroll,
+            DamagePotion,
+            HealthPotion,
             LemonPie,
             Sausages,
             Toe,
@@ -112,7 +112,7 @@ class Map:
 
         enemies = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
         weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
-        foods_and_scrolls = [Apple, Toe, LemonPie, Sausages]
+        food_and_potions = [Apple, Toe, LemonPie, Sausages, DamagePotion, HealthPotion]
         for wall in self.walls:
             for i in range(1):
                 enemy = random.choice(enemies)(wall)
@@ -126,9 +126,9 @@ class Map:
             # self.add(pickup)
 
             for i in range(3):
-                food_or_scroll = random.choice(foods_and_scrolls)(wall)
-                self.pickups.add(food_or_scroll)
-                self.add(food_or_scroll)
+                food_or_potion = random.choice(food_and_potions)(wall)
+                self.pickups.add(food_or_potion)
+                self.add(food_or_potion)
 
             gate = Gate(random.uniform(wall.left, wall.right - 100), wall.top - 150, 100, 150)
             self.gates.add(gate)
@@ -143,6 +143,8 @@ class Map:
                 to_remove.add(enemy)
             else:
                 self._add(enemy, False)
+                if enemy.dead:
+                    enemy.drop_loot()
 
         for enemy in to_remove:
             self.objects.remove(enemy)
@@ -222,6 +224,10 @@ class Map:
         for row in range(start_row, end_row + 1):
             for col in range(start_col, end_col + 1):
                 self.grid[row][col].remove(box)
+
+    def add_pickups(self, pickups: list[Pickup]) -> None:
+        for pickup in pickups:
+            self.add_pickup(pickup)
 
     def add_pickup(self, pickup: Pickup) -> None:
         self.add(pickup)

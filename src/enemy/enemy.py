@@ -3,6 +3,7 @@ import random
 import pygame
 import state
 from box import Hitbox
+from item.pickup import Pickup
 from map import Wall
 from util.func import normalise_for_drawing
 from util.type import Side, Size, Vec2
@@ -46,6 +47,7 @@ class Enemy(Hitbox, Sense, Sprite):
         atk_width: float,
         health: int,
         sprite: str,
+        loot_chance: float,
         pos: Vec2 = (None, None),
         facing: Side = None,
         head_pos: Vec2 = (0.7, 0.3),  # Head position in direction facing as ratio (width, height)
@@ -71,6 +73,7 @@ class Enemy(Hitbox, Sense, Sprite):
         self.max_health: int = int(health * state.difficulty)
         self.health: int = self.max_health
         self.mass: float = mass
+        self.loot_chance: float = loot_chance
 
         self.alerted: bool = False
         self.stopped: bool = False
@@ -78,6 +81,7 @@ class Enemy(Hitbox, Sense, Sprite):
         self.h_bar_time: float = 0
         self.h_bar_damage: float = 0
         self.death_finished: bool = False
+        self.loot_dropped: bool = False
 
         super().__init__(
             x=x,
@@ -97,6 +101,18 @@ class Enemy(Hitbox, Sense, Sprite):
 
     def _get_dep_facing(self, ratio: float) -> float:
         return ratio if self.facing is Side.RIGHT else 1 - ratio
+
+    def roll_loot(self) -> list[Pickup]:
+        loot = []
+        while random.random() < self.loot_chance / (len(loot) or 1):  # Chance lowers every time loot is dropped
+            loot.append(random.choice(self.LOOT_POOL)((self.center_x, self.center_y)))
+        return loot
+
+    def drop_loot(self) -> None:
+        # Can only drop once
+        if not self.loot_dropped:
+            state.current_map.add_pickups(self.roll_loot())
+            self.loot_dropped = True
 
     def tick(self, dt: float) -> None:
         if self.dead:

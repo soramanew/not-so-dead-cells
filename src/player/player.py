@@ -162,9 +162,9 @@ class Player(Hitbox):
         self.i_frames: float = 0
         self.damage_health: float = 0
         self.weapon: Weapon = None
-        self.damage_scrolls: int = 0
+        self.damage_potions: int = 0
         self.damage_mul: float = 1  # Damage multiplier
-        self.health_scrolls: int = 0
+        self.health_potions: int = 0
         self._health_mul: float = 1  # Health multiplier
 
     # ------------------------------ Getters ------------------------------ #
@@ -674,9 +674,7 @@ class Player(Hitbox):
     def switch_weapon(self, weapon: Weapon) -> None:
         # TODO drop current weapon
         if self.weapon:
-            state.current_map.add_pickup(
-                WeaponPickup(self.weapon, (self.center_x - 15, self.center_y - 15), width=30, height=30)
-            )
+            state.current_map.add_pickup(WeaponPickup(self.weapon, (self.center_x, self.center_y)))
         self.weapon = weapon
         print(f"[DEBUG] Weapon changed: {weapon.to_friendly_str()}")
 

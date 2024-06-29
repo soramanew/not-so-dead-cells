@@ -14,7 +14,7 @@ from item import Item
 FLOAT_MAX: float = 0.1
 
 
-def _draw_border(surface: pygame.Surface) -> None:
+def _draw_popup_base(surface: pygame.Surface) -> None:
     pygame.draw.rect(surface, (152, 138, 112, 230), (0, 0, surface.width, surface.height), border_radius=3)
     pygame.draw.rect(surface, (210, 193, 158), (0, 0, surface.width, surface.height), width=1, border_radius=3)
 
@@ -61,11 +61,14 @@ class Pickup(Hitbox, Interactable):
         else:
             # Position
             x, y = platform_or_pos
+            # Make center pos
+            x -= width / 2
+            y -= height / 2
 
         if vx is None:
-            vx = uniform(5, 20) * (1 if random() < 0.5 else -1)
+            vx = uniform(5, 80) * (1 if random() < 0.5 else -1)
         if vy is None:
-            vy = -uniform(100, 200)
+            vy = -uniform(100, 400)
 
         super().__init__(x, y, width, height)
         self.vx: float = vx
@@ -147,7 +150,7 @@ class WeaponPickup(Pickup):
             pygame.SRCALPHA,
         ).convert_alpha()
 
-        _draw_border(surface)
+        _draw_popup_base(surface)
 
         surface.blit(name, (x_off, y_off))
         y_off += name.height
@@ -178,7 +181,7 @@ class Food(Pickup):
         self.name: str = name
         self.desc: str = desc
         self.heal: int = int(heal * state.difficulty * 0.6)  # Player health & healing scales much slower
-        super().__init__(sprite, platform_or_pos, vx, vy)
+        super().__init__(f"food/{sprite}", platform_or_pos, vx, vy)
 
     def _create_popup(self) -> pygame.Surface:
         title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
@@ -200,7 +203,7 @@ class Food(Pickup):
             pygame.SRCALPHA,
         ).convert_alpha()
 
-        _draw_border(surface)
+        _draw_popup_base(surface)
 
         surface.blit(name, (x_off, y_off))
         y_off += name.height
@@ -291,7 +294,7 @@ class Sausages(Food):
             pygame.SRCALPHA,
         ).convert_alpha()
 
-        _draw_border(surface)
+        _draw_popup_base(surface)
 
         surface.blit(name, (x_off, y_off))
         y_off += name.height
@@ -306,20 +309,29 @@ class Sausages(Food):
         return surface
 
 
-class Scroll(Pickup):
+class Potion(Pickup):
     def __init__(
         self,
-        scroll_type: str,
+        pot_type: str,
         desc: str,
         amount: float,
         platform_or_pos: Wall | Vec2,
         vx: float = None,
         vy: float = None,
     ):
-        self.type: str = scroll_type
+        self.type: str = pot_type
         self.desc: str = desc
-        self.amount: float = amount * (random() + 0.5)
-        super().__init__(f"{scroll_type.lower()}_scroll", platform_or_pos, vx, vy)
+        effectiveness = random() + 0.5
+        self.amount: float = amount * effectiveness
+        self.size: str = (
+            "Small" if effectiveness < 0.5 + 1 / 3 else ("Medium" if effectiveness < 0.5 + 2 / 3 else "Large")
+        )
+        super().__init__(
+            f"potions/{pot_type.lower()}_{self.size.lower()}",
+            platform_or_pos,
+            vx,
+            vy,
+        )
 
     def _create_popup(self) -> pygame.Surface:
         title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
@@ -328,12 +340,12 @@ class Scroll(Pickup):
         x_off = 15
         y_off = 15
 
-        name = title_font.render(f"Scroll of {self.type}", True, (214, 202, 178))
+        name = title_font.render(f"{self.size} Potion of {self.type}", True, (214, 202, 178))
         effect = text_font.render(
             f"Increases {self.type.lower()} by {round(self.amount)}% (multiplicative)", True, (220, 220, 220)
         )
         desc = text_font.render(self.desc, True, (255, 255, 255))
-        prompt = render_interact_text("Read")
+        prompt = render_interact_text("Drink")
 
         surface = pygame.Surface(
             (
@@ -343,7 +355,7 @@ class Scroll(Pickup):
             pygame.SRCALPHA,
         ).convert_alpha()
 
-        _draw_border(surface)
+        _draw_popup_base(surface)
 
         surface.blit(name, (x_off, y_off))
         y_off += name.height
@@ -354,7 +366,7 @@ class Scroll(Pickup):
         return surface
 
 
-class DamageScroll(Scroll):
+class DamagePotion(Potion):
     def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
             "Damage",
@@ -366,29 +378,29 @@ class DamageScroll(Scroll):
         )
 
     def interact(self) -> None:
-        state.player.damage_scrolls += 1
+        state.player.damage_potions += 1
         state.player.damage_mul *= 1 + self.amount / 100
         print(
-            f"[DEBUG] Picked up damage scroll: {state.player.damage_scrolls} scrolls - {round(state.player.damage_mul * 100)}%"
+            f"[DEBUG] Picked up damage potion: {state.player.damage_potions} potions - {round(state.player.damage_mul * 100)}%"
         )
         state.current_map.remove_pickup(self)
 
 
-class HealthScroll(Scroll):
+class HealthPotion(Potion):
     def __init__(self, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         super().__init__(
             "Health",
             "Instantly transforms you from a soft marshmallow to a slightly firmer marshmallow.",
-            10,
+            20,
             platform_or_pos,
             vx,
             vy,
         )
 
     def interact(self) -> None:
-        state.player.health_scrolls += 1
+        state.player.health_potions += 1
         state.player.health_mul *= 1 + self.amount / 100
         print(
-            f"[DEBUG] Picked up health scroll: {state.player.health_scrolls} scrolls - {round(state.player.health_mul * 100)}%"
+            f"[DEBUG] Picked up health potion: {state.player.health_potions} potions - {round(state.player.health_mul * 100)}%"
         )
         state.current_map.remove_pickup(self)
