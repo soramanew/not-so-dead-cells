@@ -37,15 +37,14 @@ class State:
     def frame(self, value: int) -> None:
         self.time = value / SPRITES_PER_SECOND
 
-    @property
-    def current_sprite(self) -> pygame.Surface:
-        return self.sprites[0 if state.player.facing is Side.LEFT else 1][self.frame]
-
     def __init__(self, sprites: SpriteList, speed: float = 1):
         self.sprites: SpriteList = sprites
         self.speed: float = speed
         self.num_sprites: int = len(sprites[0])
         self.time: float = 0
+
+    def get_current_sprite(self, facing: Side) -> pygame.Surface:
+        return self.sprites[0 if facing is Side.LEFT else 1][self.frame]
 
     def tick(self, dt: float, loop: bool = True) -> bool:
         """Ticks this state's animation.
@@ -73,16 +72,16 @@ class State:
         return self.frame >= self.num_sprites - 1
 
 
-class Sprite:
+class PlayerSprite:
     @property
     def current_state(self) -> State:
         return self.states[state.player.state.value]
 
     @property
     def current_sprite(self) -> pygame.Surface:
-        return self.current_state.current_sprite
+        return self.current_state.get_current_sprite(state.player.facing)
 
-    def __init__(self, folder: str, **kwargs):
+    def __init__(self, folder: str):
         folder_path = get_project_root() / "assets/sprites" / folder
         self.states: dict[str, State] = {
             "attack": State(_get_sprites_from_sheet(folder_path / "Attack_1.png")),
@@ -97,8 +96,6 @@ class Sprite:
             # "hurt": _get_sprites_from_sheet(folder_path / "Hurt.png")  # TODO stagger enemy and use when hurt
         }
 
-        super().__init__(**kwargs)
-
         # self.death_time: float = 4  # Time remains stay for
 
     def tick(self, dt: float) -> None:
@@ -111,3 +108,25 @@ class Sprite:
         #         self.death_finished = True
         # else:
         self.current_state.tick(dt)
+
+
+class EffectSprite(State):
+    def __init__(self, effect: str, x: float = None, y: float = None, once: bool = False, speed: float = 1):
+        super().__init__(
+            _get_sprites_from_sheet(get_project_root() / "assets/sprites/effects" / f"{effect}.png"), speed
+        )
+        # Position for static
+        self.x: float = x
+        self.y: float = y
+        # Only run once
+        self.once: bool = once
+        self.has_run: bool = False
+
+    def tick(self, dt: float) -> bool:
+        if self.once and self.has_run:
+            return True
+
+        end = super().tick(dt)
+        if end:
+            self.has_run = True
+        return end

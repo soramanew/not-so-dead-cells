@@ -29,7 +29,7 @@ type Grid = list[Row | None]
 
 
 class Map:
-    GRAVITY: int = 800
+    GRAVITY: int = 1000
     AIR_RESISTANCE: float = 0.0002
 
     @staticmethod
@@ -56,19 +56,17 @@ class Map:
 
     def __init__(
         self,
-        zone: str,
         load: bool = True,
         width: int = 2000,
         height: int = 2000,
         cell_size: int = 50,
     ) -> None:
         self.objects: set[Box] = set()
-        self.zone = zone
-        zone_dir = Map.storage() / self.zone
+        storage = Map.storage()
 
         if load:
             # self.save_path = random.choice(list(zone_dir.iterdir()))
-            self.save_path = zone_dir / "2.json"
+            self.save_path = storage / "9.json"
             map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
             self.width = int(map_data.width)
             self.height = int(map_data.height)
@@ -79,7 +77,7 @@ class Map:
             # Reset player to default values, move to spawn and change facing to init dir
             state.player.to_default_values(*self.player_spawn, self.init_dir)
         else:
-            self.save_path = zone_dir / (str(int(max(zone_dir.iterdir()).stem) + 1) + ".json")
+            self.save_path = storage / (str(int(max(storage.iterdir()).stem) + 1) + ".json")
             self.width = width
             self.height = height
             self.cell_size = cell_size

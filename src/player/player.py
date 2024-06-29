@@ -21,7 +21,7 @@ from util.type import (
     Vec2,
 )
 
-from .sprite import Sprite
+from .sprite import EffectSprite, PlayerSprite
 
 
 def _roll_height_fn(x):
@@ -39,7 +39,7 @@ class Player(Hitbox):
     # The max number of jumps the player has
     JUMPS: int = 2
     # The upwards velocity added on jump
-    JUMP_STRENGTH: int = 300
+    JUMP_STRENGTH: int = 400
     # The side velocity added on wall jumping
     WALL_JUMP_STRENGTH: float = 300
 
@@ -51,10 +51,10 @@ class Player(Hitbox):
     ROLL_COOLDOWN: float = 0.3
 
     # The max speed the player can move downwards when not slamming (px/s)
-    DROP_SPEED_CAP: int = 600
+    DROP_SPEED_CAP: int = 500
 
     # The downwards velocity added on slam
-    SLAM_STRENGTH: int = 1400
+    SLAM_STRENGTH: int = 1200
     # The damage range of slamming
     SLAM_RANGE: Size = 40, 5
     # The base damage of the slam
@@ -189,7 +189,10 @@ class Player(Hitbox):
         self.health_potions: int = 0
         self._health_mul: float = 1  # Health multiplier
         self.state: PlayerState = PlayerState.IDLE
-        self.sprite: Sprite = Sprite("player/pink")
+        self.sprite: PlayerSprite = PlayerSprite("player/pink")
+        self.slam_fall_sprite: EffectSprite = EffectSprite("Slam")
+        self.slam_dust_sprites: list[EffectSprite] = []
+        self.jump_dust_sprites: list[EffectSprite] = []
 
     # ------------------------------ Methods ------------------------------ #
 
@@ -425,6 +428,11 @@ class Player(Hitbox):
         This should be called from handle_collisions() and wrapped with run_once().
         """
 
+        if self.slamming:
+            self.slam_dust_sprites.append(EffectSprite("Slash_Cloud", self.center_x, self.bottom))
+        elif self.jumps <= 0:
+            self.jump_dust_sprites.append(EffectSprite("Jump_Dust", self.center_x, self.bottom))
+
         self.on_platform = True
         self.jumps = Player.JUMPS
         self.slamming = False
@@ -478,7 +486,7 @@ class Player(Hitbox):
         if self.on_platform:
             self.vx /= 1 + Wall.FRICTION * dt  # Not how friction works but yes
         self.vx -= Map.get_air_resistance(self.vx, self.height) * dt
-        self.vy -= Map.get_air_resistance(self.vy, self.width) * dt
+        self.vy -= Map.get_air_resistance(self.vy, self.width) * dt * 0.1
 
         # Tick invincibility frames
         self.i_frames -= dt
@@ -683,30 +691,52 @@ class Player(Hitbox):
 
         self.sprite.tick(dt)
 
+        to_remove = []
+        for sprite in self.slam_dust_sprites + self.jump_dust_sprites:
+            end = sprite.tick(dt)
+            if end:
+                to_remove.append(sprite)
+        for sprite in to_remove:
+            if sprite in self.slam_dust_sprites:
+                self.slam_dust_sprites.remove(sprite)
+            if sprite in self.jump_dust_sprites:
+                self.jump_dust_sprites.remove(sprite)
+
         if self.weapon and self.weapon.attacking:
+            # Attack
             self.state = PlayerState.ATTACKING
         elif self.rolling or self.height < Player.HEIGHT:
+            # Roll
             self.state = PlayerState.ROLLING
+            # Replay mid roll animation if still
             roll_state = self.sprite.states[PlayerState.ROLLING.value]
             if self.height == Player.MIN_HEIGHT and roll_state.frame > 4:
                 roll_state.frame = 2
-        elif self.wall_col_dir or self.ledge_climbing:
-            self.state = PlayerState.WALL_SLIDING if self.vy > 0 else PlayerState.CLIMBING
         elif not self.on_platform:
-            self.state = PlayerState.JUMPING
+            if self.wall_col_dir or self.ledge_climbing:
+                # Climbing/sliding on wall
+                self.state = PlayerState.WALL_SLIDING if self.vy > 0 else PlayerState.CLIMBING
+            else:
+                # Not on platform so either jumping or falling
+                self.state = PlayerState.JUMPING
 
-            jump_state = self.sprite.states[PlayerState.JUMPING.value]
-            # Skip to falling sprite when falling
-            first_falling_frame = 1
-            if self.vy > 0 and jump_state.frame < first_falling_frame:
-                jump_state.frame = first_falling_frame
-            # Keep jump sprite at 2nd last when not on platform
-            target_sprite = jump_state.num_sprites - (3 if self.is_moving else 2)
-            if jump_state.frame > target_sprite:
-                jump_state.frame = target_sprite
+                jump_state = self.sprite.states[PlayerState.JUMPING.value]
+                # Skip to falling sprite when falling
+                first_falling_frame = 1
+                if self.vy > 0 and jump_state.frame < first_falling_frame:
+                    jump_state.frame = first_falling_frame
+                # Keep jump sprite at falling sprite when not on platform
+                target_sprite = jump_state.num_sprites - (3 if self.is_moving else 2)
+                if jump_state.frame > target_sprite:
+                    jump_state.frame = target_sprite
+
+                if self.slamming:
+                    self.slam_fall_sprite.tick(dt)
         elif self.is_moving:
+            # Walking/running
             self.state = PlayerState.SPRINTING if self.sprinting else PlayerState.WALKING
         else:
+            # Idle if nothing else
             self.state = PlayerState.IDLE
 
     def take_hit(self, damage: int) -> None:
@@ -727,8 +757,30 @@ class Player(Hitbox):
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0):
         # super().draw(surface, (0, 255, 0), x_off, y_off)
 
+        for dust_sprite in self.slam_dust_sprites:
+            x = dust_sprite.x + x_off
+            y = dust_sprite.y + y_off
+            sprite = dust_sprite.get_current_sprite(Side.LEFT)
+            surface.blit(sprite, (x - sprite.width, y - sprite.height))
+            sprite = dust_sprite.get_current_sprite(Side.RIGHT)
+            surface.blit(sprite, (x, y - sprite.height))
+
+        for dust_sprite in self.jump_dust_sprites:
+            sprite = dust_sprite.get_current_sprite(Side.RIGHT)  # Doesn't matter which side
+            surface.blit(sprite, (dust_sprite.x + x_off - sprite.width / 2, dust_sprite.y + y_off - sprite.height))
+
+        c_x_w_off = self.center_x + x_off
+        b_y_w_off = self.bottom + y_off
+
+        # Slam effect behind player sprite
+        if self.slamming:
+            sprite = self.slam_fall_sprite.get_current_sprite(Side.LEFT)
+            surface.blit(sprite, (c_x_w_off - sprite.width, b_y_w_off - sprite.height * 0.8))
+            sprite = self.slam_fall_sprite.get_current_sprite(Side.RIGHT)
+            surface.blit(sprite, (c_x_w_off, b_y_w_off - sprite.height * 0.8))
+
         sprite = self.sprite.current_sprite
-        surface.blit(sprite, (self.center_x + x_off - sprite.width / 2, self.bottom + y_off - sprite.height))
+        surface.blit(sprite, (c_x_w_off - sprite.width / 2, b_y_w_off - sprite.height))
 
         if self.weapon is not None:
             self.weapon.draw(surface, (94, 101, 219), x_off, y_off)
