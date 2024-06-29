@@ -65,6 +65,7 @@ class PlayerState(Enum):
     JUMPING = "jump"
     CLIMBING = "climb"
     WALL_SLIDING = "wall_slide"
+    ROLLING = "roll"
 
 
 class EnemyState(Enum):

@@ -30,7 +30,7 @@ type Grid = list[Row | None]
 
 class Map:
     GRAVITY: int = 800
-    AIR_RESISTANCE: float = 0.0003
+    AIR_RESISTANCE: float = 0.0002
 
     @staticmethod
     def storage() -> Path:
@@ -68,7 +68,7 @@ class Map:
 
         if load:
             # self.save_path = random.choice(list(zone_dir.iterdir()))
-            self.save_path = zone_dir / "7.json"
+            self.save_path = zone_dir / "2.json"
             map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
             self.width = int(map_data.width)
             self.height = int(map_data.height)

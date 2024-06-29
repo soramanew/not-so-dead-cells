@@ -25,7 +25,7 @@ from .sprite import Sprite
 
 
 def _roll_height_fn(x):
-    return 4 * abs(x - 0.5) - 1
+    return 3 * abs(x - 0.5) - 0.5
 
 
 class Player(Hitbox):
@@ -44,7 +44,7 @@ class Player(Hitbox):
     WALL_JUMP_STRENGTH: float = 300
 
     # The speed of rolling (px/s)
-    ROLL_SPEED: int = 300
+    ROLL_SPEED: int = 400
     # The length of a roll (s)
     ROLL_LENGTH: float = 0.5
     # The time until the player can roll again after a roll is finished (s)
@@ -84,7 +84,7 @@ class Player(Hitbox):
     # Size
     WIDTH: int = 40
     HEIGHT: int = 64
-    MIN_HEIGHT: int = 15
+    MIN_HEIGHT: int = 30
 
     # Range around the player that it can interact with objects
     INTERACT_RANGE: float = 10
@@ -155,7 +155,7 @@ class Player(Hitbox):
         return abs(self.vx) > 30
 
     @property
-    def is_rolling(self) -> bool:
+    def rolling(self) -> bool:
         return self.roll_time > 0
 
     @property
@@ -230,10 +230,10 @@ class Player(Hitbox):
             The moves to perform.
         """
 
-        if not self.is_rolling and PlayerControl.LEFT in move_types:
+        if not self.rolling and PlayerControl.LEFT in move_types:
             self._x_control(Side.LEFT, dt)
 
-        if not self.is_rolling and PlayerControl.RIGHT in move_types:
+        if not self.rolling and PlayerControl.RIGHT in move_types:
             self._x_control(Side.RIGHT, dt)
 
         # NOTE: order matters for the below moves as they will override each other
@@ -243,16 +243,14 @@ class Player(Hitbox):
             self._jump()
 
         # Cannot roll if currently rolling or roll is on cooldown
-        if not self.is_rolling and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
+        if not self.rolling and self.roll_cooldown <= 0 and PlayerControl.ROLL in move_types:
             self._roll()
 
         # Cannot slam if currently slamming or on a platform
         if not (self.slamming or self.on_platform) and PlayerControl.SLAM in move_types:
             self._slam()
 
-        if not (
-            self.slamming or self.is_rolling or (self.wall_col_dir and not self.on_platform) or self.ledge_climbing
-        ):
+        if not (self.slamming or self.rolling or (self.wall_col_dir and not self.on_platform) or self.ledge_climbing):
             if PlayerControl.INTERACT in move_types:
                 self._interact()
             elif self.weapon is not None:
@@ -294,7 +292,7 @@ class Player(Hitbox):
         """Jump... Cancel rolling + decrement jump + add jump velocity."""
 
         # Cancel roll if rolling
-        if self.is_rolling:
+        if self.rolling:
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
@@ -322,6 +320,7 @@ class Player(Hitbox):
         self.ledge_climbing = None
         if self.slamming:
             self.slamming = False
+        self.sprite.states[PlayerState.ROLLING.value].time = 0
         self._interrupt_attack()
         self.roll_time = Player.ROLL_LENGTH
 
@@ -353,7 +352,7 @@ class Player(Hitbox):
     def _slam(self) -> None:
         """Cancel roll + slam"""
 
-        if self.is_rolling:
+        if self.rolling:
             stopped_rolling = self._stop_rolling()
             if not stopped_rolling:
                 return
@@ -400,7 +399,7 @@ class Player(Hitbox):
             reset_wall_climb = True
             for direction, entity in collisions:
                 if (direction is Direction.RIGHT or direction is Direction.LEFT) and isinstance(entity, Wall):
-                    if not self.is_rolling:
+                    if not self.rolling:
                         self._handle_side_wall_collision(direction.value, entity)
                     reset_wall_climb = False
                     break
@@ -504,7 +503,7 @@ class Player(Hitbox):
         self._tick_wall_col(dt)
 
     def _tick_wall_col(self, dt: float) -> None:
-        if self.wall_col_dir and not (self.is_rolling and self.slamming and self.ledge_climbing):
+        if self.wall_col_dir and not (self.rolling and self.slamming and self.ledge_climbing):
             if self.wall_climb_time > 0:
                 self.vy = -Player.WALL_CLIMB_STRENGTH
                 self.wall_climb_time -= dt
@@ -539,12 +538,12 @@ class Player(Hitbox):
         if self.roll_cooldown > 0:
             self.roll_cooldown -= dt
 
-        if self.is_rolling:
+        if self.rolling:
             self.i_frames = 0.001
             # Reduce roll time and set vx to roll speed if rolling
             self.roll_time -= dt
             self.vx = Player.ROLL_SPEED * self.facing.value
-            if not self.is_rolling:
+            if not self.rolling:
                 self._stop_rolling()
         else:
             # Otherwise set total vx to controlled vx
@@ -570,7 +569,7 @@ class Player(Hitbox):
         walls_above = state.current_map.get_rect(
             self.x, self.y + self.height - Player.HEIGHT, self.width, Player.HEIGHT, lambda e: isinstance(e, Wall)
         )
-        if self.is_rolling:
+        if self.rolling:
             roll_height = clamp(
                 int(Player.HEIGHT * _roll_height_fn(self.roll_time / Player.ROLL_LENGTH)),
                 Player.HEIGHT,
@@ -677,7 +676,7 @@ class Player(Hitbox):
             self._regain_health(damage)
         if self.slamming:
             self.tick_slam(dt)
-        if not self.is_rolling:
+        if not self.rolling:
             self.tick_collision(dt)
         collisions = self.update_position(dt)
         self.handle_collisions(collisions)
@@ -686,6 +685,11 @@ class Player(Hitbox):
 
         if self.weapon and self.weapon.attacking:
             self.state = PlayerState.ATTACKING
+        elif self.rolling or self.height < Player.HEIGHT:
+            self.state = PlayerState.ROLLING
+            roll_state = self.sprite.states[PlayerState.ROLLING.value]
+            if self.height == Player.MIN_HEIGHT and roll_state.frame > 4:
+                roll_state.frame = 2
         elif self.wall_col_dir or self.ledge_climbing:
             self.state = PlayerState.WALL_SLIDING if self.vy > 0 else PlayerState.CLIMBING
         elif not self.on_platform:

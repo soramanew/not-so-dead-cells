@@ -41,8 +41,9 @@ class State:
     def current_sprite(self) -> pygame.Surface:
         return self.sprites[0 if state.player.facing is Side.LEFT else 1][self.frame]
 
-    def __init__(self, sprites: SpriteList):
+    def __init__(self, sprites: SpriteList, speed: float = 1):
         self.sprites: SpriteList = sprites
+        self.speed: float = speed
         self.num_sprites: int = len(sprites[0])
         self.time: float = 0
 
@@ -62,7 +63,7 @@ class State:
             If the animation is at the end.
         """
 
-        self.time += dt
+        self.time += dt * self.speed
         if self.frame >= self.num_sprites:
             if loop:
                 self.time -= self.num_sprites / SPRITES_PER_SECOND
@@ -92,6 +93,7 @@ class Sprite:
             "jump": State(_get_sprites_from_sheet(folder_path / "Jump.png")),
             "climb": State(_get_sprites_from_sheet(folder_path / "Climb.png")),
             "wall_slide": State(_get_sprites_from_sheet(folder_path / "Wall_Slide.png")),
+            "roll": State(_get_sprites_from_sheet(folder_path / "Roll.png"), 1.3),
             # "hurt": _get_sprites_from_sheet(folder_path / "Hurt.png")  # TODO stagger enemy and use when hurt
         }
 
