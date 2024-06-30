@@ -27,7 +27,7 @@ class Gate(Box, Interactable):
         diff = round(state.difficulty, 2)
         state.difficulty *= 1.1
         print(f"[DEBUG] Difficulty {diff} -> {round(state.difficulty, 2)}")
-        state.current_map = Map("prisoners_quarters")
+        state.current_map = Map()
         state.map_loaded = False
 
     def draw_popup(self, surface: pygame.Surface, x_off: float, y_off: float, **kwargs) -> None:

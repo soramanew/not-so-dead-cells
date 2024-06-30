@@ -1,11 +1,12 @@
 import pygame
 import state
 from enemy.enemy import Enemy
-from util.func import normalise_for_drawing, normalise_rect
+from util.func import normalise_rect
 from util.type import Colour, Rect, Side, Vec2
 
 from ...modifier import DamageMod, Modifier, SpeedMod
 from ..weapon import Weapon
+from .sprite import Sprite
 
 
 class MeleeWeapon(Weapon):
@@ -34,13 +35,19 @@ class MeleeWeapon(Weapon):
 
     def __init__(
         self,
+        sprite: str,
+        sprite_frames: int,
         atk_width: int,
         atk_height: int,
         atk_windup: float,
         atk_length: float,
         kb: Vec2 = (0, 0),
+        sprite_speed: float = 1,
         **kwargs,
     ):
+        sprite = f"weapons/{sprite}"
+        self.sprite: str = f"{sprite}_Icon"
+        self.sprite_obj: Sprite = Sprite(sprite, sprite_frames, sprite_speed)
         self.atk_width: int = atk_width  # Width of total attack area
         self.atk_height: int = atk_height  # Height of total attack area
         self.atk_windup: float = atk_windup  # Wind up time
@@ -69,6 +76,7 @@ class MeleeWeapon(Weapon):
         # Start attack if attacking
         if self.attacking and self.atk_time <= 0:
             self.atk_time = self.atk_windup + self.atk_length
+            self.sprite_obj.time = 0
 
         # Do attack
         damage = int(self.damage * state.player.damage_mul)  # Apply player damage multiplier
@@ -78,6 +86,7 @@ class MeleeWeapon(Weapon):
                 damage_dealt += enemy.take_hit(damage, kb=self.kb, side=state.player.facing)
 
         self.atk_time -= dt
+        self.sprite_obj.tick(dt)
 
         return damage_dealt
 
@@ -85,12 +94,14 @@ class MeleeWeapon(Weapon):
         self,
         surface: pygame.Surface,
         colour: Colour,
-        x_off: float,
-        y_off: float,
-        scale: float,
+        x_off: float = 0,
+        y_off: float = 0,
+        scale: float = 1,
     ) -> None:
         if self.atk_time <= 0:
             return
+
+        from util.func import normalise_for_drawing
 
         x, y, width, height = normalise_for_drawing(*self.atk_area, x_off, y_off, scale)
         if width <= 0 or height <= 0:
@@ -106,3 +117,13 @@ class MeleeWeapon(Weapon):
                 return
             self._surface.set_alpha(180)
             surface.blit(self._surface, (x, y), (0, 0, width, height))
+
+        facing = state.player.facing
+        sprite = self.sprite_obj.get_current_sprite(facing)
+        surface.blit(
+            sprite,
+            (
+                state.player.arm_x + x_off - (sprite.width if facing is Side.LEFT else 0),
+                state.player.arm_y + y_off - sprite.height / 2,
+            ),
+        )

@@ -40,6 +40,8 @@ def main():
     state.current_map = Map()
     state.camera = Camera()
 
+    state.current_map.spawn_init_weapon()
+
     font_rubik = pygame.font.SysFont("Rubik", 20)
 
     h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window.size)
@@ -121,7 +123,7 @@ def main():
         state.camera.render(window)
 
         # FPS monitor
-        window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (0, 0, 0)), (15, 15))
+        window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255)), (15, 15))
 
         # Draw GUI
         window.blit(h_bar, (0, 0))  # Health bar base

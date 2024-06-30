@@ -45,7 +45,7 @@ class SwordRobot(Enemy, GroundIdleMovement, DiagonalUpOut):
         super().__init__(
             platform,
             size=(40, 74),
-            mass=2,
+            mass=4,
             speed=100,
             sense_size=(600, 300),
             xray=True,

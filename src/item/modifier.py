@@ -37,6 +37,7 @@ class SpeedMod(Modifier):
     def apply(self, weapon: MeleeWeapon) -> None:
         weapon.atk_windup /= self.speed
         weapon.atk_length /= self.speed
+        weapon.sprite_obj.speed *= self.speed
 
     def to_friendly_str(self) -> str:
         return f"Attack speed x{self.speed}"

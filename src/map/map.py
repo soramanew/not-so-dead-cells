@@ -17,6 +17,7 @@ from util.func import get_project_root
 from util.type import Side
 
 from .background import Background
+from .corpse import Corpse
 from .gate import Gate
 from .wall import Wall
 
@@ -30,6 +31,7 @@ type Row = list[Cell | None]
 type Grid = list[Row | None]
 
 ENEMIES = None
+WEAPONS = None
 
 
 class Map:
@@ -106,12 +108,18 @@ class Map:
         self.pickups: set[Pickup] = set()
         self.gates: set[Gate] = set()
 
-        # Lazy load enemy classes because cyclical imports
+        # Lazy load enemy and weapon classes because cyclical imports
         global ENEMIES
         if ENEMIES is None:
             import enemy
 
             ENEMIES = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
+
+        global WEAPONS
+        if WEAPONS is None:
+            import item.weapon
+
+            WEAPONS = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
 
     def tick(self, dt: float) -> None:
         tick_bounds = state.camera.active_bounds
@@ -174,6 +182,9 @@ class Map:
                 # Random amount of enemies + more with higher difficulty
                 for _ in range(floor(wall.enemies * random.uniform(0.8, 1.2) * (1 + state.difficulty / 10))):
                     self.spawn_enemy(box)
+                # Random chance to spawn a corpse which weapons drop from
+                if random.random() < 0.2:
+                    self.add(Corpse(box))
 
         for gate in self.map_data.gates:
             if not hasattr(gate, "optional") or not gate.optional or random.random() < 0.5:
@@ -187,6 +198,16 @@ class Map:
         enemy = random.choice(ENEMIES)(platform)
         self.enemies.add(enemy)
         self.add(enemy)
+
+    def spawn_weapon(self, x: float, y: float) -> None:
+        from item.pickup import WeaponPickup
+
+        Weapon = random.choice(WEAPONS)
+        mods = [random.choice(Weapon.AVAILABLE_MODS)() for _ in range(random.randint(1, 3))]
+        self.add_pickup(WeaponPickup(Weapon(mods), (x, y)))
+
+    def spawn_init_weapon(self) -> None:
+        self.spawn_weapon(*self.map_data.init_weapon_pos)
 
     def remove_pickup(self, pickup: Pickup) -> None:
         self.remove(pickup)

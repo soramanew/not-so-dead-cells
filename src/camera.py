@@ -114,12 +114,12 @@ class Camera(Box):
         # Map texture
         window.blit(state.current_map.texture, (0, 0), (self.x, self.y, self.width, self.height))
 
-        # Player
-        self._render_w_off(state.player, window)
-
         # Entities (enemies, etc)
         for drawable in state.current_map.get_rect(*self, lambda client: isinstance(client, Drawable)):
             self._render_w_off(drawable, window)
+
+        # Player
+        self._render_w_off(state.player, window)
 
         # Enemy health bars
         for enemy in state.current_map.get_rect(*self, lambda client: isinstance(client, Enemy)):

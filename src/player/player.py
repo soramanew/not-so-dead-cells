@@ -110,7 +110,7 @@ class Player(Hitbox):
 
     @property
     def arm_y(self) -> float:
-        return self.y + self.height * 0.4
+        return self.y + self.height * 0.7
 
     @property
     def front(self) -> float:
