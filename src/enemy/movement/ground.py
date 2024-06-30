@@ -59,6 +59,9 @@ class GroundMovement(EnemyABC):
         if not obstacles:
             return self.platform.left, self.platform.right
 
+        print("Platform:", self.platform)
+        print("\n".join(str(o) for o in obstacles))
+
         def check_collisions() -> bool:
             for obs in obstacles:
                 if self.detect_collision_box(obs):
@@ -70,7 +73,7 @@ class GroundMovement(EnemyABC):
                 self.platform.left,
                 self.platform.right - self.width,
             )
-            print("[DEBUG] Enemy spawn colliding: moving spawn")
+            # print("[DEBUG] Enemy spawn colliding: moving spawn")
 
         nearest_left = None
         nearest_right = None
@@ -110,7 +113,7 @@ class GroundMovement(EnemyABC):
         self.vy += (Map.GRAVITY - Map.get_air_resistance(self.vy, self.width)) * dt
 
         self.on_platform = False
-        collisions = self.move(self.vx * dt, self.vy * dt, state.current_map.walls)
+        collisions = self.move(self.vx * dt, self.vy * dt)
         for direction, entity in collisions:
             if direction == Direction.DOWN and isinstance(entity, Wall):
                 self.vy = 0
@@ -148,11 +151,7 @@ class GroundMovement(EnemyABC):
                 # If vx not same direction as facing, reduce it by speed
                 if self.vx * self.facing.value < 0:
                     self.vx -= copysign(min(speed, abs(self.vx)), self.vx)
-                self.move_axis(
-                    (diff if abs(diff) < speed else speed * self.facing.value),
-                    0,
-                    state.current_map.walls,
-                )
+                self.move((diff if abs(diff) < speed else speed * self.facing.value), 0)
 
         self.state = EnemyState.WALKING if self.moving else EnemyState.IDLE
 

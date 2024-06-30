@@ -31,7 +31,7 @@ def _get_sprites_from_sheet(sheet: Path) -> SpriteList:
 class State:
     @property
     def frame(self) -> int:
-        return int(self.time * SPRITES_PER_SECOND)
+        return int(self.time * SPRITES_PER_SECOND) % self.num_sprites
 
     @frame.setter
     def frame(self, value: int) -> None:

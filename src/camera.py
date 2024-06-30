@@ -1,12 +1,24 @@
 import pygame
 import state
 from box import Box
-from util.type import Drawable, Interactable, Vec2
+from enemy.enemy import Enemy
+from util.type import Drawable, Interactable, Rect, Vec2
 
 
 class Camera(Box):
     # The length of the animation of the camera moving to center on the target
-    TARGET_MOVE_ANIM_LENGTH = 0.5
+    TARGET_MOVE_ANIM_LENGTH: float = 0.5
+    # The multiplier to the screen size in which to tick entities
+    ACTIVE_AREA: float = 1.5
+
+    @property
+    def active_bounds(self) -> Rect:
+        return (
+            max(0, self.x - self.width * (Camera.ACTIVE_AREA - 1)),
+            max(0, self.y - self.height * (Camera.ACTIVE_AREA - 1)),
+            min(state.current_map.width, self.width * Camera.ACTIVE_AREA),
+            min(state.current_map.height, self.height * Camera.ACTIVE_AREA),
+        )
 
     def __init__(self, x: float = 0, y: float = 0) -> None:
         width, height = pygame.display.get_window_size()
@@ -94,24 +106,23 @@ class Camera(Box):
         """
 
         # Background
-        state.current_map.background.draw(window)
+        if state.current_map.static_bg:
+            window.fill(state.current_map.background)
+        else:
+            state.current_map.background.draw(window)
+
+        # Map texture
+        window.blit(state.current_map.texture, (0, 0), (self.x, self.y, self.width, self.height))
 
         # Player
         self._render_w_off(state.player, window)
 
         # Entities (enemies, etc)
-        drawables = state.current_map.get_rect(
-            self.x,
-            self.y,
-            self.width,
-            self.height,
-            lambda client: isinstance(client, Drawable),
-        )
-        for drawable in drawables:
+        for drawable in state.current_map.get_rect(*self, lambda client: isinstance(client, Drawable)):
             self._render_w_off(drawable, window)
 
         # Enemy health bars
-        for enemy in state.current_map.enemies:
+        for enemy in state.current_map.get_rect(*self, lambda client: isinstance(client, Enemy)):
             enemy.draw_health_bar(window, x_off=-self.x, y_off=-self.y)
 
         # Interactable popups

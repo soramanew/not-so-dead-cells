@@ -83,7 +83,7 @@ class Pickup(Hitbox, Interactable):
     def tick(self, dt: float) -> None:
         self.vx -= Map.get_air_resistance(self.vx, self.height) * dt
         self.vy += (Map.GRAVITY - Map.get_air_resistance(self.vy, self.width)) * dt
-        collisions = self.move(self.vx * dt, self.vy * dt, state.current_map.walls)
+        collisions = self.move(self.vx * dt, self.vy * dt)
         for direction, entity in collisions:
             if direction is Direction.DOWN and isinstance(entity, Wall):
                 self.vx = 0

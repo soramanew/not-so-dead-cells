@@ -37,19 +37,30 @@ def main():
     clock = pygame.time.Clock()
 
     state.player = Player()
-    state.current_map = Map("prisoners_quarters")
-    state.current_map.spawn_enemies()
-    camera = Camera()
+    state.current_map = Map()
+    state.camera = Camera()
 
     font_rubik = pygame.font.SysFont("Rubik", 20)
 
     h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window.size)
 
     pause = False
+    skip_frame = False
 
     while True:
         # FPS = refresh rate or default 60
         dt = clock.tick(pygame.display.get_current_refresh_rate() or 60) / 1000  # To get in seconds
+
+        # Do not count loading time
+        if not state.map_loaded:
+            state.current_map.load()
+            state.map_loaded = True
+            skip_frame = True
+            continue
+
+        if skip_frame:
+            skip_frame = False
+            continue
 
         move_types = []
 
@@ -64,8 +75,9 @@ def main():
                 return
             elif event.type == pygame.VIDEORESIZE:
                 new_size = event.dict["size"]
-                camera.resize(*new_size)
-                state.current_map.background.resize(*new_size)
+                state.camera.resize(*new_size)
+                if not state.current_map.static_bg:
+                    state.current_map.background.resize(*new_size)
                 h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*new_size)
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
@@ -101,14 +113,12 @@ def main():
         key_handler.tick(dt)
         state.player.tick(dt, move_types)
         state.current_map.tick(dt)
-        cam_movement = camera.tick_move(dt)
-        state.current_map.background.tick(*cam_movement)
-
-        # Clear window
-        window.fill((255, 255, 255))
+        cam_movement = state.camera.tick_move(dt)
+        if not state.current_map.static_bg:
+            state.current_map.background.tick(*cam_movement)
 
         # Draw stuff
-        camera.render(window)
+        state.camera.render(window)
 
         # FPS monitor
         window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (0, 0, 0)), (15, 15))

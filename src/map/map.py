@@ -3,29 +3,33 @@ from __future__ import annotations
 import inspect
 import json
 import random
+import time
 from collections.abc import Callable
 from math import ceil, copysign, floor
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
+import pygame
 import state
 from box import Box
 from util.func import get_project_root
 from util.type import Side
 
 from .background import Background
+from .gate import Gate
 from .wall import Wall
 
 if TYPE_CHECKING:
     from enemy.enemy import Enemy
     from item import Pickup
 
-    from .gate import Gate
 
 type Cell = set[Box]
 type Row = list[Cell | None]
 type Grid = list[Row | None]
+
+ENEMIES = None
 
 
 class Map:
@@ -65,17 +69,26 @@ class Map:
         storage = Map.storage()
 
         if load:
-            # self.save_path = random.choice(list(zone_dir.iterdir()))
-            self.save_path = storage / "9.json"
-            map_data = json.load(open(self.save_path), object_hook=lambda d: SimpleNamespace(**d))
-            self.width = int(map_data.width)
-            self.height = int(map_data.height)
-            self.cell_size = int(map_data.cell_size)
-            self.init_dir = Side(map_data.init_dir)
-            self.player_spawn = tuple(map_data.spawn)
+            chosen_map = random.choice([f for f in storage.iterdir() if f.is_file()]).stem
+            # chosen_map = storage / "1.json"
+            texture = pygame.image.load(storage / f"{chosen_map}.png")
+            self.map_data = json.load(open(storage / f"{chosen_map}.json"), object_hook=lambda d: SimpleNamespace(**d))
+            self.static_bg = isinstance(self.map_data.background, str)
+            if self.static_bg:
+                self.texture = pygame.Surface(texture.size).convert()
+                self.texture.fill(self.map_data.background)
+                self.texture.blit(texture, (0, 0))
+                self.background: str = self.map_data.background
+            else:
+                self.texture = texture.convert_alpha()
+                self.background: Background = Background()
+
+            self.width: int = self.texture.width
+            self.height: int = self.texture.height
+            self.cell_size: int = min(self.width, self.height) // 10
 
             # Reset player to default values, move to spawn and change facing to init dir
-            state.player.to_default_values(*self.player_spawn, self.init_dir)
+            state.player.to_default_values(*self.map_data.spawn, Side(self.map_data.init_dir))
         else:
             self.save_path = storage / (str(int(max(storage.iterdir()).stem) + 1) + ".json")
             self.width = width
@@ -84,57 +97,27 @@ class Map:
             self.init_dir = Side.RIGHT
             self.player_spawn = (0, 0)
 
-        self.rows = self.height // self.cell_size
-        self.cols = self.width // self.cell_size
+        self.rows: int = ceil(self.height / self.cell_size) + 1
+        self.cols: int = ceil(self.width / self.cell_size) + 1
         self.grid: Grid = [None] * self.rows
-        self.walls: set[Wall] = self._load_walls(map_data.walls) if load else set()
+
+        self.walls: set[Wall] = set()
         self.enemies: set[Enemy] = set()
         self.pickups: set[Pickup] = set()
         self.gates: set[Gate] = set()
-        self.background: Background = Background()
 
-    def spawn_enemies(self):  # FIXME temp
-        import enemy
-        import item.weapon
-        from item.pickup import (
-            Apple,
-            DamagePotion,
-            HealthPotion,
-            LemonPie,
-            Sausages,
-            Toe,
-            WeaponPickup,
-        )
+        # Lazy load enemy classes because cyclical imports
+        global ENEMIES
+        if ENEMIES is None:
+            import enemy
 
-        from .gate import Gate
-
-        enemies = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
-        weapons = [cls for _, cls in inspect.getmembers(item.weapon) if inspect.isclass(cls)]
-        food_and_potions = [Apple, Toe, LemonPie, Sausages, DamagePotion, HealthPotion]
-        for wall in self.walls:
-            for i in range(1):
-                enemy = random.choice(enemies)(wall)
-                self.enemies.add(enemy)
-                self.add(enemy)
-
-            # Weapon = random.choice(weapons)
-            # mods = [random.choice(Weapon.AVAILABLE_MODS)() for _ in range(random.randint(1, 3))]
-            # pickup = WeaponPickup(Weapon(mods), wall)
-            # self.pickups.add(pickup)
-            # self.add(pickup)
-
-            for i in range(3):
-                food_or_potion = random.choice(food_and_potions)(wall)
-                self.pickups.add(food_or_potion)
-                self.add(food_or_potion)
-
-            gate = Gate(random.uniform(wall.left, wall.right - 100), wall.top - 150, 100, 150)
-            self.gates.add(gate)
-            self.add(gate)
+            ENEMIES = [cls for _, cls in inspect.getmembers(enemy) if inspect.isclass(cls)]
 
     def tick(self, dt: float) -> None:
+        tick_bounds = state.camera.active_bounds
         to_remove = set()
-        for enemy in self.enemies:
+
+        for enemy in self.get_rect(*tick_bounds, lambda e: e in self.enemies):
             self._remove(enemy, False)
             enemy.tick(dt)
             if enemy.death_finished:
@@ -148,7 +131,7 @@ class Map:
             self.objects.remove(enemy)
             self.enemies.remove(enemy)
 
-        for pickup in self.pickups:
+        for pickup in self.get_rect(*tick_bounds, lambda e: e in self.pickups):
             self._remove(pickup, False)
             pickup.tick(dt)
             self._add(pickup, False)
@@ -180,33 +163,30 @@ class Map:
             ceil((y + height) / self.cell_size),
         )
 
-    def _load_walls(self, walls: list[SimpleNamespace]) -> set[Wall]:
-        """Loads the given walls into this map's spatial grid.
+    def load(self) -> None:
+        start = time.process_time()
 
-        This method loads each SimpleNamespace into a Wall, inserts it into the grid
-        and returns the set of Walls.
+        for wall in self.map_data.walls:
+            box = Wall(*wall.bounds)
+            self.walls.add(box)
+            self.add(box)
+            if hasattr(wall, "enemies"):
+                # Random amount of enemies + more with higher difficulty
+                for _ in range(floor(wall.enemies * random.uniform(0.8, 1.2) * (1 + state.difficulty / 10))):
+                    self.spawn_enemy(box)
 
-        Parameters
-        ----------
-        walls : list of SimpleNamespace
-            A list of walls to insert into the map.
+        for gate in self.map_data.gates:
+            if not hasattr(gate, "optional") or not gate.optional or random.random() < 0.5:
+                gate = Gate(*gate.bounds)
+                self.gates.add(gate)
+                self.add(gate)
 
-        Returns
-        -------
-        set of Wall
-            The set of walls as Walls.
-        """
+        print(f"[DEBUG] Done loading map: took {(time.process_time() - start)*1000}ms")
 
-        wall_set = set()
-        for wall in walls:
-            box = Wall(float(wall.x), float(wall.y), int(wall.w), int(wall.h))
-            wall_set.add(box)
-
-        # Remove duplicates
-        for wall in wall_set:
-            self.add(wall)
-
-        return wall_set
+    def spawn_enemy(self, platform: Wall) -> None:
+        enemy = random.choice(ENEMIES)(platform)
+        self.enemies.add(enemy)
+        self.add(enemy)
 
     def remove_pickup(self, pickup: Pickup) -> None:
         self.remove(pickup)
@@ -272,6 +252,9 @@ class Map:
         col : int
             The column to insert the client into.
         """
+
+        if row < 0 or row >= self.rows - 1 or col < 0 or col >= self.cols - 1:
+            return
 
         if self.grid[row] is None:
             self.grid[row] = [None] * self.cols

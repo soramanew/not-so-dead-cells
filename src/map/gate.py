@@ -28,7 +28,7 @@ class Gate(Box, Interactable):
         state.difficulty *= 1.1
         print(f"[DEBUG] Difficulty {diff} -> {round(state.difficulty, 2)}")
         state.current_map = Map("prisoners_quarters")
-        state.current_map.spawn_enemies()
+        state.map_loaded = False
 
     def draw_popup(self, surface: pygame.Surface, x_off: float, y_off: float, **kwargs) -> None:
         surface.blit(self.popup, (self.center_x + x_off - self.popup.width / 2, self.y + self.height * 0.4 + y_off))
@@ -40,4 +40,5 @@ class Gate(Box, Interactable):
         y_off: float = 0,
         scale: float = 1,
     ) -> None:
-        super().draw(surface, (94, 66, 195), x_off, y_off, scale)
+        # super().draw(surface, (94, 66, 195), x_off, y_off, scale)
+        pass  # Ignore, part of texture

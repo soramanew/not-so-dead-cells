@@ -152,7 +152,7 @@ class Player(Hitbox):
 
     @property
     def is_moving(self) -> bool:
-        return abs(self.vx) > 30
+        return abs(self.controlled_vx) > 30
 
     @property
     def rolling(self) -> bool:
@@ -380,7 +380,7 @@ class Player(Hitbox):
             A list of collisions with the player which happened due to this movement.
         """
 
-        return self.move(self.vx * dt, self.vy * dt, state.current_map.walls)
+        return self.move(self.vx * dt, self.vy * dt)
 
     def handle_collisions(self, collisions: list[Collision]) -> None:
         """Handles player actions on collisions.

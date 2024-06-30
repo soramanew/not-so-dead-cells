@@ -1,0 +1,22 @@
+{
+  "texture": "TODO put file path",
+  "width": 2000,
+  "height": 2000,
+  "cell_size": 50,
+  "spawn": [0, 0],
+  "init_dir": 1,
+  "walls": [
+    {
+      "x": 60,
+      "y": 500,
+      "w": 780,
+      "h": 80
+    },
+    {
+      "x": 300,
+      "y": 400,
+      "w": 340,
+      "h": 130
+    }
+  ]
+}

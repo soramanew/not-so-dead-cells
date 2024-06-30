@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import state
 from util.type import Collision, Direction
 
 from .box import Box
@@ -30,6 +31,17 @@ class Hitbox(Box):
             The list of collisions.
         """
 
+        if boxes is None:
+            from map import Wall
+
+            boxes = state.current_map.get_rect(
+                min(self.x, self.x + dx),
+                min(self.y, self.y + dy),
+                self.width + abs(dx),
+                self.height + abs(dy),
+                lambda e: isinstance(e, Wall),
+            )
+
         collisions = []
 
         if dx != 0:
@@ -39,7 +51,7 @@ class Hitbox(Box):
 
         return collisions
 
-    def move_axis(self, dx: float, dy: float, boxes: set[Hitbox] | None = None) -> list[Collision]:
+    def move_axis(self, dx: float, dy: float, boxes: set[Hitbox]) -> list[Collision]:
         """Moves this Hitbox by a given amount while checking for collisions with other Hitboxes.
 
         Only use this method for single axis movement; Use move() for movement.
@@ -68,21 +80,20 @@ class Hitbox(Box):
 
         collisions = []
 
-        if boxes is not None:
-            for box in boxes:
-                if self.detect_collision_box(box):
-                    if dx > 0:
-                        collisions.append(Collision(Direction.RIGHT, box))
-                        self.right = box.left
-                    elif dx < 0:
-                        collisions.append(Collision(Direction.LEFT, box))
-                        self.left = box.right
-                    if dy > 0:
-                        collisions.append(Collision(Direction.DOWN, box))
-                        self.bottom = box.top
-                    elif dy < 0:
-                        collisions.append(Collision(Direction.UP, box))
-                        self.top = box.bottom
+        for box in boxes:
+            if self.detect_collision_box(box):
+                if dx > 0:
+                    collisions.append(Collision(Direction.RIGHT, box))
+                    self.right = box.left
+                elif dx < 0:
+                    collisions.append(Collision(Direction.LEFT, box))
+                    self.left = box.right
+                if dy > 0:
+                    collisions.append(Collision(Direction.DOWN, box))
+                    self.bottom = box.top
+                elif dy < 0:
+                    collisions.append(Collision(Direction.UP, box))
+                    self.top = box.bottom
 
         return collisions
 
