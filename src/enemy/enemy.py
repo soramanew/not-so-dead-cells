@@ -112,6 +112,7 @@ class Enemy(Hitbox, Sense, Sprite):
         # Can only drop once
         if not self.loot_dropped:
             state.current_map.add_pickups(self.roll_loot())
+            state.score += int(state.difficulty * 10)  # 10 base score * difficulty
             self.loot_dropped = True
 
     def tick(self, dt: float) -> None:

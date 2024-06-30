@@ -128,8 +128,12 @@ class WeaponPickup(Pickup):
     def __init__(self, item: Item, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         self.item: Item = item
         super().__init__(item.sprite, platform_or_pos, vx, vy)
+        item.sprite_img = self.sprite
 
     def _create_popup(self) -> pygame.Surface:
+        if self.item.popup:
+            return self.item.popup
+
         title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
         text_font = pygame.font.SysFont("Rubik", 16)
 
@@ -159,6 +163,8 @@ class WeaponPickup(Pickup):
         surface.blit(desc, (x_off, y_off))
         surface.blit(mods, (x_off, y_off + desc.height))
         surface.blit(prompt, ((surface.width - prompt.width) / 2, surface.height - prompt.height - 12))
+
+        self.item.popup = surface
 
         return surface
 

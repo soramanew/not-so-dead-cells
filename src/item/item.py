@@ -21,5 +21,8 @@ class Item(ABC):
         for modifier in modifiers:
             modifier.apply(self)
 
+        self.popup = None
+        self.sprite_img = None
+
     def to_friendly_str(self) -> str:
         return f"{self.name} - {self.dps} DPS\n{self.desc}\n{self.modifiers_str}"

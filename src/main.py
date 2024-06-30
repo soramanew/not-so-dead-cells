@@ -109,21 +109,30 @@ def main():
             elif event.type == pygame.MOUSEBUTTONUP:
                 move_types.append(PlayerControl.ATTACK_STOP)
 
-        if pause:
-            continue
-
-        key_handler.tick(dt)
-        state.player.tick(dt, move_types)
-        state.current_map.tick(dt)
-        cam_movement = state.camera.tick_move(dt)
-        if not state.current_map.static_bg:
-            state.current_map.background.tick(*cam_movement)
+        if not pause:
+            key_handler.tick(dt)
+            state.player.tick(dt, move_types)
+            state.current_map.tick(dt)
+            cam_movement = state.camera.tick_move(dt)
+            if not state.current_map.static_bg:
+                state.current_map.background.tick(*cam_movement)
 
         # Draw stuff
         state.camera.render(window)
 
         # FPS monitor
-        window.blit(font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255)), (15, 15))
+        fps = font_rubik.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255))
+        window.blit(fps, (15, 15))
+
+        # Score
+        window.blit(font_rubik.render(f"Score: {state.score}", True, (255, 255, 255)), (15, 15 + fps.height))
+
+        multipliers = font_rubik.render(
+            f"Damage x{round(state.player.damage_mul, 2)}, Health x{round(state.player.health_mul, 2)}",
+            True,
+            (255, 255, 255),
+        )
+        window.blit(multipliers, (window.width - 15 - multipliers.width, window.height - 15 - multipliers.height))
 
         # Draw GUI
         window.blit(h_bar, (0, 0))  # Health bar base
@@ -168,6 +177,73 @@ def main():
                 h_bar_inner_rect[1] + h_bar_inner_rect[3] / 2 - player_health.height / 2,
             ),
         )
+
+        if pause:
+            surface = pygame.Surface(window.size)
+            surface.fill((0, 0, 0))
+            surface.set_alpha(100)
+            window.blit(surface, (0, 0))
+            surface = pygame.transform.gaussian_blur(window, 10)
+
+            # Centered pause text
+            pause_text = pygame.font.SysFont("Gabarito", window.width // 15, bold=True).render(
+                "PAUSED", True, (255, 255, 255)
+            )
+            y_off = (window.height - pause_text.height) / 2
+            surface.blit(pause_text, ((window.width - pause_text.width) / 2, y_off))
+
+            # Score and difficulty
+            font = pygame.font.SysFont("Rubik", window.width // 30)
+            score = font.render(f"Current score: {state.score}  ", True, (255, 255, 255))
+            surface.blit(score, (window.width / 2 - score.width - 10, y_off * 0.8 - score.height / 2))
+            separator = font.render("|", True, (255, 255, 255))
+            surface.blit(separator, (window.width / 2 - separator.width, y_off * 0.8 - separator.height / 2))
+            difficulty = font.render(f" Current difficulty: {state.difficulty}x", True, (255, 255, 255))
+            surface.blit(difficulty, (window.width / 2 + 10, y_off * 0.8 - difficulty.height / 2))
+
+            # Multipliers
+            font = pygame.font.SysFont("Rubik", window.width // 40)
+            damage = font.render(f"Damage multiplier: {state.player.damage_mul}x  ", True, (255, 255, 255))
+            surface.blit(
+                damage, (window.width / 2 - damage.width - 10, (y_off + pause_text.height) * 1.2 - damage.height / 2)
+            )
+            separator = font.render("|", True, (255, 255, 255))
+            surface.blit(
+                separator,
+                (window.width / 2 - separator.width, (y_off + pause_text.height) * 1.2 - separator.height / 2),
+            )
+            health = font.render(f" Health multiplier: {state.player.health_mul}x", True, (255, 255, 255))
+            surface.blit(health, (window.width / 2 + 10, (y_off + pause_text.height) * 1.2 - health.height / 2))
+
+            prompt = pygame.font.SysFont("Readex Pro", window.width // 45).render(
+                "[Esc] to resume", True, (255, 255, 255)
+            )
+            surface.blit(
+                prompt, ((window.width - prompt.width) / 2, (y_off + pause_text.height) * 1.35 - prompt.height / 2)
+            )
+
+            if state.player.weapon:
+                weapon = state.player.weapon
+                font = pygame.font.SysFont("Rubik", window.width // 60)
+                name = pygame.font.SysFont("Gabarito", window.width // 50, bold=True).render(
+                    weapon.name, True, (255, 255, 255)
+                )
+                dps = font.render(f"{weapon.dps} DPS", True, (180, 180, 180))
+                mods = font.render(weapon.modifiers_str, True, (230, 230, 230))
+
+                sprite = pygame.transform.scale_by(
+                    weapon.sprite_img, ((name.height + dps.height) * 1.1) / weapon.sprite_img.height
+                )
+
+                x_off = 15
+                y_off = 15
+                surface.blit(sprite, (x_off, y_off))
+                surface.blit(name, (x_off + sprite.width * 1.1, y_off))
+                y_off += name.height
+                surface.blit(dps, (x_off + sprite.width * 1.1, y_off))
+                surface.blit(mods, (x_off, y_off + dps.height))
+
+            window.blit(surface, (0, 0))
 
         # Update window
         pygame.display.update()
