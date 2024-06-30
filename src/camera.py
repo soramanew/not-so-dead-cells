@@ -8,16 +8,16 @@ from util.type import Drawable, Interactable, Rect, Vec2
 class Camera(Box):
     # The length of the animation of the camera moving to center on the target
     TARGET_MOVE_ANIM_LENGTH: float = 0.5
-    # The multiplier to the screen size in which to tick entities
-    ACTIVE_AREA: float = 1.5
+    # The amount outside the screen in which to tick entities
+    ACTIVE_AREA: int = 500
 
     @property
     def active_bounds(self) -> Rect:
         return (
-            max(0, self.x - self.width * (Camera.ACTIVE_AREA - 1)),
-            max(0, self.y - self.height * (Camera.ACTIVE_AREA - 1)),
-            min(state.current_map.width, self.width * Camera.ACTIVE_AREA),
-            min(state.current_map.height, self.height * Camera.ACTIVE_AREA),
+            max(0, self.x - Camera.ACTIVE_AREA),
+            max(0, self.y - Camera.ACTIVE_AREA),
+            min(state.current_map.width, self.width + Camera.ACTIVE_AREA * 2),
+            min(state.current_map.height, self.height + Camera.ACTIVE_AREA * 2),
         )
 
     def __init__(self, x: float = 0, y: float = 0) -> None:

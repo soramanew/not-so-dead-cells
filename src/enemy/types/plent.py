@@ -63,7 +63,7 @@ class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
             health=50,
             damage=20,
             sprite="plent",
-            loot_chance=0.1,
+            loot_chance=0.2,
         )
 
     def _get_real_atk_area(self) -> Rect:

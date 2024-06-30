@@ -46,7 +46,7 @@ class Werewolf(Enemy, GroundIdleMovement, DiagonalUpOut):
             health=40,
             damage=15,
             sprite=f"werewolf/{colour}",
-            loot_chance=0.18,
+            loot_chance=0.3,
         )
 
     def _get_real_atk_area(self) -> Rect:

@@ -64,7 +64,7 @@ class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
             health=80,
             damage=10,
             sprite="skelebone",
-            loot_chance=0.12,
+            loot_chance=0.24,
         )
 
     def _get_real_atk_area(self) -> Rect:

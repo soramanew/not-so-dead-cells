@@ -101,22 +101,22 @@ class MeleeWeapon(Weapon):
         if self.atk_time <= 0:
             return
 
-        from util.func import normalise_for_drawing
+        # from util.func import normalise_for_drawing
 
-        x, y, width, height = normalise_for_drawing(*self.atk_area, x_off, y_off, scale)
-        if width <= 0 or height <= 0:
-            return
+        # x, y, width, height = normalise_for_drawing(*self.atk_area, x_off, y_off, scale)
+        # if width <= 0 or height <= 0:
+        #     return
 
-        self._surface.set_alpha(120)
-        self._surface.fill(colour)
-        surface.blit(self._surface, (x, y))
+        # self._surface.set_alpha(120)
+        # self._surface.fill(colour)
+        # surface.blit(self._surface, (x, y))
 
-        if self.atk_time <= self.atk_length:
-            x, y, width, height = normalise_for_drawing(*self, x_off, y_off, scale)
-            if width <= 0 or height <= 0:
-                return
-            self._surface.set_alpha(180)
-            surface.blit(self._surface, (x, y), (0, 0, width, height))
+        # if self.atk_time <= self.atk_length:
+        #     x, y, width, height = normalise_for_drawing(*self, x_off, y_off, scale)
+        #     if width <= 0 or height <= 0:
+        #         return
+        #     self._surface.set_alpha(180)
+        #     surface.blit(self._surface, (x, y), (0, 0, width, height))
 
         facing = state.player.facing
         sprite = self.sprite_obj.get_current_sprite(facing)

@@ -61,7 +61,7 @@ class SwordRobot(Enemy, GroundIdleMovement, DiagonalUpOut):
             health=100,
             damage=2,
             sprite="sword_robot",
-            loot_chance=0.18,
+            loot_chance=0.34,
         )
 
     def _get_real_atk_area(self) -> Rect:
