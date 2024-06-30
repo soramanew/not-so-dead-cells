@@ -32,7 +32,7 @@ class Player(Hitbox):
     # The amount of vx the controls add per second (px/s/s)
     CONTROL_ACCEL: int = 1000
     # The decay/s of the speed added by controlling the player
-    CONTROL_SPEED_DECAY: int = 7
+    CONTROL_SPEED_DECAY: int = 5
     # The amount sprinting affects the control decay (i.e. speed /= 1 + (control decay / sprint mul) * dt)
     SPRINT_MULTIPLIER: float = 1.2
 

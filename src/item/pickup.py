@@ -397,7 +397,7 @@ class HealthPotion(Potion):
         super().__init__(
             "Health",
             "Instantly transforms you from a soft marshmallow to a slightly firmer marshmallow.",
-            20,
+            10,
             platform_or_pos,
             vx,
             vy,

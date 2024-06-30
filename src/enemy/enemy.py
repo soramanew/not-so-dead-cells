@@ -104,7 +104,7 @@ class Enemy(Hitbox, Sense, Sprite):
 
     def roll_loot(self) -> list[Pickup]:
         loot = []
-        while random.random() < self.loot_chance / (len(loot) or 1):  # Chance lowers every time loot is dropped
+        while random.random() < self.loot_chance / (len(loot) * 2 or 1):  # Chance lowers every time loot is dropped
             loot.append(random.choice(self.LOOT_POOL)((self.center_x, self.center_y)))
         return loot
 

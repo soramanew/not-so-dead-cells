@@ -25,7 +25,7 @@ class Gate(Box, Interactable):
         from map import Map  # Damn you circular imports
 
         diff = round(state.difficulty, 2)
-        state.difficulty *= 1.1
+        state.difficulty *= 1.3
         print(f"[DEBUG] Difficulty {diff} -> {round(state.difficulty, 2)}")
         state.current_map = Map()
         state.map_loaded = False
