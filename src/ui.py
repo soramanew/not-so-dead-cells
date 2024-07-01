@@ -1,4 +1,4 @@
-import subprocess
+import sys
 
 import pygame
 import state
@@ -460,7 +460,16 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                 if state.player.health <= 0:
                     full_exit = DeathScreen(window, clock)
                     if state.hardcore:
-                        subprocess.run(["shutdown", "-s"])  # NOTE Shuts down the PC
+                        # NOTE Shuts down the PC
+                        if sys.platform == "win32":
+                            import ctypes
+
+                            user32 = ctypes.WinDLL("user32")
+                            user32.ExitWindowsEx(0x00000008, 0x00000000)
+                        else:
+                            import subprocess
+
+                            subprocess.run(["shutdown", "now"])
                     return full_exit
                 state.current_map.tick(dt)
                 cam_movement = state.camera.tick_move(dt)
@@ -689,7 +698,7 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
 
 
 def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
-    orig_menu_bg = pygame.image.load(get_project_root() / "assets/main_menu.jpg").convert()
+    orig_menu_bg = pygame.image.load(get_project_root() / "assets/main_menu.jpg").convert()  # TODO better bg + icon
     menu_bg = None
 
     title = ShadowTextButton(get_font("BIT", window.width // 10), "Not so Dead Cells", (188, 181, 166))

@@ -7,7 +7,7 @@ from .type import Colour, Line, Rect, Vec2
 
 def get_project_root():
     """Returns path of the root project directory."""
-    return Path(__file__).parent.parent.parent
+    return Path(__file__).parent.parent  # NOTE 2 parents when packaging
 
 
 def get_font(family: str, size: int, weight: str = "Regular") -> pygame.font.Font:
