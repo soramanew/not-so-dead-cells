@@ -1,5 +1,3 @@
-import time
-
 import pygame
 import state
 from camera import Camera
@@ -163,8 +161,8 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
 
     pause = False
     skip_frame = False
-    do_blur = True
     back_confirm = False
+    menu_needs_update = False
 
     while True:
         # FPS = refresh rate or default 60
@@ -200,6 +198,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                     state.current_map.background.resize(*new_size)
                 h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*new_size)
                 update_fonts()
+                menu_needs_update = True
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
                 key_handler.down(event.key)
@@ -218,10 +217,12 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                         back_confirm = False
                     else:
                         pause = not pause
+                    menu_needs_update = True
                 elif event.key == pygame.K_b:
                     if back_confirm:
                         return
                     back_confirm = True
+                    menu_needs_update = True
             elif event.type == pygame.KEYUP:
                 held_time = key_handler.up(event.key)
                 if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
@@ -235,95 +236,89 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             elif event.type == pygame.MOUSEBUTTONUP:
                 move_types.append(PlayerControl.ATTACK_STOP)
 
-        if not (pause or back_confirm):
-            key_handler.tick(dt)
-            state.player.tick(dt, move_types)
-            if state.player.health <= 0:
-                return
-            state.current_map.tick(dt)
-            cam_movement = state.camera.tick_move(dt)
-            if not state.current_map.static_bg:
-                state.current_map.background.tick(*cam_movement)
+        if menu_needs_update or not (pause or back_confirm):
+            if not (pause or back_confirm):
+                key_handler.tick(dt)
+                state.player.tick(dt, move_types)
+                if state.player.health <= 0:
+                    return
+                state.current_map.tick(dt)
+                cam_movement = state.camera.tick_move(dt)
+                if not state.current_map.static_bg:
+                    state.current_map.background.tick(*cam_movement)
 
-        # Draw stuff
-        state.camera.render(window)
+            # Draw stuff
+            state.camera.render(window)
 
-        # FPS monitor
-        fps = overlay_font.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255))
-        window.blit(fps, (15, 15))
+            # FPS monitor
+            fps = overlay_font.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255))
+            window.blit(fps, (15, 15))
 
-        # Score
-        window.blit(overlay_font.render(f"Score: {state.score}", True, (255, 255, 255)), (15, 15 + fps.height))
+            # Score
+            window.blit(overlay_font.render(f"Score: {state.score}", True, (255, 255, 255)), (15, 15 + fps.height))
 
-        multipliers = overlay_font.render(
-            f"Damage x{round(state.player.damage_mul, 2)}, Health x{round(state.player.health_mul, 2)}",
-            True,
-            (255, 255, 255),
-        )
-        window.blit(multipliers, (window.width - 15 - multipliers.width, window.height - 15 - multipliers.height))
+            multipliers = overlay_font.render(
+                f"Damage x{round(state.player.damage_mul, 2)}, Health x{round(state.player.health_mul, 2)}",
+                True,
+                (255, 255, 255),
+            )
+            window.blit(multipliers, (window.width - 15 - multipliers.width, window.height - 15 - multipliers.height))
 
-        # Draw GUI
-        window.blit(h_bar, (0, 0))  # Health bar base
-        # Health bar health gain opportunity
-        border = 0 if state.player.health < state.player.max_health else -1
-        if state.player.damage_health >= 1:
+            # Draw GUI
+            window.blit(h_bar, (0, 0))  # Health bar base
+            # Health bar health gain opportunity
+            border = 0 if state.player.health < state.player.max_health else -1
+            if state.player.damage_health >= 1:
+                pygame.draw.rect(
+                    window,
+                    (213, 162, 59),
+                    (
+                        h_bar_inner_rect[0],
+                        h_bar_inner_rect[1],
+                        h_bar_inner_rect[2]
+                        * ((state.player.health + state.player.damage_health) / state.player.max_health),
+                        h_bar_inner_rect[3],
+                    ),
+                    border_radius=10,
+                    border_top_right_radius=border,
+                    border_bottom_right_radius=border,
+                )
+            # Actual health
+            border = 0 if state.player.health + state.player.damage_health < state.player.max_health else -1
             pygame.draw.rect(
                 window,
-                (213, 162, 59),
+                (82, 191, 118),
                 (
                     h_bar_inner_rect[0],
                     h_bar_inner_rect[1],
-                    h_bar_inner_rect[2]
-                    * ((state.player.health + state.player.damage_health) / state.player.max_health),
+                    h_bar_inner_rect[2] * (state.player.health / state.player.max_health),
                     h_bar_inner_rect[3],
                 ),
                 border_radius=10,
                 border_top_right_radius=border,
                 border_bottom_right_radius=border,
             )
-        # Actual health
-        border = 0 if state.player.health + state.player.damage_health < state.player.max_health else -1
-        pygame.draw.rect(
-            window,
-            (82, 191, 118),
-            (
-                h_bar_inner_rect[0],
-                h_bar_inner_rect[1],
-                h_bar_inner_rect[2] * (state.player.health / state.player.max_health),
-                h_bar_inner_rect[3],
-            ),
-            border_radius=10,
-            border_top_right_radius=border,
-            border_bottom_right_radius=border,
-        )
-        # Health text
-        health_text_uncropped = h_bar_font.render(
-            f"{state.player.health} / {state.player.max_health}", True, (255, 255, 255)
-        )
-        health_text_rect = health_text_uncropped.get_bounding_rect()
-        player_health = pygame.Surface(health_text_rect.size, pygame.SRCALPHA)
-        player_health.blit(health_text_uncropped, (0, 0), health_text_rect)
-        window.blit(
-            player_health,
-            (
-                h_bar_inner_rect[0] + (h_bar_inner_rect[2] - player_health.width) / 2,
-                h_bar_inner_rect[1] + (h_bar_inner_rect[3] - player_health.height) / 2,
-            ),
-        )
+            # Health text
+            health_text_uncropped = h_bar_font.render(
+                f"{state.player.health} / {state.player.max_health}", True, (255, 255, 255)
+            )
+            health_text_rect = health_text_uncropped.get_bounding_rect()
+            player_health = pygame.Surface(health_text_rect.size, pygame.SRCALPHA)
+            player_health.blit(health_text_uncropped, (0, 0), health_text_rect)
+            window.blit(
+                player_health,
+                (
+                    h_bar_inner_rect[0] + (h_bar_inner_rect[2] - player_health.width) / 2,
+                    h_bar_inner_rect[1] + (h_bar_inner_rect[3] - player_health.height) / 2,
+                ),
+            )
 
-        if back_confirm or pause:
+        if menu_needs_update and (back_confirm or pause):
             surface = pygame.Surface(window.size)
             surface.fill((0, 0, 0))
             surface.set_alpha(100)
             window.blit(surface, (0, 0))
-            # Don't do blur if blur too slow
-            if do_blur:
-                start = time.process_time()
-                surface = pygame.transform.gaussian_blur(window, 10)
-                if time.process_time() - start > 0.3:
-                    do_blur = False
-            else:
-                surface = window
+            surface = pygame.transform.gaussian_blur(window, 10)
 
             if back_confirm:
                 # Question
@@ -407,6 +402,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                     surface.blit(mods, (x_off, y_off + dps.height))
 
             window.blit(surface, (0, 0))
+            menu_needs_update = False
 
         # Update window
         pygame.display.update()
