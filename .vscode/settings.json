@@ -18,6 +18,7 @@
         "MOUSEBUTTONDOWN",
         "MOUSEBUTTONUP",
         "MOUSEMOTION",
+        "MULT",
         "pixelify",
         "plent",
         "pygame",

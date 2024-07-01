@@ -72,7 +72,6 @@ class Map:
 
         if load:
             chosen_map = random.choice([f for f in storage.iterdir() if f.is_file()]).stem
-            # chosen_map = storage / "1.json"
             texture = pygame.image.load(storage / f"{chosen_map}.png")
             self.map_data = json.load(open(storage / f"{chosen_map}.json"), object_hook=lambda d: SimpleNamespace(**d))
             self.static_bg = isinstance(self.map_data.background, str)
@@ -80,10 +79,17 @@ class Map:
                 self.texture = pygame.Surface(texture.size).convert()
                 self.texture.fill(self.map_data.background)
                 self.texture.blit(texture, (0, 0))
-                self.background: str = self.map_data.background
             else:
                 self.texture = texture.convert_alpha()
                 self.background: Background = Background()
+
+            def gen_c() -> int:
+                return random.randint(50, 255 // max(1, state.difficulty / 100))
+
+            tint = gen_c(), gen_c(), gen_c()
+            self.texture.fill(tint, special_flags=pygame.BLEND_MULT)
+            if self.static_bg:
+                self.background: str = self.texture.get_at((0, 0))
 
             self.width: int = self.texture.width
             self.height: int = self.texture.height
