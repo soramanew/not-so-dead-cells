@@ -6,13 +6,15 @@ from box import Hitbox
 from item.pickup import Pickup
 from map import Wall
 from util.func import normalise_for_drawing
-from util.type import Side, Size, Vec2
+from util.type import EnemyState, Side, Size, Vec2
 
 from .sense import Sense
 from .sprite import Sprite
 
 
 class Enemy(Hitbox, Sense, Sprite):
+    I_FRAMES: float = 0.5
+
     H_BAR_OFF: float = 10
     H_BAR_SIZE: Size = 40, 15
     H_BAR_TIME: float = 10  # The time the health bar is rendered after an enemy is hit (s)
@@ -38,6 +40,10 @@ class Enemy(Hitbox, Sense, Sprite):
     def dead(self) -> bool:
         return self.health <= 0
 
+    @property
+    def staggered(self) -> bool:
+        return self.stagger_time > 0
+
     def __init__(
         self,
         platform: Wall,  # The platform this enemy is on
@@ -48,6 +54,7 @@ class Enemy(Hitbox, Sense, Sprite):
         health: int,
         sprite: str,
         loot_chance: float,
+        stagger_length: float,
         pos: Vec2 = (None, None),
         facing: Side = None,
         head_pos: Vec2 = (0.7, 0.3),  # Head position in direction facing as ratio (width, height)
@@ -74,10 +81,12 @@ class Enemy(Hitbox, Sense, Sprite):
         self.health: int = self.max_health
         self.mass: float = mass
         self.loot_chance: float = loot_chance
+        self.stagger_length: float = stagger_length
 
         self.alerted: bool = False
         self.stopped: bool = False
         self.i_frames: float = 0
+        self.stagger_time: float = 0
         self.h_bar_time: float = 0
         self.h_bar_damage: float = 0
         self.death_finished: bool = False
@@ -122,7 +131,10 @@ class Enemy(Hitbox, Sense, Sprite):
             self._tick_move(dt)
             self._tick_sense(dt)
             self._tick_attack(dt)
+            if self.stagger_time > 0:
+                self.state = EnemyState.HURT
             self.i_frames -= dt
+            self.stagger_time -= dt
             self.h_bar_time -= dt
             self.h_bar_damage -= self.h_bar_damage * Enemy.H_BAR_DAMAGE_DECAY * dt
 
@@ -154,6 +166,9 @@ class Enemy(Hitbox, Sense, Sprite):
 
         if damage > self.health:
             damage = self.health
+        self.stagger_time = self.stagger_length
+        self.states[EnemyState.HURT.value].time = 0
+        self.atk_time = 0
         self.h_bar_time = Enemy.H_BAR_TIME
         self.h_bar_damage += damage
         self.health -= damage

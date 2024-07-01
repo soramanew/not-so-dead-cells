@@ -71,7 +71,7 @@ class PlayerState(Enum):
 class EnemyState(Enum):
     ATTACKING = "attack"
     DEAD = "dead"
-    # HURT = "hurt"
+    HURT = "hurt"
     IDLE = "idle"
     WALKING = "walk"
     ALERTED = "alerted"

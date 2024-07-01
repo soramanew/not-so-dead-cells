@@ -18,8 +18,8 @@ from ..attack import DiagonalUpOut
 from ..enemy import Enemy
 from ..movement import GroundIdleMovement
 
-ATTACK_TIME: int = (1 / SPRITES_PER_SECOND) * 7
-ATK_END_TIME: float = ATTACK_TIME * 3 / 7  # Time which is not attacking at the end of an attack anim
+SPRITE_LENGTH: int = 1 / SPRITES_PER_SECOND
+ATK_END_TIME: float = SPRITE_LENGTH * 3  # Time which is not attacking at the end of an attack anim
 
 
 class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
@@ -38,8 +38,6 @@ class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
         HealthPotion,
     ]
 
-    I_FRAMES: float = 0.3
-
     @property
     def current_atk_time(self) -> float:
         return (self.atk_time - ATK_END_TIME) / (self.atk_length - ATK_END_TIME)
@@ -52,19 +50,20 @@ class Skelebone(Enemy, GroundIdleMovement, DiagonalUpOut):
             speed=100,
             sense_size=(500, 300),
             xray=False,
-            alert_delay=(1 / SPRITES_PER_SECOND) * 3,
+            alert_delay=SPRITE_LENGTH * 3,
             alert_retain_length=7.5,
             atk_width=40,
             atk_height=60,
             atk_height_tick=8,
             arm_y=0.6,
-            atk_windup=ATTACK_TIME * 3 / 7,
+            atk_windup=SPRITE_LENGTH * 3,
             atk_speed=1.4,
-            atk_length=ATTACK_TIME * 4 / 7,
+            atk_length=SPRITE_LENGTH * 4,
             health=80,
             damage=10,
             sprite="skelebone",
             loot_chance=0.24,
+            stagger_length=SPRITE_LENGTH * 3,
         )
 
     def _get_real_atk_area(self) -> Rect:

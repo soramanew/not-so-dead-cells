@@ -18,6 +18,8 @@ from ..attack import DiagonalUpOut
 from ..enemy import Enemy
 from ..movement import GroundIdleMovement
 
+SPRITE_LENGTH: int = 1 / SPRITES_PER_SECOND
+
 
 class SwordRobot(Enemy, GroundIdleMovement, DiagonalUpOut):
     # Low chance for sausage, everything else same
@@ -35,8 +37,6 @@ class SwordRobot(Enemy, GroundIdleMovement, DiagonalUpOut):
         HealthPotion,
     ]
 
-    I_FRAMES: float = 0.3
-
     @property
     def current_atk_time(self) -> float:
         return (self.atk_time) / (self.atk_length)
@@ -49,19 +49,20 @@ class SwordRobot(Enemy, GroundIdleMovement, DiagonalUpOut):
             speed=100,
             sense_size=(600, 300),
             xray=True,
-            alert_delay=(1 / SPRITES_PER_SECOND) * 5,
+            alert_delay=SPRITE_LENGTH * 5,
             alert_retain_length=5,
             atk_width=40,
             atk_height=60,
             atk_height_tick=8,
             arm_y=0.6,
-            atk_windup=(1 / SPRITES_PER_SECOND),
+            atk_windup=SPRITE_LENGTH,
             atk_speed=0.5,
-            atk_length=(1 / SPRITES_PER_SECOND) * 3,
+            atk_length=SPRITE_LENGTH * 3,
             health=100,
             damage=2,
             sprite="sword_robot",
             loot_chance=0.34,
+            stagger_length=SPRITE_LENGTH * 3,
         )
 
     def _get_real_atk_area(self) -> Rect:

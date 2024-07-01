@@ -137,7 +137,7 @@ class GroundMovement(EnemyABC):
             )
             self.moving = True
 
-        if self.attacking or self.alerting:
+        if self.attacking or self.alerting or self.staggered:
             return
 
         if self.moving:

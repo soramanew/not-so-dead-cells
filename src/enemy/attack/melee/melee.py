@@ -35,6 +35,7 @@ class MeleeAttack(EnemyABC):
         # Warn for attack
         if (
             self.alerted
+            and not self.staggered
             and self.atk_time <= 0
             and self.atk_cd <= 0
             and state.player.detect_collision_rect(*self._get_atk_area())

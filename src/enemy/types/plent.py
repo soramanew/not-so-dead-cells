@@ -16,8 +16,8 @@ from ..attack import DiagonalUpOut
 from ..enemy import Enemy
 from ..movement import GroundIdleMovement
 
-ATTACK_TIME: int = (1 / SPRITES_PER_SECOND) * 6
-ATK_END_TIME: float = ATTACK_TIME * 3 / 6  # Time which is not attacking at the end of an attack anim
+SPRITE_LENGTH: int = 1 / SPRITES_PER_SECOND
+ATK_END_TIME: float = SPRITE_LENGTH * 3  # Time which is not attacking at the end of an attack anim
 
 
 class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
@@ -34,7 +34,6 @@ class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
         HealthPotion,
     ]
 
-    I_FRAMES: float = 0.3
     MOVE_CHANCE: float = 0.003
 
     @property
@@ -51,19 +50,20 @@ class Plent(Enemy, GroundIdleMovement, DiagonalUpOut):
             sense_size=(400, 400),
             sense_anchor=(0.4, 0.6),
             xray=False,
-            alert_delay=(1 / SPRITES_PER_SECOND) * 4,
+            alert_delay=SPRITE_LENGTH * 4,
             alert_retain_length=10,
             atk_width=45,
             atk_height=60,
             atk_height_tick=15,
             arm_y=0.5,
-            atk_windup=ATTACK_TIME * 2 / 6,
+            atk_windup=SPRITE_LENGTH * 2,
             atk_speed=2,
-            atk_length=ATTACK_TIME * 4 / 6,
+            atk_length=SPRITE_LENGTH * 4,
             health=50,
             damage=20,
             sprite="plent",
             loot_chance=0.2,
+            stagger_length=SPRITE_LENGTH * 3,
         )
 
     def _get_real_atk_area(self) -> Rect:

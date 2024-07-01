@@ -85,7 +85,7 @@ class Sprite(EnemyABC):
             "idle": State(_get_sprites_from_sheet(folder_path / "Idle.png")),
             "walk": State(_get_sprites_from_sheet(folder_path / "Walk.png")),
             "alerted": State(_get_sprites_from_sheet(folder_path / "Alerted.png")),
-            # "hurt": _get_sprites_from_sheet(folder_path / "Hurt.png")  # TODO stagger enemy and use when hurt
+            "hurt": State(_get_sprites_from_sheet(folder_path / "Hurt.png")),
         }
 
         super().__init__(**kwargs)
