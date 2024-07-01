@@ -136,22 +136,27 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
     h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window.size)
 
     overlay_font = None
-    pause_text = None
+    title_font = None
     top_pause_font = None
     bottom_pause_font = None
     prompt_font = None
-    prompts = None
+    pause_prompts = None  # TODO death screen
+    back_prompts = None
 
     def update_fonts():
-        nonlocal overlay_font, pause_text, top_pause_font, bottom_pause_font, prompt_font, prompts
+        nonlocal overlay_font, title_font, top_pause_font, bottom_pause_font, prompt_font, pause_prompts, back_prompts
         overlay_font = get_font("Silkscreen", window.width // 60)
-        pause_text = get_font("SilkscreenExpanded", window.width // 10, "Bold").render("PAUSED", True, (255, 255, 255))
+        title_font = get_font("SilkscreenExpanded", window.width // 10, "Bold")
         top_pause_font = get_font("PixelifySans", window.width // 30)
         bottom_pause_font = get_font("PixelifySans", window.width // 40)
         prompt_font = get_font("Silkscreen", window.width // 45)
-        prompts = [
+        pause_prompts = [
             prompt_font.render("[Esc] to resume", True, (255, 255, 255)),
             prompt_font.render("[B] to return to the main menu", True, (255, 255, 255)),
+        ]
+        back_prompts = [
+            prompt_font.render("[Esc] Nooooo, let me keep playing!", True, (255, 255, 255)),
+            prompt_font.render("[B] I want to leave, LET ME OUT!!!", True, (255, 255, 255)),
         ]
 
     update_fonts()
@@ -159,6 +164,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
     pause = False
     skip_frame = False
     do_blur = True
+    back_confirm = False
 
     while True:
         # FPS = refresh rate or default 60
@@ -208,7 +214,14 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                 elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
                     state.player.sprinting = True
                 elif event.key == pygame.K_ESCAPE:
-                    pause = not pause
+                    if back_confirm:
+                        back_confirm = False
+                    else:
+                        pause = not pause
+                elif event.key == pygame.K_b:
+                    if back_confirm:
+                        return
+                    back_confirm = True
             elif event.type == pygame.KEYUP:
                 held_time = key_handler.up(event.key)
                 if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
@@ -222,7 +235,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             elif event.type == pygame.MOUSEBUTTONUP:
                 move_types.append(PlayerControl.ATTACK_STOP)
 
-        if not pause:
+        if not (pause or back_confirm):
             key_handler.tick(dt)
             state.player.tick(dt, move_types)
             if state.player.health <= 0:
@@ -298,7 +311,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             ),
         )
 
-        if pause:
+        if back_confirm or pause:
             surface = pygame.Surface(window.size)
             surface.fill((0, 0, 0))
             surface.set_alpha(100)
@@ -312,65 +325,86 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             else:
                 surface = window
 
-            # Centered pause text
-            y_off = (window.height - pause_text.height) / 2
-            surface.blit(pause_text, ((window.width - pause_text.width) / 2, y_off))
+            if back_confirm:
+                # Question
+                confirm = title_font.render("Really?", True, (255, 255, 255))
+                y_off = (surface.height - confirm.height) / 2
+                surface.blit(confirm, ((surface.width - confirm.width) / 2, y_off))
 
-            # Score and difficulty
-            score = top_pause_font.render(f"Current score: {state.score}  ", True, (255, 255, 255))
-            surface.blit(score, (window.width / 2 - score.width - 10, y_off * 0.8 - score.height / 2))
-            separator = top_pause_font.render("|", True, (255, 255, 255))
-            surface.blit(separator, (window.width / 2 - separator.width, y_off * 0.8 - separator.height / 2))
-            difficulty = top_pause_font.render(f" Current difficulty: {state.difficulty}x", True, (255, 255, 255))
-            surface.blit(difficulty, (window.width / 2 + 10, y_off * 0.8 - difficulty.height / 2))
+                # Prompts
+                height = sum([p.height for p in back_prompts])
+                for i, prompt in enumerate(back_prompts):
+                    surface.blit(
+                        prompt,
+                        (
+                            (surface.width - prompt.width) / 2,
+                            (y_off + confirm.height) * 1.3 - height / 2 + (back_prompts[i - 1].height if i > 0 else 0),
+                        ),
+                    )
+            else:
+                # Centered pause text
+                pause_text = title_font.render("PAUSED", True, (255, 255, 255))
+                y_off = (window.height - pause_text.height) / 2
+                surface.blit(pause_text, ((window.width - pause_text.width) / 2, y_off))
 
-            # Multipliers
-            damage = bottom_pause_font.render(
-                f"Damage multiplier: {round(state.player.damage_mul, 2)}x  ", True, (255, 255, 255)
-            )
-            surface.blit(
-                damage, (window.width / 2 - damage.width - 10, (y_off + pause_text.height) * 1.1 - damage.height / 2)
-            )
-            separator = bottom_pause_font.render("|", True, (255, 255, 255))
-            surface.blit(
-                separator,
-                (window.width / 2 - separator.width, (y_off + pause_text.height) * 1.1 - separator.height / 2),
-            )
-            health = bottom_pause_font.render(
-                f" Health multiplier: {round(state.player.health_mul, 2)}x", True, (255, 255, 255)
-            )
-            surface.blit(health, (window.width / 2 + 10, (y_off + pause_text.height) * 1.1 - health.height / 2))
+                # Score and difficulty
+                score = top_pause_font.render(f"Current score: {state.score}  ", True, (255, 255, 255))
+                surface.blit(score, (window.width / 2 - score.width - 10, y_off * 0.8 - score.height / 2))
+                separator = top_pause_font.render("|", True, (255, 255, 255))
+                surface.blit(separator, (window.width / 2 - separator.width, y_off * 0.8 - separator.height / 2))
+                difficulty = top_pause_font.render(f" Current difficulty: {state.difficulty}x", True, (255, 255, 255))
+                surface.blit(difficulty, (window.width / 2 + 10, y_off * 0.8 - difficulty.height / 2))
 
-            height = sum([p.height for p in prompts])
-            for i, prompt in enumerate(prompts):
+                # Multipliers
+                damage = bottom_pause_font.render(
+                    f"Damage multiplier: {round(state.player.damage_mul, 2)}x  ", True, (255, 255, 255)
+                )
                 surface.blit(
-                    prompt,
-                    (
-                        (window.width - prompt.width) / 2,
-                        (y_off + pause_text.height) * 1.3 - height / 2 + (prompts[i - 1].height if i > 0 else 0),
-                    ),
+                    damage,
+                    (window.width / 2 - damage.width - 10, (y_off + pause_text.height) * 1.1 - damage.height / 2),
                 )
-
-            if state.player.weapon:
-                weapon = state.player.weapon
-                font = pygame.font.SysFont("Rubik", window.width // 60)
-                name = pygame.font.SysFont("Gabarito", window.width // 50, bold=True).render(
-                    weapon.name, True, (255, 255, 255)
+                separator = bottom_pause_font.render("|", True, (255, 255, 255))
+                surface.blit(
+                    separator,
+                    (window.width / 2 - separator.width, (y_off + pause_text.height) * 1.1 - separator.height / 2),
                 )
-                dps = font.render(f"{weapon.dps} DPS", True, (180, 180, 180))
-                mods = font.render(weapon.modifiers_str, True, (230, 230, 230))
-
-                sprite = pygame.transform.scale_by(
-                    weapon.sprite_img, ((name.height + dps.height) * 1.1) / weapon.sprite_img.height
+                health = bottom_pause_font.render(
+                    f" Health multiplier: {round(state.player.health_mul, 2)}x", True, (255, 255, 255)
                 )
+                surface.blit(health, (window.width / 2 + 10, (y_off + pause_text.height) * 1.1 - health.height / 2))
 
-                x_off = 15
-                y_off = 15
-                surface.blit(sprite, (x_off, y_off))
-                surface.blit(name, (x_off + sprite.width * 1.1, y_off))
-                y_off += name.height
-                surface.blit(dps, (x_off + sprite.width * 1.1, y_off))
-                surface.blit(mods, (x_off, y_off + dps.height))
+                height = sum([p.height for p in pause_prompts])
+                for i, prompt in enumerate(pause_prompts):
+                    surface.blit(
+                        prompt,
+                        (
+                            (window.width - prompt.width) / 2,
+                            (y_off + pause_text.height) * 1.3
+                            - height / 2
+                            + (pause_prompts[i - 1].height if i > 0 else 0),
+                        ),
+                    )
+
+                if state.player.weapon:
+                    weapon = state.player.weapon
+                    font = pygame.font.SysFont("Rubik", window.width // 60)
+                    name = pygame.font.SysFont("Gabarito", window.width // 50, bold=True).render(
+                        weapon.name, True, (255, 255, 255)
+                    )
+                    dps = font.render(f"{weapon.dps} DPS", True, (180, 180, 180))
+                    mods = font.render(weapon.modifiers_str, True, (230, 230, 230))
+
+                    sprite = pygame.transform.scale_by(
+                        weapon.sprite_img, ((name.height + dps.height) * 1.1) / weapon.sprite_img.height
+                    )
+
+                    x_off = 15
+                    y_off = 15
+                    surface.blit(sprite, (x_off, y_off))
+                    surface.blit(name, (x_off + sprite.width * 1.1, y_off))
+                    y_off += name.height
+                    surface.blit(dps, (x_off + sprite.width * 1.1, y_off))
+                    surface.blit(mods, (x_off, y_off + dps.height))
 
             window.blit(surface, (0, 0))
 
