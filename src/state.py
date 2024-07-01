@@ -5,6 +5,8 @@ difficulty = 1
 score = 0
 map_loaded = False
 
+hardcore = False
+
 
 def reset() -> None:
     global current_map, player, camera, difficulty, score, map_loaded

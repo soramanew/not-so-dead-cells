@@ -16,6 +16,10 @@ def get_font(family: str, size: int, weight: str = "Regular") -> pygame.font.Fon
     return pygame.font.Font(ttf if ttf.is_file() else (fonts_dir / f"{family}-{weight}.otf"), size)
 
 
+def get_fps() -> int:
+    return pygame.display.get_current_refresh_rate() or 60
+
+
 def clamp(x: int, maximum: int, minimum: int) -> int:
     """Clamps a value to the range [minimum, maximum].
 

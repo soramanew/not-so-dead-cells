@@ -28,6 +28,7 @@
         "skelebone",
         "SRCALPHA",
         "topleft",
-        "VIDEORESIZE"
+        "VIDEORESIZE",
+        "wraplength"
     ]
 }
