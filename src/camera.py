@@ -20,9 +20,10 @@ class Camera(Box):
             min(state.current_map.height, self.height + Camera.ACTIVE_AREA * 2),
         )
 
-    def __init__(self, x: float = 0, y: float = 0) -> None:
-        width, height = pygame.display.get_window_size()
-        super().__init__(x, y, width, height)
+    def __init__(self):
+        super().__init__(0, 0, *pygame.display.get_window_size())
+
+    def instant_center(self) -> None:
         self.move(state.player.center_x - self.center_x, state.player.center_y - self.center_y)
 
     def move(self, x: float, y: float) -> None:

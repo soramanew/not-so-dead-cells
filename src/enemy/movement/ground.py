@@ -59,21 +59,22 @@ class GroundMovement(EnemyABC):
         if not obstacles:
             return self.platform.left, self.platform.right
 
-        print("Platform:", self.platform)
-        print("\n".join(str(o) for o in obstacles))
-
         def check_collisions() -> bool:
             for obs in obstacles:
                 if self.detect_collision_box(obs):
                     return True
             return False
 
+        print("[DEBUG] Spawning enemy: getting area...")
+        moves = 0
         while check_collisions():
             self.x = uniform(
                 self.platform.left,
                 self.platform.right - self.width,
             )
-            # print("[DEBUG] Enemy spawn colliding: moving spawn")
+            moves += 1
+
+        print(f"[DEBUG] Spawned enemy{f": moved spawn {moves} times"}")
 
         nearest_left = None
         nearest_right = None

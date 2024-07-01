@@ -91,6 +91,7 @@ class Map:
 
             # Reset player to default values, move to spawn and change facing to init dir
             state.player.to_default_values(*self.map_data.spawn, Side(self.map_data.init_dir))
+            state.camera.instant_center()
         else:
             self.save_path = storage / (str(int(max(storage.iterdir()).stem) + 1) + ".json")
             self.width = width

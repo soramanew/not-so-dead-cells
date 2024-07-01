@@ -32,7 +32,7 @@ def _get_sprites_from_sheet(sheet: Path) -> SpriteList:
 class State:
     @property
     def frame(self) -> int:
-        return int(self.time * SPRITES_PER_SECOND)
+        return int(self.time * SPRITES_PER_SECOND) % self.num_sprites
 
     def __init__(self, sprites: SpriteList):
         self.sprites: SpriteList = sprites
@@ -59,13 +59,14 @@ class State:
         """
 
         self.time += dt
-        if self.frame >= self.num_sprites:
+        frame = int(self.time * SPRITES_PER_SECOND)
+        if frame >= self.num_sprites:
             if loop:
                 self.time -= self.num_sprites / SPRITES_PER_SECOND
             else:
                 # Set to last frame
                 self.time = (self.num_sprites - 1) / SPRITES_PER_SECOND
-        return self.frame >= self.num_sprites - 1
+        return frame >= self.num_sprites - 1
 
 
 class Sprite(EnemyABC):

@@ -10,6 +10,12 @@ def get_project_root():
     return Path(__file__).parent.parent.parent
 
 
+def get_font(family: str, size: int, weight: str = "Regular") -> pygame.font.Font:
+    fonts_dir = get_project_root() / "assets/fonts"
+    ttf = fonts_dir / f"{family}-{weight}.ttf"
+    return pygame.font.Font(ttf if ttf.is_file() else (fonts_dir / f"{family}-{weight}.otf"), size)
+
+
 def clamp(x: int, maximum: int, minimum: int) -> int:
     """Clamps a value to the range [minimum, maximum].
 

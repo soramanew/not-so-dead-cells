@@ -68,7 +68,7 @@ class Player(Hitbox):
     # The number of seconds the player can wall climb for
     WALL_CLIMB_LENGTH: float = 0.5
     # The speed of wall climbing
-    WALL_CLIMB_STRENGTH: int = 150
+    WALL_CLIMB_STRENGTH: int = 200
 
     # The height from the top of the player to the top of the platform that the player can climb up
     LEDGE_CLIMB_HEIGHT: float = 0.5
@@ -745,7 +745,6 @@ class Player(Hitbox):
 
         self.damage_health += damage
         self.health -= damage
-        print(f"Player hit: {self.health}")
 
     def switch_weapon(self, weapon: Weapon) -> None:
         # TODO drop current weapon

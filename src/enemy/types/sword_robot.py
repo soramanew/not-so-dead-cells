@@ -59,7 +59,7 @@ class SwordRobot(Enemy, GroundIdleMovement, DiagonalUpOut):
             atk_speed=0.5,
             atk_length=SPRITE_LENGTH * 3,
             health=100,
-            damage=2,
+            damage=3,
             sprite="sword_robot",
             loot_chance=0.34,
             stagger_length=SPRITE_LENGTH * 3,

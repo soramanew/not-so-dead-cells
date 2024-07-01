@@ -164,19 +164,26 @@ class Enemy(Hitbox, Sense, Sprite):
             The damage taken due to the hit. This can be different to the given damage due to damage reduction, etc.
         """
 
+        # Cap damage to health
         if damage > self.health:
             damage = self.health
+
+        # Stagger
         self.stagger_time = self.stagger_length
         self.states[EnemyState.HURT.value].time = 0
         self.atk_time = 0
+
+        # Health bar + opportunity period
         self.h_bar_time = Enemy.H_BAR_TIME
         self.h_bar_damage += damage
+
+        # Damage + knockback
         self.health -= damage
-        print(f"[DEBUG] {self.__class__.__name__} hit: {self.health}")
         if kb is not None:
             if side is not None:
                 self.vx += kb[0] * side.value
             self.vy += kb[1]
+
         return damage
 
     def draw_health_bar(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0, scale: float = 1) -> None:
