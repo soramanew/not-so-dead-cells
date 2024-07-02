@@ -233,6 +233,8 @@ def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN or (
                 event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
             ):
@@ -274,6 +276,7 @@ def _create_h_bar(width: int, height: int) -> tuple[pygame.Surface, Rect, pygame
 
 def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
     state.reset()
+    key_handler.reset()
 
     state.player = Player()
     state.camera = Camera()
@@ -374,6 +377,8 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                         return
                     back_confirm = True
                     menu_needs_update = True
+                elif event.key == pygame.K_F11:
+                    pygame.display.toggle_fullscreen()
             elif event.type == pygame.KEYUP:
                 held_time = key_handler.up(event.key)
                 if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
@@ -611,6 +616,8 @@ def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_down = True
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
@@ -658,9 +665,10 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
             ["Comma/Click", "Attack"],
         ],
         [
-            ["Esc", "Pause"],
             ["F", "Interact"],
+            ["Esc", "Pause"],
             ["B", "Back to main menu"],
+            ["F11", "Toggle fullscreen"],
         ],
     ]
     control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 10)
@@ -705,6 +713,8 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return True
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_down = True
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
@@ -786,6 +796,8 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_down = True
                 for button in active_buttons:

@@ -59,3 +59,8 @@ def get_control(control: PlayerControl) -> bool:
         return (get(pygame.K_s) or get(pygame.K_DOWN)) and jump
     elif control is PlayerControl.JUMP:
         return jump
+
+
+def reset() -> None:
+    for key in _held.keys():
+        up(key)
