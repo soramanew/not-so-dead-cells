@@ -9,8 +9,8 @@ from util.type import Interactable
 from .wall import Wall
 
 
-def _create_popup() -> pygame.Surface:
-    text = render_interact_text("Inspect")
+def _create_popup(text: str, key: bool = True) -> pygame.Surface:
+    text = render_interact_text(text, key=key)
     margin_x = 5
     margin_y = 4
     surface = pygame.Surface((text.width + margin_x * 2, text.height + margin_y * 2), pygame.SRCALPHA).convert_alpha()
@@ -38,7 +38,7 @@ class Corpse(Box, Interactable):
                 break
 
         super().__init__(x, y, width, height)
-        self.popup: pygame.Surface = _create_popup()
+        self.popup: pygame.Surface = _create_popup("Inspect")
         self.looted: bool = False
 
     def interact(self) -> None:
@@ -48,9 +48,12 @@ class Corpse(Box, Interactable):
         self.looted = True
         if random() < 0.5:
             state.current_map.spawn_weapon(self.center_x, self.y - 30)
+            self.popup = None
+        else:
+            self.popup = _create_popup("Womp Womp", key=False)
 
     def draw_popup(self, surface: pygame.Surface, x_off: float, y_off: float, **kwargs) -> None:
-        if not self.looted:
+        if self.popup is not None:
             surface.blit(
                 self.popup,
                 (self.center_x + x_off - self.popup.width / 2, self.y - self.height * 0.1 - self.popup.height + y_off),

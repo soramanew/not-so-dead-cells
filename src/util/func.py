@@ -114,6 +114,6 @@ def normalise_for_drawing(
     return x, y, width, height
 
 
-def render_interact_text(text: str, colour: Colour = (255, 255, 255)) -> pygame.Surface:
+def render_interact_text(text: str, colour: Colour = (255, 255, 255), key: bool = True) -> pygame.Surface:
     # Damn it I have to create the font here because if not pygame.font won't be initialized yet
-    return pygame.font.SysFont("Readex Pro", 16).render(f"[F] {text}", True, colour)
+    return get_font("PixelifySans", 18).render(("[F] " if key else "") + text, True, colour)

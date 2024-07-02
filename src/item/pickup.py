@@ -6,7 +6,12 @@ import pygame
 import state
 from box import Hitbox
 from map import Map, Wall
-from util.func import get_project_root, normalise_for_drawing, render_interact_text
+from util.func import (
+    get_font,
+    get_project_root,
+    normalise_for_drawing,
+    render_interact_text,
+)
 from util.type import Direction, Interactable, Vec2
 
 from item import Item
@@ -134,8 +139,8 @@ class WeaponPickup(Pickup):
         if self.item.popup:
             return self.item.popup
 
-        title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
-        text_font = pygame.font.SysFont("Rubik", 16)
+        title_font = get_font("BIT", 20)
+        text_font = get_font("Silkscreen", 16)
 
         x_off = 15
         y_off = 15
@@ -190,8 +195,8 @@ class Food(Pickup):
         super().__init__(f"food/{sprite}", platform_or_pos, vx, vy)
 
     def _create_popup(self) -> pygame.Surface:
-        title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
-        text_font = pygame.font.SysFont("Rubik", 16)
+        title_font = get_font("BIT", 20)
+        text_font = get_font("Silkscreen", 16)
 
         x_off = 15
         y_off = 15
@@ -278,9 +283,9 @@ class Sausages(Food):
     def _create_popup(self) -> pygame.Surface:
         """Pygame doesn't support fallback fonts so I have to make this special."""
 
-        title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
-        text_font = pygame.font.SysFont("Rubik", 16)
-        unicode_font = pygame.font.SysFont("Noto Sans", 16)
+        title_font = get_font("BIT", 20)
+        text_font = get_font("Silkscreen", 16)
+        unicode_font = get_font("NotoSans", 16)
 
         x_off = 15
         y_off = 15
@@ -340,8 +345,8 @@ class Potion(Pickup):
         )
 
     def _create_popup(self) -> pygame.Surface:
-        title_font = pygame.font.SysFont("Gabarito", 20, bold=True)
-        text_font = pygame.font.SysFont("Rubik", 16)
+        title_font = get_font("BIT", 20)
+        text_font = get_font("Silkscreen", 16)
 
         x_off = 15
         y_off = 15

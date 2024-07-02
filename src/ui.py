@@ -504,7 +504,9 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                 surface.blit(score, (window.width / 2 - score.width - 10, y_off * 0.8 - score.height / 2))
                 separator = top_pause_font.render("|", True, (255, 255, 255))
                 surface.blit(separator, (window.width / 2 - separator.width, y_off * 0.8 - separator.height / 2))
-                difficulty = top_pause_font.render(f" Current difficulty: {state.difficulty}x", True, (255, 255, 255))
+                difficulty = top_pause_font.render(
+                    f" Current difficulty: {round(state.difficulty, 2)}x", True, (255, 255, 255)
+                )
                 surface.blit(difficulty, (window.width / 2 + 10, y_off * 0.8 - difficulty.height / 2))
 
                 # Multipliers
@@ -539,10 +541,8 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
 
                 if state.player.weapon:
                     weapon = state.player.weapon
-                    font = pygame.font.SysFont("Rubik", window.width // 60)
-                    name = pygame.font.SysFont("Gabarito", window.width // 50, bold=True).render(
-                        weapon.name, True, (255, 255, 255)
-                    )
+                    font = get_font("Silkscreen", window.width // 60)
+                    name = get_font("BIT", window.width // 50).render(weapon.name, True, (255, 255, 255))
                     dps = font.render(f"{weapon.dps} DPS", True, (180, 180, 180))
                     mods = font.render(weapon.modifiers_str, True, (230, 230, 230))
 
