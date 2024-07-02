@@ -400,7 +400,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                         if sys.platform == "win32":
                             subprocess.run(["shutdown", "-s"])
                         else:
-                            subprocess.run(["shutdown", "now"])
+                            subprocess.run(["shutdown"])
                     return full_exit
                 state.current_map.tick(dt)
                 cam_movement = state.camera.tick_move(dt)
