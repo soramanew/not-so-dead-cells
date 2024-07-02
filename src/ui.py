@@ -352,9 +352,10 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             elif event.type == pygame.KEYDOWN:
                 # TODO changeable keybinds
                 key_handler.down(event.key)
-                if key_handler.get_control(PlayerControl.SLAM):
+                jump = event.key == pygame.K_w or event.key == pygame.K_UP or event.key == pygame.K_SPACE
+                if (key_handler.get(pygame.K_s) or key_handler.get(pygame.K_DOWN)) and jump:
                     move_types.append(PlayerControl.SLAM)
-                elif key_handler.get_control(PlayerControl.JUMP):
+                elif jump:
                     move_types.append(PlayerControl.JUMP)
                 elif event.key == pygame.K_f:
                     move_types.append(PlayerControl.INTERACT)
