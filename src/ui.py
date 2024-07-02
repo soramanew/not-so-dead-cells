@@ -36,7 +36,6 @@ class ShadowTextButton(pygame.Rect):
     def font(self, value: pygame.font.Font) -> None:
         self._font = value
         self.update()
-        self.size = self.text.size
 
     @property
     def hovered(self) -> bool:
@@ -56,6 +55,7 @@ class ShadowTextButton(pygame.Rect):
         rect = value.get_bounding_rect()
         self._text = pygame.Surface(rect.size, pygame.SRCALPHA).convert_alpha()
         self._text.blit(value, (0, 0), rect)
+        self.size = self._text.size
 
     @property
     def shadow(self) -> pygame.Surface:
@@ -142,6 +142,7 @@ class Checkbox(ShadowTextButton):
                 colour,
                 (x + inner_gap, inner_gap, rect.height - inner_gap * 2, rect.height - inner_gap * 2),
             )
+        self.size = self._text.size
 
     @property
     def shadow(self) -> pygame.Surface:
@@ -243,79 +244,6 @@ def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
         window.blit(*score)
         window.blit(*prompt)
 
-        pygame.display.update()
-
-
-def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
-    orig_menu_bg = pygame.image.load(get_project_root() / "assets/main_menu.jpg").convert()
-    menu_bg = None
-
-    warning = ShadowTextButton(
-        get_font("BIT", window.width // 14),
-        "BE WARNED, ENABLING THIS CAN HAVE ADVERSE CONSEQUENCES.",
-        (188, 181, 166),
-        wrap_length=int(window.width * 0.8),
-    )
-    warning.font.align = pygame.FONT_CENTER
-    back_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Return to Main Menu", (176, 166, 145))
-
-    def update_menu_bg():
-        nonlocal menu_bg
-        if window.width > window.height:
-            menu_bg = pygame.transform.scale_by(orig_menu_bg, window.width / orig_menu_bg.width)
-        else:
-            menu_bg = pygame.transform.scale_by(orig_menu_bg, window.height / orig_menu_bg.height)
-
-    def update_text_positions():
-        warning.wrap_length = int(window.width * 0.8)
-        warning.center = window.width / 2, window.height * 0.45
-        warning.update()
-        back_button.center = window.width / 2, window.height * 0.8
-        back_button.update()
-
-    update_menu_bg()
-    update_text_positions()
-
-    mouse_down = False
-
-    while True:
-        # Limit fps
-        clock.tick(get_fps())
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return True
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_down = True
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    back_button.clicked = True
-            elif event.type == pygame.MOUSEBUTTONUP:
-                mouse_down = False
-                back_button.clicked = False
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    return
-            elif event.type == pygame.MOUSEMOTION:
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    back_button.hovered = True
-                    if mouse_down:
-                        back_button.clicked = True
-                else:
-                    back_button.hovered = False
-                    back_button.clicked = False
-            elif event.type == pygame.VIDEORESIZE:
-                update_menu_bg()
-
-                warning.font = get_font("BIT", window.width // 14)
-                warning.font.align = pygame.FONT_CENTER
-                back_button.font = get_font("PixelBit", window.width // 18)
-                update_text_positions()
-
-        window.blit(menu_bg, ((window.width - menu_bg.width) / 2, (window.height - menu_bg.height) / 2))
-        warning.draw(window)
-        back_button.draw(window)
-
-        # Update window
         pygame.display.update()
 
 
@@ -637,20 +565,33 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
         pygame.display.update()
 
 
-def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
-    orig_menu_bg = pygame.image.load(get_project_root() / "assets/main_menu.jpg").convert()
+def _get_menu_bg():
+    return pygame.image.load(get_project_root() / "assets/main_menu.png").convert()
+
+
+def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
+    orig_menu_bg = _get_menu_bg()
     menu_bg = None
 
+    warning = ShadowTextButton(
+        get_font("BIT", window.width // 14),
+        "BE WARNED, SAVE YOUR DATA BEFORE USING THIS.",
+        (188, 181, 166),
+        wrap_length=int(window.width * 0.8),
+    )
+    warning.font.align = pygame.FONT_CENTER
     back_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Return to Main Menu", (176, 166, 145))
 
     def update_menu_bg():
         nonlocal menu_bg
-        if window.width > window.height:
-            menu_bg = pygame.transform.scale_by(orig_menu_bg, window.width / orig_menu_bg.width)
-        else:
-            menu_bg = pygame.transform.scale_by(orig_menu_bg, window.height / orig_menu_bg.height)
+        menu_bg = pygame.transform.scale_by(
+            orig_menu_bg, max(window.width / orig_menu_bg.width, window.height / orig_menu_bg.height)
+        )
 
     def update_text_positions():
+        warning.wrap_length = int(window.width * 0.8)
+        warning.center = window.width / 2, window.height * 0.45
+        warning.update()
         back_button.center = window.width / 2, window.height * 0.8
         back_button.update()
 
@@ -687,10 +628,107 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
             elif event.type == pygame.VIDEORESIZE:
                 update_menu_bg()
 
+                warning.font = get_font("BIT", window.width // 14)
+                warning.font.align = pygame.FONT_CENTER
                 back_button.font = get_font("PixelBit", window.width // 18)
                 update_text_positions()
 
         window.blit(menu_bg, ((window.width - menu_bg.width) / 2, (window.height - menu_bg.height) / 2))
+        warning.draw(window)
+        back_button.draw(window)
+
+        # Update window
+        pygame.display.update()
+
+
+def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
+    orig_menu_bg = _get_menu_bg()
+    menu_bg = None
+
+    controls = [
+        [
+            ["A/←", "Move left"],
+            ["D/→", "Move right"],
+            ["W/↑/Space", "Jump"],
+            ["S/↓ + W/↑/Space", "Slam"],
+            ["Comma/Click", "Attack"],
+        ],
+        [
+            ["Esc", "Pause"],
+            ["F", "Interact"],
+            ["B", "Back to main menu"],
+        ],
+    ]
+    control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 8)
+    controls = [
+        [ShadowTextButton(control_font, f"[{key}] {action}", (188, 181, 166)) for key, action in column]
+        for column in controls
+    ]
+
+    back_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Return to Main Menu", (176, 166, 145))
+
+    def update_menu_bg():
+        nonlocal menu_bg
+        menu_bg = pygame.transform.scale_by(
+            orig_menu_bg, max(window.width / orig_menu_bg.width, window.height / orig_menu_bg.height)
+        )
+
+    def update_text_positions():
+        widths = [max(c.width for c in col) for col in controls]
+        total_width = sum(widths)
+        for i, column in enumerate(controls):
+            x_off = sum(widths[:i]) if i > 0 else 0
+            for j, control in enumerate(column):
+                control.font = control_font
+                control.topleft = (
+                    (window.width - total_width) / 2 + x_off,
+                    window.height * 0.2 + (sum(c.height * 1.2 for c in column[:j]) if j > 0 else 0),
+                )
+                control.update()
+        back_button.center = window.width / 2, window.height * 0.8
+        back_button.update()
+
+    update_menu_bg()
+    update_text_positions()
+
+    mouse_down = False
+
+    while True:
+        # Limit fps
+        clock.tick(get_fps())
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return True
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_down = True
+                if back_button.collidepoint(*pygame.mouse.get_pos()):
+                    back_button.clicked = True
+            elif event.type == pygame.MOUSEBUTTONUP:
+                mouse_down = False
+                back_button.clicked = False
+                if back_button.collidepoint(*pygame.mouse.get_pos()):
+                    return
+            elif event.type == pygame.MOUSEMOTION:
+                if back_button.collidepoint(*pygame.mouse.get_pos()):
+                    back_button.hovered = True
+                    if mouse_down:
+                        back_button.clicked = True
+                else:
+                    back_button.hovered = False
+                    back_button.clicked = False
+            elif event.type == pygame.VIDEORESIZE:
+                update_menu_bg()
+
+                control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 8)
+                back_button.font = get_font("PixelBit", window.width // 18)
+                update_text_positions()
+
+        window.blit(menu_bg, ((window.width - menu_bg.width) / 2, (window.height - menu_bg.height) / 2))
+        for col in controls:
+            for control in col:
+                control.draw(window)
         back_button.draw(window)
 
         # Update window
@@ -698,35 +736,34 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
 
 
 def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
-    orig_menu_bg = pygame.image.load(get_project_root() / "assets/main_menu.jpg").convert()  # TODO better bg + icon
+    orig_menu_bg = _get_menu_bg()
     menu_bg = None
 
     title = ShadowTextButton(get_font("BIT", window.width // 10), "Not so Dead Cells", (188, 181, 166))
-    start_button = ShadowTextButton(get_font("PixelifySans", window.width // 18, "Bold"), "Start Game", (176, 166, 145))
-    controls_button = ShadowTextButton(
-        get_font("PixelifySans", window.width // 20, "Bold"), "Controls", (176, 166, 145)
-    )
-    hardcode_button = Checkbox(get_font("PixelifySans", window.width // 20, "Bold"), "Hardcore", (176, 166, 145))
-    exit_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Exit", (176, 166, 145))
+    text_colour = 176, 166, 145
+    start_button = ShadowTextButton(get_font("PixelifySans", window.width // 18, "Bold"), "Start Game", text_colour)
+    sub_button_font = get_font("PixelifySans", window.width // 24, "Bold")
+    controls_button = ShadowTextButton(sub_button_font, "Controls", text_colour)
+    hardcode_button = Checkbox(sub_button_font, "Hardcore", text_colour)
+    exit_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Exit", text_colour)
 
     active_buttons = start_button, controls_button, hardcode_button, exit_button
     draw = title, *active_buttons
 
     def update_menu_bg():
         nonlocal menu_bg
-        if window.width > window.height:
-            menu_bg = pygame.transform.scale_by(orig_menu_bg, window.width / orig_menu_bg.width)
-        else:
-            menu_bg = pygame.transform.scale_by(orig_menu_bg, window.height / orig_menu_bg.height)
+        menu_bg = pygame.transform.scale_by(
+            orig_menu_bg, max(window.width / orig_menu_bg.width, window.height / orig_menu_bg.height)
+        )
 
     def update_text_positions():
         title.center = window.width / 2, window.height * 0.3
         title.update()
         start_button.center = window.width / 2, window.height * 0.5
         start_button.update()
-        controls_button.center = window.width / 2, window.height * 0.6
+        controls_button.center = window.width / 2, window.height * 0.59
         controls_button.update()
-        hardcode_button.center = window.width / 2, window.height * 0.7
+        hardcode_button.center = window.width / 2, window.height * 0.66
         hardcode_button.update()
         exit_button.center = window.width / 2, window.height * 0.8
         exit_button.update()
@@ -787,8 +824,9 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
 
                 title.font = get_font("BIT", window.width // 10)
                 start_button.font = get_font("PixelifySans", window.width // 18, "Bold")
-                controls_button.font = get_font("PixelifySans", window.width // 20, "Bold")
-                hardcode_button.font = get_font("PixelifySans", window.width // 20, "Bold")
+                sub_button_font = get_font("PixelifySans", window.width // 24, "Bold")
+                controls_button.font = sub_button_font
+                hardcode_button.font = sub_button_font
                 exit_button.font = get_font("PixelBit", window.width // 18)
                 update_text_positions()
 
