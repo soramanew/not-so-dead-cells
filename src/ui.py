@@ -43,6 +43,9 @@ class ShadowTextButton(pygame.Rect):
 
     @hovered.setter
     def hovered(self, value: bool) -> None:
+        if self._hovered == value:
+            return
+
         self._hovered = value
         self.update()
 
@@ -177,7 +180,7 @@ class Checkbox(ShadowTextButton):
         self.x += click_diff
         self.y += click_diff
 
-        if value:
+        if value != self.on_release:
             self.checked = not self.checked
 
     def __init__(
@@ -190,9 +193,11 @@ class Checkbox(ShadowTextButton):
         wrap_length: int = 0,
         checked: bool = False,
         side: Side = Side.RIGHT,
+        on_release: bool = False,
     ):
         self._checked: bool = checked
         self.side: Side = side
+        self.on_release: bool = on_release
         super().__init__(font, text, colour, depth, clicked_depth, wrap_length)
 
 
@@ -388,15 +393,12 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                 if state.player.health <= 0:
                     full_exit = DeathScreen(window, clock)
                     if state.hardcore:
+                        import subprocess
+
                         # NOTE Shuts down the PC
                         if sys.platform == "win32":
-                            import ctypes
-
-                            user32 = ctypes.WinDLL("user32")
-                            user32.ExitWindowsEx(0x00000008, 0x00000000)
+                            subprocess.run(["shutdown", "-s"])
                         else:
-                            import subprocess
-
                             subprocess.run(["shutdown", "now"])
                     return full_exit
                 state.current_map.tick(dt)
@@ -745,10 +747,10 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
     start_button = ShadowTextButton(get_font("PixelifySans", window.width // 18, "Bold"), "Start Game", text_colour)
     sub_button_font = get_font("PixelifySans", window.width // 24, "Bold")
     controls_button = ShadowTextButton(sub_button_font, "Controls", text_colour)
-    hardcode_button = Checkbox(sub_button_font, "Hardcore", text_colour)
+    hardcore_button = Checkbox(sub_button_font, "Hardcore", text_colour, on_release=True)
     exit_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Exit", text_colour)
 
-    active_buttons = start_button, controls_button, hardcode_button, exit_button
+    active_buttons = start_button, controls_button, hardcore_button, exit_button
     draw = title, *active_buttons
 
     def update_menu_bg():
@@ -764,8 +766,8 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
         start_button.update()
         controls_button.center = window.width / 2, window.height * 0.59
         controls_button.update()
-        hardcode_button.center = window.width / 2, window.height * 0.66
-        hardcode_button.update()
+        hardcore_button.center = window.width / 2, window.height * 0.66
+        hardcore_button.update()
         exit_button.center = window.width / 2, window.height * 0.8
         exit_button.update()
 
@@ -788,13 +790,6 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
                 for button in active_buttons:
                     if button.collidepoint(*pygame.mouse.get_pos()):
                         button.clicked = True
-                        if button is hardcode_button:
-                            state.hardcore = hardcode_button.checked
-                            if not hardcore_warned:
-                                full_exit = HardcoreWarning(window, clock)
-                                if full_exit:
-                                    return
-                                hardcore_warned = True
             elif event.type == pygame.MOUSEBUTTONUP:
                 mouse_down = False
 
@@ -806,6 +801,13 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
                     full_exit = Game(window, clock)
                 elif controls_button.collidepoint(*pygame.mouse.get_pos()):
                     full_exit = Controls(window, clock)
+                elif hardcore_button.collidepoint(*pygame.mouse.get_pos()):
+                    state.hardcore = hardcore_button.checked
+                    if not hardcore_warned:
+                        full_exit = HardcoreWarning(window, clock)
+                        if full_exit:
+                            return
+                        hardcore_warned = True
                 elif exit_button.collidepoint(*pygame.mouse.get_pos()):
                     full_exit = True
 
@@ -827,7 +829,7 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
                 start_button.font = get_font("PixelifySans", window.width // 18, "Bold")
                 sub_button_font = get_font("PixelifySans", window.width // 24, "Bold")
                 controls_button.font = sub_button_font
-                hardcode_button.font = sub_button_font
+                hardcore_button.font = sub_button_font
                 exit_button.font = get_font("PixelBit", window.width // 18)
                 update_text_positions()
 
