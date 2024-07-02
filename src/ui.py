@@ -651,6 +651,7 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
             ["D/→", "Move right"],
             ["W/↑/Space", "Jump"],
             ["S/↓ + W/↑/Space", "Slam"],
+            ["Shift", "(Hold) Sprint (Tap) Roll"],
             ["Comma/Click", "Attack"],
         ],
         [
@@ -659,7 +660,7 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
             ["B", "Back to main menu"],
         ],
     ]
-    control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 8)
+    control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 10)
     controls = [
         [ShadowTextButton(control_font, f"[{key}] {action}", (188, 181, 166)) for key, action in column]
         for column in controls
@@ -721,7 +722,7 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
             elif event.type == pygame.VIDEORESIZE:
                 update_menu_bg()
 
-                control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 8)
+                control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 10)
                 back_button.font = get_font("PixelBit", window.width // 18)
                 update_text_positions()
 
