@@ -1,5 +1,3 @@
-import sys
-
 import pygame
 import state
 from camera import Camera
@@ -399,13 +397,16 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                 if state.player.health <= 0:
                     full_exit = DeathScreen(window, clock)
                     if state.hardcore:
+                        import platform
                         import subprocess
 
                         # NOTE Shuts down the PC
-                        if sys.platform == "win32":
+                        if platform.system() == "Windows":
                             subprocess.run(["shutdown", "-s"])
-                        else:
+                        elif platform.system() == "Linux":
                             subprocess.run(["shutdown"])
+                        else:
+                            subprocess.call(["osascript", "-e", 'tell app "System Events" to shut down'])
                     return full_exit
                 state.current_map.tick(dt)
                 cam_movement = state.camera.tick_move(dt)
