@@ -443,15 +443,16 @@ class Player(Hitbox):
         can_climb_ledge = self.top - wall.top < Player.HEIGHT * Player.LEDGE_CLIMB_HEIGHT
 
         if can_climb_ledge:
-            walls_above = state.current_map.get_rect(
-                self.left,
-                wall.top - Player.HEIGHT,
-                self.width,
-                self.top - (wall.top - Player.HEIGHT),
-            )
-            for wall_a in walls_above:
-                if wall_a.bottom + Player.HEIGHT > wall.top:
-                    can_climb_ledge = False
+            can_climb_ledge = not [
+                r
+                for r in state.current_map.get_rect(
+                    self.left - (1 if side is Side.LEFT else 0),
+                    wall.top - Player.HEIGHT,
+                    self.width + 1,
+                    self.top - (wall.top - Player.HEIGHT),
+                )
+                if r is not wall
+            ]
 
         left_key_down = key_handler.get_control(PlayerControl.LEFT)
         right_key_down = key_handler.get_control(PlayerControl.RIGHT)
