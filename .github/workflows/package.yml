@@ -11,20 +11,24 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Install deps
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install -U pyinstaller
-      - name: Package via pyinstaller & compress to zip
+      - name: Package via pyinstaller & compress to gzipped tarball
         run: |
           pyinstaller main.spec
           mv dist/main/main${{ matrix.config.ext }} dist/main/'Not so Dead Cells'${{ matrix.config.ext }}
-          tar -cvf ${{ matrix.config.name }}.zip -C dist/main .
+          tar -czf ${{ matrix.config.name }}.tar.gz -C dist/main .
       - name: Archive packaged artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.config.name }}
-          path: ${{ matrix.config.name }}.zip
+          path: ${{ matrix.config.name }}.tar.gz
   push:
     name: Commit and push to repository
     needs: build
