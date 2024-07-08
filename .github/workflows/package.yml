@@ -37,9 +37,11 @@ jobs:
         with:
           path: release
           merge-multiple: true
-      - name: Stage & commit files
+      - name: Commit & push changes
         run: |
+          git config --global user.name '2 * r + 2 * t'
+          git config --global user.email '61896496+soramanew@users.noreply.github.com'
+
           git add .
           git commit -m "Auto package"
-      - name: Fetch from & push to master
-        run: git fetch origin master
+          git push
