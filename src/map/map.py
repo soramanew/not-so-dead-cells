@@ -248,7 +248,8 @@ class Map:
         start_col, start_row, end_col, end_row = self._to_cells(*box)
         for row in range(start_row, end_row + 1):
             for col in range(start_col, end_col + 1):
-                self.grid[row][col].remove(box)
+                if row >= 0 and row < self.rows and col >= 0 and col < self.cols:
+                    self.grid[row][col].remove(box)
 
     def add_pickups(self, pickups: list[Pickup]) -> None:
         for pickup in pickups:
@@ -300,7 +301,7 @@ class Map:
             The column to insert the client into.
         """
 
-        if row < 0 or row >= self.rows - 1 or col < 0 or col >= self.cols - 1:
+        if row < 0 or row >= self.rows or col < 0 or col >= self.cols:
             return
 
         if self.grid[row] is None:
