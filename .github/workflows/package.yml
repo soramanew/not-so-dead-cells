@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
-        config: [{ name: windows, os: windows-latest }, { name: linux, os: ubuntu-latest }]
+        config: [{ name: windows, os: windows-latest, ext: .exe }, { name: linux, os: ubuntu-latest, ext: '' }]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,9 +18,7 @@ jobs:
       - name: Package via pyinstaller & compress to zip
         run: |
           pyinstaller main.spec
-          cd dist/main
-          [ '${{ matrix.config.name }}' = 'linux' ] && mv main 'Not so Dead Cells' || mv main.exe 'Not so Dead Cells'.exe
-          cd ../..
+          mv dist/main/main${{ matrix.config.ext }} dist/main/'Not so Dead Cells'${{ matrix.config.ext }}
           tar -cvf ${{ matrix.config.name }}.zip -C dist/main .
       - name: Archive packaged artifact
         uses: actions/upload-artifact@v4
