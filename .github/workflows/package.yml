@@ -1,0 +1,45 @@
+name: package
+run-name: Package release zips
+on: push
+jobs:
+  build:
+    name: Build on ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      matrix:
+        config: [{ name: windows, os: windows-latest }, { name: linux, os: ubuntu-latest }]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+          pip install -U pyinstaller
+      - name: Package via pyinstaller & compress to zip
+        run: |
+          pyinstaller main.spec
+          mv dist/main/main dist/main/Not\ so\ Dead\ Cells
+          tar -cvf ${{ matrix.config.name }}.zip -C dist/main .
+      - name: Archive packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.config.name }}
+          path: ${{ matrix.config.name }}.zip
+  push:
+    name: Commit and push to repository
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Stage & commit files
+        run: |
+          git add .
+          git commit -m "Auto package"
+      - name: Fetch from & push to master
+        run: git fetch origin master
