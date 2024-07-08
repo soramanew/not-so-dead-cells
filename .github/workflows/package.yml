@@ -18,7 +18,9 @@ jobs:
       - name: Package via pyinstaller & compress to zip
         run: |
           pyinstaller main.spec
-          mv dist/main/main dist/main/'Not so Dead Cells'
+          cd dist/main
+          [ '${{ matrix.config.name }}' = 'linux' ] && mv main 'Not so Dead Cells' || mv main.exe 'Not so Dead Cells'.exe
+          cd ../..
           tar -cvf ${{ matrix.config.name }}.zip -C dist/main .
       - name: Archive packaged artifact
         uses: actions/upload-artifact@v4
