@@ -4,7 +4,7 @@ import pygame
 import state
 from box import Hitbox
 from item.pickup import Pickup
-from map import Wall
+from map import DamageNumber, Wall
 from util.func import normalise_for_drawing
 from util.type import EnemyState, Side, Size, Vec2
 
@@ -185,6 +185,17 @@ class Enemy(Hitbox, Sense, Sprite):
             if side is not None:
                 self.vx += kb[0] * side.value
             self.vy += kb[1]
+
+        state.current_map.add_damage_number(
+            DamageNumber(
+                damage,
+                self.center_x,
+                self.y,
+                (max(30, kb[0]) if kb is not None else random.uniform(30, 100))
+                * (side.value if side is not None else random.choice((-1, 1))),
+                (min(-100, kb[1]) if kb is not None else -random.uniform(100, 400)),
+            )
+        )
 
         return damage
 

@@ -2,6 +2,7 @@ import pygame
 import state
 from box import Box
 from enemy.enemy import Enemy
+from map import DamageNumber
 from util.type import Drawable, Interactable, Rect, Vec2
 
 
@@ -125,6 +126,10 @@ class Camera(Box):
         # Enemy health bars
         for enemy in state.current_map.get_rect(*self, lambda client: isinstance(client, Enemy)):
             enemy.draw_health_bar(window, x_off=-self.x, y_off=-self.y)
+
+        # Damage numbers
+        for dm in state.current_map.get_rect(*self, lambda e: isinstance(e, DamageNumber)):
+            self._render_w_off(dm, window)
 
         # Interactable popups
         for i in state.current_map.get_rect(*state.player.interact_range, lambda e: isinstance(e, Interactable)):

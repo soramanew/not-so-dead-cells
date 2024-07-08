@@ -25,6 +25,8 @@ if TYPE_CHECKING:
     from enemy.enemy import Enemy
     from item import Pickup
 
+    from .effects import DamageNumber
+
 
 type Cell = set[Box]
 type Row = list[Cell | None]
@@ -114,6 +116,7 @@ class Map:
         self.enemies: set[Enemy] = set()
         self.pickups: set[Pickup] = set()
         self.gates: set[Gate] = set()
+        self.damage_numbers: set[DamageNumber] = set()
 
         # Lazy load enemy and weapon classes because cyclical imports
         global ENEMIES
@@ -150,6 +153,18 @@ class Map:
             self._remove(pickup, False)
             pickup.tick(dt)
             self._add(pickup, False)
+
+        to_remove = set()
+        for dm in self.damage_numbers:
+            self._remove(dm, False)
+            remove = dm.tick(dt)
+            if remove:
+                to_remove.add(dm)
+            else:
+                self._add(dm, False)
+        for dm in to_remove:
+            self.objects.remove(dm)
+            self.damage_numbers.remove(dm)
 
     def _to_cells(self, x: float, y: float, width: int, height: int) -> tuple[int, int, int, int]:
         """Converts the given rectangle to the cell coordinates of each side (left, top, right, bottom).
@@ -200,6 +215,10 @@ class Map:
                 self.add(gate)
 
         print(f"[DEBUG] Done loading map: took {(time.process_time() - start)*1000}ms")
+
+    def add_damage_number(self, dm: DamageNumber) -> None:
+        self.damage_numbers.add(dm)
+        self.add(dm)
 
     def spawn_enemy(self, platform: Wall) -> None:
         enemy = random.choice(ENEMIES)(platform)

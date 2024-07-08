@@ -14,6 +14,7 @@
         "KEYDOWN",
         "KEYUP",
         "knockback",
+        "lerp",
         "MOUSEBUTTONDOWN",
         "MOUSEBUTTONUP",
         "MOUSEMOTION",
