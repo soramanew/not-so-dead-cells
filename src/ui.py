@@ -272,6 +272,14 @@ def _create_h_bar(width: int, height: int) -> tuple[pygame.Surface, Rect, pygame
     return h_bar, inner_rect, get_font("BIT", int(height * 0.02))
 
 
+def _create_damage_tint(width: int, height: int) -> pygame.Surface:
+    amount = 5
+    surface = pygame.Surface((amount, amount)).convert()
+    surface.fill((255, 255, 255))
+    pygame.draw.rect(surface, (218, 97, 97), (0, 0, amount, amount), width=1)
+    return pygame.transform.smoothscale(surface, (width, height))
+
+
 def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
     state.reset()
     key_handler.reset()
@@ -283,6 +291,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
     state.current_map.spawn_init_weapon()
 
     h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window.size)
+    damage_tint = _create_damage_tint(*window.size)
 
     overlay_font = None
     title_font = None
@@ -348,6 +357,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                 if not state.current_map.static_bg:
                     state.current_map.background.resize(*new_size)
                 h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*new_size)
+                damage_tint = _create_damage_tint(*new_size)
                 update_fonts()
                 menu_needs_update = True
             elif event.type == pygame.KEYDOWN:
@@ -415,6 +425,10 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
 
             # Draw stuff
             state.camera.render(window)
+
+            # Damage tint
+            if state.player.damage_tint_time > 0:
+                window.blit(damage_tint, (0, 0), special_flags=pygame.BLEND_MULT)
 
             # FPS monitor
             fps = overlay_font.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255))
@@ -623,7 +637,7 @@ def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
                 mouse_down = True
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
                     back_button.clicked = True
-            elif event.type == pygame.MOUSEBUTTONUP:
+            elif mouse_down and event.type == pygame.MOUSEBUTTONUP:
                 mouse_down = False
                 back_button.clicked = False
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
@@ -720,7 +734,7 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
                 mouse_down = True
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
                     back_button.clicked = True
-            elif event.type == pygame.MOUSEBUTTONUP:
+            elif mouse_down and event.type == pygame.MOUSEBUTTONUP:
                 mouse_down = False
                 back_button.clicked = False
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
@@ -804,7 +818,7 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
                 for button in active_buttons:
                     if button.collidepoint(*pygame.mouse.get_pos()):
                         button.clicked = True
-            elif event.type == pygame.MOUSEBUTTONUP:
+            elif mouse_down and event.type == pygame.MOUSEBUTTONUP:
                 mouse_down = False
 
                 for button in active_buttons:
