@@ -24,8 +24,8 @@ class DamageNumber(Box):
         if abs(self.vx) < DamageNumber.REMOVE_THRESHOLD or abs(self.vy) < DamageNumber.REMOVE_THRESHOLD:
             return True
 
-        self.vx -= Map.get_air_resistance(self.vx, sqrt(self.height)) * dt * 10
-        self.vy -= Map.get_air_resistance(self.vy, sqrt(self.width)) * dt * 10
+        self.vx -= Map.get_air_resistance(self.vx, sqrt(self.height)) * dt * 50
+        self.vy -= Map.get_air_resistance(self.vy, sqrt(self.width)) * dt * 50
 
         self.x += self.vx * dt
         self.y += self.vy * dt
