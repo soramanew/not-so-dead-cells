@@ -193,6 +193,7 @@ class Player(Hitbox):
         self.slam_fall_sprite: EffectSprite = EffectSprite("Slam")
         self.slam_dust_sprites: list[EffectSprite] = []
         self.jump_dust_sprites: list[EffectSprite] = []
+        self.damage_tint_init_time: float = 0
         self.damage_tint_time: float = 0
 
     # ------------------------------ Methods ------------------------------ #
@@ -215,6 +216,7 @@ class Player(Hitbox):
         self.wall_climb_time = 0
         self.i_frames = 0
         self.damage_health = 0
+        self.damage_tint_init_time = 0
         self.damage_tint_time = 0
 
     def handle_moves(self, dt: float, *move_types: PlayerControl) -> None:
@@ -749,7 +751,8 @@ class Player(Hitbox):
 
         self.damage_health += damage
         self.health -= damage
-        self.damage_tint_time = damage / 30
+        self.damage_tint_init_time = damage / 30
+        self.damage_tint_time = self.damage_tint_init_time
 
     def switch_weapon(self, weapon: Weapon) -> None:
         # TODO drop current weapon

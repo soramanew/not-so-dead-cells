@@ -1,3 +1,5 @@
+import math
+
 import pygame
 import state
 from camera import Camera
@@ -272,12 +274,19 @@ def _create_h_bar(width: int, height: int) -> tuple[pygame.Surface, Rect, pygame
     return h_bar, inner_rect, get_font("BIT", int(height * 0.02))
 
 
-def _create_damage_tint(width: int, height: int) -> pygame.Surface:
-    amount = 5
-    surface = pygame.Surface((amount, amount)).convert()
+def _create_damage_tint(width: int, height: int, strength: int, size: int = 5) -> pygame.Surface:
+    strength = 255 - strength
+    surface = pygame.Surface((size, size)).convert()
     surface.fill((255, 255, 255))
-    pygame.draw.rect(surface, (218, 97, 97), (0, 0, amount, amount), width=1)
+    pygame.draw.rect(surface, (255, strength, strength), (0, 0, size, size), width=1)
     return pygame.transform.smoothscale(surface, (width, height))
+
+
+def _create_damage_tints(
+    width: int, height: int, start: int = 1, stop: int = 255, step: int = 25
+) -> tuple[list[pygame.Surface], int]:
+    tints = [_create_damage_tint(width, height, i) for i in range(start, stop, step)]
+    return tints, len(tints) - 1
 
 
 def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
@@ -291,7 +300,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
     state.current_map.spawn_init_weapon()
 
     h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window.size)
-    damage_tint = _create_damage_tint(*window.size)
+    damage_tints, max_damage_tint = _create_damage_tints(*window.size)
 
     overlay_font = None
     title_font = None
@@ -357,7 +366,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                 if not state.current_map.static_bg:
                     state.current_map.background.resize(*new_size)
                 h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*new_size)
-                damage_tint = _create_damage_tint(*new_size)
+                damage_tints, max_damage_tint = _create_damage_tints(*new_size)
                 update_fonts()
                 menu_needs_update = True
             elif event.type == pygame.KEYDOWN:
@@ -426,9 +435,25 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             # Draw stuff
             state.camera.render(window)
 
-            # Damage tint
-            if state.player.damage_tint_time > 0:
-                window.blit(damage_tint, (0, 0), special_flags=pygame.BLEND_MULT)
+            if 0 <= state.player.health <= state.player.max_health * 0.2:
+                # Low health tint
+                window.blit(
+                    damage_tints[int((1 - state.player.health / (state.player.max_health * 0.5)) * max_damage_tint)],
+                    (0, 0),
+                    special_flags=pygame.BLEND_MULT,
+                )
+            elif state.player.damage_tint_time > 0:
+                # Damage flash
+                window.blit(
+                    damage_tints[
+                        int(
+                            math.sin(math.pi * (state.player.damage_tint_time / state.player.damage_tint_init_time))
+                            * max_damage_tint
+                        )
+                    ],
+                    (0, 0),
+                    special_flags=pygame.BLEND_MULT,
+                )
 
             # FPS monitor
             fps = overlay_font.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255))
