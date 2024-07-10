@@ -85,6 +85,7 @@ class Sprite(EnemyABC):
             "dead": State(_get_sprites_from_sheet(folder_path / "Dead.png")),
             "idle": State(_get_sprites_from_sheet(folder_path / "Idle.png")),
             "walk": State(_get_sprites_from_sheet(folder_path / "Walk.png")),
+            "sprint": State(_get_sprites_from_sheet(folder_path / "Sprint.png")),
             "alerted": State(_get_sprites_from_sheet(folder_path / "Alerted.png")),
             "hurt": State(_get_sprites_from_sheet(folder_path / "Hurt.png")),
         }

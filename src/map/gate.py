@@ -1,8 +1,8 @@
 import pygame
 import state
 from box import Box
-from util.func import render_interact_text
-from util.type import Interactable
+from util.func import get_project_root, render_interact_text
+from util.type import Interactable, Sound
 
 
 def _create_popup() -> pygame.Surface:
@@ -20,10 +20,12 @@ class Gate(Box, Interactable):
     def __init__(self, x: float, y: float, width: int, height: int):
         super().__init__(x, y, width, height)
         self.popup: pygame.Surface = _create_popup()
+        self.sfx: Sound = Sound(get_project_root() / "assets/sfx/interact/Gate.wav")
 
     def interact(self) -> None:
         from map import Map  # Damn you circular imports
 
+        self.sfx.play()
         diff = round(state.difficulty, 2)
         state.difficulty *= 1.3
         print(f"[DEBUG] Difficulty {diff} -> {round(state.difficulty, 2)}")

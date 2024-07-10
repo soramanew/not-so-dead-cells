@@ -12,7 +12,7 @@ from util.func import (
     normalise_for_drawing,
     render_interact_text,
 )
-from util.type import Direction, Interactable, Vec2
+from util.type import Direction, Interactable, Sound, Vec2
 
 from item import Item
 
@@ -36,6 +36,7 @@ class Pickup(Hitbox, Interactable):
     def __init__(
         self,
         sprite: str,
+        sfx: str,
         platform_or_pos: Wall | Vec2,
         vx: float = None,
         vy: float = None,
@@ -46,12 +47,14 @@ class Pickup(Hitbox, Interactable):
         width, height = self.sprite.size
 
         self.sunburst: pygame.Surface = pygame.image.load(
-            get_project_root() / "assets/sprites/sunburst.png"
+            get_project_root() / "assets/vfx/Sunburst.png"
         ).convert_alpha()
         # Scale to slightly larger than sprite
         self.sunburst = pygame.transform.scale(self.sunburst, (width * 1.5, height * 1.5))
         # Tint by sprite colour
         self.sunburst.fill((*pygame.transform.average_color(self.sprite)[:3], 255), special_flags=pygame.BLEND_ADD)
+
+        self.sfx: Sound = Sound(get_project_root() / f"assets/sfx/interact/{sfx}")
 
         if isinstance(platform_or_pos, Wall):
             # Platform
@@ -132,7 +135,7 @@ class Pickup(Hitbox, Interactable):
 class WeaponPickup(Pickup):
     def __init__(self, item: Item, platform_or_pos: Wall | Vec2, vx: float = None, vy: float = None):
         self.item: Item = item
-        super().__init__(item.sprite, platform_or_pos, vx, vy)
+        super().__init__(item.sprite, "Weapon.wav", platform_or_pos, vx, vy)
         item.sprite_img = self.sprite
 
     def _create_popup(self) -> pygame.Surface:
@@ -176,6 +179,7 @@ class WeaponPickup(Pickup):
     def interact(self) -> None:
         state.player.switch_weapon(self.item)
         state.current_map.remove_pickup(self)
+        self.sfx.play()
 
 
 class Food(Pickup):
@@ -192,7 +196,7 @@ class Food(Pickup):
         self.name: str = name
         self.desc: str = desc
         self.heal: int = int(heal * state.difficulty * 0.6)  # Player health & healing scales much slower
-        super().__init__(f"food/{sprite}", platform_or_pos, vx, vy)
+        super().__init__(f"food/{sprite}", "Food.wav", platform_or_pos, vx, vy)
 
     def _create_popup(self) -> pygame.Surface:
         title_font = get_font("BIT", 20)
@@ -227,6 +231,7 @@ class Food(Pickup):
     def interact(self) -> None:
         state.player.heal(self.heal)
         state.current_map.remove_pickup(self)
+        self.sfx.play()
 
 
 class Apple(Food):
@@ -339,6 +344,7 @@ class Potion(Pickup):
         )
         super().__init__(
             f"potions/{pot_type.lower()}_{self.size.lower()}",
+            "Potion.wav",
             platform_or_pos,
             vx,
             vy,
@@ -395,6 +401,7 @@ class DamagePotion(Potion):
             f"[DEBUG] Picked up damage potion: {state.player.damage_potions} potions - {round(state.player.damage_mul * 100)}%"
         )
         state.current_map.remove_pickup(self)
+        self.sfx.play()
 
 
 class HealthPotion(Potion):
@@ -415,3 +422,4 @@ class HealthPotion(Potion):
             f"[DEBUG] Picked up health potion: {state.player.health_potions} potions - {round(state.player.health_mul * 100)}%"
         )
         state.current_map.remove_pickup(self)
+        self.sfx.play()

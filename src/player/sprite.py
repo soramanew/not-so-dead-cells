@@ -112,9 +112,7 @@ class PlayerSprite:
 
 class EffectSprite(State):
     def __init__(self, effect: str, x: float = None, y: float = None, once: bool = False, speed: float = 1):
-        super().__init__(
-            _get_sprites_from_sheet(get_project_root() / "assets/sprites/effects" / f"{effect}.png"), speed
-        )
+        super().__init__(_get_sprites_from_sheet(get_project_root() / "assets/vfx" / f"{effect}.png"), speed)
         # Position for static
         self.x: float = x
         self.y: float = y

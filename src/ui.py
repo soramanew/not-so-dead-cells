@@ -8,7 +8,7 @@ from map import Map
 from player import Player
 from util import key_handler
 from util.func import change_music, clamp, get_font, get_fps, get_project_root
-from util.type import Colour, PlayerControl, Rect, Side, Vec2
+from util.type import Colour, PlayerControl, Rect, Side, Sound, Vec2
 
 
 class ShadowTextButton(pygame.Rect):
@@ -210,6 +210,8 @@ def LoadingScreen(window: pygame.Surface) -> None:
 
 
 def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
+    change_music("game_over", "ogg")
+
     death_text = None
     score = None
     prompt = None
@@ -333,6 +335,8 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
     back_confirm = False
     menu_needs_update = False
 
+    enter_map_sfx = Sound(get_project_root() / "assets/sfx/Enter_Level.wav")
+
     while True:
         # FPS = refresh rate or default 60
         dt = clock.tick(get_fps()) / 1000  # To get in seconds
@@ -344,6 +348,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             state.current_map.load()
             state.map_loaded = True
             skip_frame = True
+            enter_map_sfx.play()
             change_music("game", "ogg", random.uniform(0, 90))
             continue
 
@@ -454,7 +459,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                     damage_tints[
                         int(
                             math.sin(math.pi * (state.player.damage_tint_time / state.player.damage_tint_init_time))
-                            * max_damage_tint
+                            * (max_damage_tint / 2)
                         )
                     ],
                     (0, 0),

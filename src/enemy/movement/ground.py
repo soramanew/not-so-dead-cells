@@ -14,6 +14,8 @@ class GroundMovement(EnemyABC):
 
     # The distance (pixels) between the enemy and it's move target to be considered as reached the target
     TARGET_THRESHOLD: float = 0.01
+    # Speed percent when idle
+    IDLE_SPEED: float = 0.8
 
     @property
     def moving(self) -> bool:
@@ -26,7 +28,7 @@ class GroundMovement(EnemyABC):
 
     @property
     def speed(self) -> float:
-        return self._speed * (1 if self.alerted else 0.8)  # Slower movement on idle
+        return self._speed * (1 if self.can_sense_player else self.IDLE_SPEED)
 
     def __init__(self, speed: float, **kwargs):
         super().__init__(**kwargs)
@@ -154,7 +156,10 @@ class GroundMovement(EnemyABC):
                     self.vx -= copysign(min(speed, abs(self.vx)), self.vx)
                 self.move((diff if abs(diff) < speed else speed * self.facing.value), 0)
 
-        self.state = EnemyState.WALKING if self.moving else EnemyState.IDLE
+        if self.moving:
+            self.state = EnemyState.SPRINTING if self.can_sense_player else EnemyState.WALKING
+        else:
+            self.state = EnemyState.IDLE
 
 
 class GroundIdleMovement(GroundMovement):

@@ -74,6 +74,7 @@ class EnemyState(Enum):
     HURT = "hurt"
     IDLE = "idle"
     WALKING = "walk"
+    SPRINTING = "sprint"
     ALERTED = "alerted"
 
 
@@ -84,3 +85,22 @@ class Collision:
 
     def __iter__(self):
         return iter((self.direction, self.entity))
+
+
+class Sound(pygame.mixer.Sound):
+    def __init__(self, *args, volume: float = 1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.set_volume(volume)
+        self.playing: bool = False
+
+    def play(self, *args, **kwargs):
+        super().play(*args, **kwargs)
+        self.playing = True
+
+    def stop(self):
+        super().stop()
+        self.playing = False
+
+    def fadeout(self, time: int):
+        super().fadeout(time)
+        self.playing = False

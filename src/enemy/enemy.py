@@ -5,8 +5,8 @@ import state
 from box import Hitbox
 from item.pickup import Pickup
 from map import DamageNumber, Wall
-from util.func import normalise_for_drawing
-from util.type import EnemyState, Side, Size, Vec2
+from util.func import get_project_root, normalise_for_drawing
+from util.type import EnemyState, Side, Size, Sound, Vec2
 
 from .sense import Sense
 from .sprite import Sprite
@@ -92,6 +92,8 @@ class Enemy(Hitbox, Sense, Sprite):
         self.death_finished: bool = False
         self.loot_dropped: bool = False
 
+        self.hit_sfx: Sound = Sound(get_project_root() / "assets/sfx/enemy/Hit.wav")
+
         super().__init__(
             x=x,
             y=y,
@@ -145,6 +147,7 @@ class Enemy(Hitbox, Sense, Sprite):
     def take_hit(self, damage: int, **kwargs) -> int:
         if self.i_frames <= 0:
             self.i_frames = self.I_FRAMES
+            self.hit_sfx.play()
             return self._take_hit(damage, **kwargs)
         return 0
 

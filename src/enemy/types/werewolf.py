@@ -20,6 +20,7 @@ SPRITE_LENGTH: int = 1 / SPRITES_PER_SECOND
 class Werewolf(Enemy, GroundIdleMovement, DiagonalUpOut):
     # High chance for toe, everything else same
     LOOT_POOL: list[Pickup] = [Toe, Toe, Sausages, DamagePotion, HealthPotion]
+    IDLE_SPEED = 0.3
 
     @property
     def current_atk_time(self) -> float:
@@ -30,7 +31,7 @@ class Werewolf(Enemy, GroundIdleMovement, DiagonalUpOut):
             platform,
             size=(45, 80),
             mass=1.5,
-            speed=100,
+            speed=400,
             sense_size=(600, 500),
             sense_anchor=(0.4, 0.5),
             xray=True,

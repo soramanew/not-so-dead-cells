@@ -4,7 +4,7 @@ import pygame
 import state
 from box import Box
 from util.func import get_project_root, render_interact_text
-from util.type import Interactable
+from util.type import Interactable, Sound
 
 from .wall import Wall
 
@@ -40,10 +40,13 @@ class Corpse(Box, Interactable):
         super().__init__(x, y, width, height)
         self.popup: pygame.Surface = _create_popup("Inspect")
         self.looted: bool = False
+        self.sfx: Sound = Sound(get_project_root() / "assets/sfx/interact/Corpse.wav")
 
     def interact(self) -> None:
         if self.looted:
             return
+
+        self.sfx.play(maxtime=1000)
 
         self.looted = True
         if random() < 0.5:

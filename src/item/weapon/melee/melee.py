@@ -1,8 +1,8 @@
 import pygame
 import state
 from enemy.enemy import Enemy
-from util.func import normalise_rect
-from util.type import Colour, Rect, Side, Vec2
+from util.func import get_project_root, normalise_rect
+from util.type import Colour, Rect, Side, Sound, Vec2
 
 from ...modifier import DamageMod, Modifier, SpeedMod
 from ..weapon import Weapon
@@ -55,6 +55,7 @@ class MeleeWeapon(Weapon):
         self.kb: Vec2 = kb
 
         self._surface: pygame.Surface = pygame.Surface((atk_width, atk_height)).convert()
+        self.sfx: Sound = Sound(get_project_root() / "assets/sfx/player/Attack.wav")
 
         # Apply modifiers
         super().__init__(**kwargs)
@@ -82,8 +83,13 @@ class MeleeWeapon(Weapon):
         damage = int(self.damage * state.player.damage_mul)  # Apply player damage multiplier
         damage_dealt = 0
         if 0 < self.atk_time <= self.atk_length:
+            if not self.sfx.playing:
+                self.sfx.play(-1)
             for enemy in state.current_map.get_rect(*self, lambda e: isinstance(e, Enemy)):
                 damage_dealt += enemy.take_hit(damage, kb=self.kb, side=state.player.facing)
+
+        if self.atk_time <= 0:
+            self.sfx.fadeout(200)
 
         self.atk_time -= dt
         self.sprite_obj.tick(dt)

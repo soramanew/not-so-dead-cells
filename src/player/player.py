@@ -8,7 +8,7 @@ from item.pickup import WeaponPickup
 from map import Gate, Map, Wall
 from util import key_handler
 from util.decor import run_once
-from util.func import clamp
+from util.func import clamp, get_project_root
 from util.type import (
     Collision,
     Direction,
@@ -18,6 +18,7 @@ from util.type import (
     Rect,
     Side,
     Size,
+    Sound,
     Vec2,
 )
 
@@ -189,12 +190,21 @@ class Player(Hitbox):
         self.health_potions: int = 0
         self._health_mul: float = 1  # Health multiplier
         self.state: PlayerState = PlayerState.IDLE
-        self.sprite: PlayerSprite = PlayerSprite("player/pink")
-        self.slam_fall_sprite: EffectSprite = EffectSprite("Slam")
         self.slam_dust_sprites: list[EffectSprite] = []
         self.jump_dust_sprites: list[EffectSprite] = []
         self.damage_tint_init_time: float = 0
         self.damage_tint_time: float = 0
+
+        # Permanent attributes
+        self.sprite: PlayerSprite = PlayerSprite("player/pink")
+        self.slam_fall_sprite: EffectSprite = EffectSprite("Slam")
+        sfx_folder = get_project_root() / "assets/sfx/player"
+        self.walk_sfx: Sound = Sound(sfx_folder / "Walk.wav")
+        self.sprint_sfx: Sound = Sound(sfx_folder / "Sprint.wav")
+        self.jump_sfx: Sound = Sound(sfx_folder / "Jump.wav")
+        self.land_sfx: Sound = Sound(sfx_folder / "Landing.wav")
+        self.climb_sfx: Sound = Sound(sfx_folder / "Climb.wav")
+        self.hit_sfx: Sound = Sound(sfx_folder / "Hit.wav", volume=0.6)
 
     # ------------------------------ Methods ------------------------------ #
 
@@ -304,6 +314,8 @@ class Player(Hitbox):
             if not stopped_rolling:
                 return
 
+        self.jump_sfx.play()
+
         # Cancel ledge climbing
         self.ledge_climbing = None
 
@@ -395,12 +407,18 @@ class Player(Hitbox):
             The collisions the player experienced in this tick.
         """
 
-        self._reset_collision_attrs()
+        down_col = False
 
         for direction, entity in collisions:
             if direction is Direction.DOWN and isinstance(entity, Wall):
-                self._handle_down_wall_collision()
+                down_col = True
                 break
+
+        if down_col:
+            self._handle_down_wall_collision()
+        else:
+            self.on_platform = False
+            self.wall_col_dir = None
 
         if not self.slamming:
             reset_wall_climb = True
@@ -414,18 +432,6 @@ class Player(Hitbox):
             if reset_wall_climb:
                 self._start_wall_climb.reset()
 
-    def _reset_collision_attrs(self) -> None:
-        """Resets the attributes affected by methods called by handle_collision() to their default values.
-
-        See Also
-        --------
-        _handle_down_wall_collision()
-        _handle_side_wall_collision()
-        """
-
-        self.on_platform = False
-        self.wall_col_dir = None
-
     def _handle_down_wall_collision(self) -> None:
         """Actions on downwards wall collisions.
 
@@ -436,6 +442,7 @@ class Player(Hitbox):
             self.slam_dust_sprites.append(EffectSprite("Slash_Cloud", self.center_x, self.bottom))
         elif self.jumps <= 0:
             self.jump_dust_sprites.append(EffectSprite("Jump_Dust", self.center_x, self.bottom))
+            self.land_sfx.play()
 
         self.on_platform = True
         self.jumps = Player.JUMPS
@@ -721,7 +728,13 @@ class Player(Hitbox):
         elif not self.on_platform:
             if self.wall_col_dir or self.ledge_climbing:
                 # Climbing/sliding on wall
-                self.state = PlayerState.WALL_SLIDING if self.vy > 0 else PlayerState.CLIMBING
+                if self.vy > 0:
+                    self.state = PlayerState.WALL_SLIDING
+                else:
+                    self.state = PlayerState.CLIMBING
+                    if not self.climb_sfx.playing:
+                        self.climb_sfx.play(-1)
+
             else:
                 # Not on platform so either jumping or falling
                 self.state = PlayerState.JUMPING
@@ -740,14 +753,38 @@ class Player(Hitbox):
                     self.slam_fall_sprite.tick(dt)
         elif self.is_moving:
             # Walking/running
-            self.state = PlayerState.SPRINTING if self.sprinting else PlayerState.WALKING
+            if self.sprinting:
+                self.state = PlayerState.SPRINTING
+                if not self.sprint_sfx.playing:
+                    self.sprint_sfx.play(-1)
+                if self.walk_sfx.playing:
+                    self.walk_sfx.fadeout(400)
+            else:
+                self.state = PlayerState.WALKING
+                if not self.walk_sfx.playing:
+                    self.walk_sfx.play(-1)
+                if self.sprint_sfx.playing:
+                    self.sprint_sfx.fadeout(300)
         else:
             # Idle if nothing else
             self.state = PlayerState.IDLE
 
+        if not (self.on_platform and self.is_moving):
+            if self.walk_sfx.playing:
+                self.walk_sfx.fadeout(400)
+            if self.sprint_sfx.playing:
+                self.sprint_sfx.fadeout(300)
+
+        if self.climb_sfx.playing and not (
+            not self.on_platform and (self.wall_col_dir or self.ledge_climbing) and self.vy <= 0
+        ):
+            self.climb_sfx.fadeout(350)
+
     def take_hit(self, damage: int) -> None:
         if self.i_frames > 0:
             return
+
+        self.hit_sfx.play()
 
         self.damage_health += damage
         self.health -= damage
