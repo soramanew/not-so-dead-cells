@@ -20,8 +20,8 @@ def get_fps() -> int:
     return pygame.display.get_current_refresh_rate() or 60
 
 
-def change_music(track: str, start: float = 0, override: bool = False) -> None:
-    track = get_project_root() / f"assets/music/{track}.wav"
+def change_music(track: str, ext: str = "mp3", start: float = 0, override: bool = False) -> None:
+    track = get_project_root() / f"assets/music/{track}.{ext}"
     try:
         current_metadata = pygame.mixer.music.get_metadata()
     except pygame.error:

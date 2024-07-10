@@ -344,7 +344,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             state.current_map.load()
             state.map_loaded = True
             skip_frame = True
-            change_music("game", random.uniform(0, 90))
+            change_music("game", "ogg", random.uniform(0, 90))
             continue
 
         if skip_frame:
@@ -392,7 +392,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                     if pause:
                         change_music("pause")
                     else:
-                        change_music("game", random.uniform(0, 90))
+                        change_music("game", "ogg", random.uniform(0, 90))
                     menu_needs_update = True
                 elif event.key == pygame.K_b:
                     if back_confirm:
