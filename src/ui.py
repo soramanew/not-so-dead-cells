@@ -1,4 +1,5 @@
 import math
+import random
 
 import pygame
 import state
@@ -6,7 +7,7 @@ from camera import Camera
 from map import Map
 from player import Player
 from util import key_handler
-from util.func import clamp, get_font, get_fps, get_project_root
+from util.func import change_music, clamp, get_font, get_fps, get_project_root
 from util.type import Colour, PlayerControl, Rect, Side, Vec2
 
 
@@ -231,7 +232,6 @@ def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
                 return True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                 pygame.display.toggle_fullscreen()
@@ -339,10 +339,12 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
 
         # Do not count loading time
         if not state.map_loaded:
+            change_music("pause")
             LoadingScreen(window)
             state.current_map.load()
             state.map_loaded = True
             skip_frame = True
+            change_music("game", random.uniform(0, 90))
             continue
 
         if skip_frame:
@@ -358,7 +360,6 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
                 return True
             elif event.type == pygame.VIDEORESIZE:
                 new_size = event.dict["size"]
@@ -388,10 +389,15 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                         back_confirm = False
                     else:
                         pause = not pause
+                    if pause:
+                        change_music("pause")
+                    else:
+                        change_music("game", random.uniform(0, 90))
                     menu_needs_update = True
                 elif event.key == pygame.K_b:
                     if back_confirm:
                         return
+                    change_music("pause")
                     back_confirm = True
                     menu_needs_update = True
                 elif event.key == pygame.K_F11:
@@ -654,7 +660,6 @@ def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
                 return True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                 pygame.display.toggle_fullscreen()
@@ -751,7 +756,6 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
                 return True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                 pygame.display.toggle_fullscreen()
@@ -790,6 +794,8 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
 
 
 def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
+    change_music("main_menu")
+
     orig_menu_bg = _get_menu_bg()
     menu_bg = None
 
@@ -834,7 +840,6 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
                 return
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                 pygame.display.toggle_fullscreen()
@@ -852,14 +857,14 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
                 full_exit = None
                 if start_button.collidepoint(*pygame.mouse.get_pos()):
                     full_exit = Game(window, clock)
+                    if not full_exit:
+                        change_music("main_menu")
                 elif controls_button.collidepoint(*pygame.mouse.get_pos()):
                     full_exit = Controls(window, clock)
                 elif hardcore_button.collidepoint(*pygame.mouse.get_pos()):
                     state.hardcore = hardcore_button.checked
                     if not hardcore_warned:
                         full_exit = HardcoreWarning(window, clock)
-                        if full_exit:
-                            return
                         hardcore_warned = True
                 elif exit_button.collidepoint(*pygame.mouse.get_pos()):
                     full_exit = True

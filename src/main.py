@@ -13,6 +13,8 @@ def main():
 
     MainMenu(window, clock)
 
+    pygame.quit()
+
 
 if __name__ == "__main__":
     main()

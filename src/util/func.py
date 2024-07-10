@@ -20,6 +20,18 @@ def get_fps() -> int:
     return pygame.display.get_current_refresh_rate() or 60
 
 
+def change_music(track: str, start: float = 0, override: bool = False) -> None:
+    track = get_project_root() / f"assets/music/{track}.wav"
+    try:
+        current_metadata = pygame.mixer.music.get_metadata()
+    except pygame.error:
+        # If no music loaded
+        current_metadata = None
+    if override or current_metadata != pygame.mixer.music.get_metadata(track):
+        pygame.mixer.music.load(track)
+        pygame.mixer.music.play(-1, start)
+
+
 def clamp(x: int, maximum: int, minimum: int) -> int:
     """Clamps a value to the range [minimum, maximum].
 
