@@ -396,13 +396,16 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                         pause = not pause
                     if pause:
                         change_music("pause")
+                        pygame.mixer.pause()
                     else:
                         change_music("game", "ogg", random.uniform(0, 90))
+                        pygame.mixer.unpause()
                     menu_needs_update = True
                 elif event.key == pygame.K_b:
                     if back_confirm:
                         return
                     change_music("pause")
+                    pygame.mixer.pause()
                     back_confirm = True
                     menu_needs_update = True
                 elif event.key == pygame.K_F11:
@@ -864,6 +867,7 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
                     full_exit = Game(window, clock)
                     if not full_exit:
                         change_music("main_menu")
+                        pygame.mixer.stop()
                 elif controls_button.collidepoint(*pygame.mouse.get_pos()):
                     full_exit = Controls(window, clock)
                 elif hardcore_button.collidepoint(*pygame.mouse.get_pos()):

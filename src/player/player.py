@@ -5,7 +5,7 @@ import state
 from box import Hitbox
 from item import Weapon
 from item.pickup import WeaponPickup
-from map import Gate, Map, Wall
+from map import Gate, Map, Platform, Wall
 from util import key_handler
 from util.decor import run_once
 from util.func import clamp, get_project_root
@@ -153,7 +153,7 @@ class Player(Hitbox):
 
     @property
     def is_moving(self) -> bool:
-        return abs(self.controlled_vx) > 30
+        return abs(self.controlled_vx) > 50
 
     @property
     def rolling(self) -> bool:
@@ -175,7 +175,7 @@ class Player(Hitbox):
         self.jumps: int = Player.JUMPS  # How many jumps the player has left (is reset when touching ground)
         self.roll_cooldown: float = 0  # The time until the player can roll again in seconds
         self.slamming: bool = False  # If the player is currently slamming
-        self.on_platform: bool = False
+        self.on_platform: Wall | None = None
         self.roll_time: float = 0
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
         self.ledge_climbing: tuple[Side, Vec2] | None = None
@@ -194,6 +194,7 @@ class Player(Hitbox):
         self.jump_dust_sprites: list[EffectSprite] = []
         self.damage_tint_init_time: float = 0
         self.damage_tint_time: float = 0
+        self.should_not_collide: set[Platform] = set()
 
         # Permanent attributes
         self.sprite: PlayerSprite = PlayerSprite("player/pink")
@@ -219,7 +220,7 @@ class Player(Hitbox):
         self.jumps = Player.JUMPS
         self.roll_cooldown = 0
         self.slamming = False
-        self.on_platform = False
+        self.on_platform = None
         self.roll_time = 0
         self.wall_col_dir = None
         self.ledge_climbing = None
@@ -228,6 +229,9 @@ class Player(Hitbox):
         self.damage_health = 0
         self.damage_tint_init_time = 0
         self.damage_tint_time = 0
+        self.slam_dust_sprites.clear()
+        self.jump_dust_sprites.clear()
+        self.should_not_collide.clear()
 
     def handle_moves(self, dt: float, *move_types: PlayerControl) -> None:
         """Handles movement commands.
@@ -264,8 +268,11 @@ class Player(Hitbox):
             self._roll()
 
         # Cannot slam if currently slamming or on a platform
-        if not (self.slamming or self.on_platform) and PlayerControl.SLAM in move_types:
-            self._slam()
+        if not self.slamming and PlayerControl.SLAM in move_types:
+            if self.on_platform:
+                self.should_not_collide.add(self.on_platform)
+            else:
+                self._slam()
 
         if not (self.slamming or self.rolling or (self.wall_col_dir and not self.on_platform) or self.ledge_climbing):
             if PlayerControl.INTERACT in move_types:
@@ -407,17 +414,17 @@ class Player(Hitbox):
             The collisions the player experienced in this tick.
         """
 
-        down_col = False
+        down_col = None
 
         for direction, entity in collisions:
             if direction is Direction.DOWN and isinstance(entity, Wall):
-                down_col = True
+                down_col = entity
                 break
 
         if down_col:
-            self._handle_down_wall_collision()
+            self._handle_down_wall_collision(down_col)
         else:
-            self.on_platform = False
+            self.on_platform = None
             self.wall_col_dir = None
 
         if not self.slamming:
@@ -432,7 +439,7 @@ class Player(Hitbox):
             if reset_wall_climb:
                 self._start_wall_climb.reset()
 
-    def _handle_down_wall_collision(self) -> None:
+    def _handle_down_wall_collision(self, wall: Wall) -> None:
         """Actions on downwards wall collisions.
 
         This should be called from handle_collisions() and wrapped with run_once().
@@ -444,7 +451,7 @@ class Player(Hitbox):
             self.jump_dust_sprites.append(EffectSprite("Jump_Dust", self.center_x, self.bottom))
             self.land_sfx.play()
 
-        self.on_platform = True
+        self.on_platform = wall
         self.jumps = Player.JUMPS
         self.slamming = False
         self.vy = 0
@@ -689,19 +696,7 @@ class Player(Hitbox):
                 # Prevent bouncing and make player slide off enemies
                 self.vy -= (min(Player.REPULSION_CAP, gravity) / 30) * (dy / d)
 
-    def tick(self, dt: float, moves: list[PlayerControl]) -> None:
-        self.handle_moves(dt, *moves)
-        self.tick_changes(dt)
-        if self.weapon is not None:
-            damage = self.weapon.tick(dt)
-            self._regain_health(damage)
-        if self.slamming:
-            self.tick_slam(dt)
-        if not self.rolling:
-            self.tick_collision(dt)
-        collisions = self.update_position(dt)
-        self.handle_collisions(collisions)
-
+    def tick_sprites(self, dt: float) -> None:
         self.sprite.tick(dt)
 
         to_remove = []
@@ -715,6 +710,7 @@ class Player(Hitbox):
             if sprite in self.jump_dust_sprites:
                 self.jump_dust_sprites.remove(sprite)
 
+    def tick_state(self, dt: float) -> None:
         if self.weapon and self.weapon.attacking:
             # Attack
             self.state = PlayerState.ATTACKING
@@ -769,6 +765,7 @@ class Player(Hitbox):
             # Idle if nothing else
             self.state = PlayerState.IDLE
 
+    def stop_wrong_sfx(self) -> None:
         if not (self.on_platform and self.is_moving):
             if self.walk_sfx.playing:
                 self.walk_sfx.fadeout(400)
@@ -779,6 +776,26 @@ class Player(Hitbox):
             not self.on_platform and (self.wall_col_dir or self.ledge_climbing) and self.vy <= 0
         ):
             self.climb_sfx.fadeout(350)
+
+    def tick(self, dt: float, moves: list[PlayerControl]) -> None:
+        self.handle_moves(dt, *moves)
+        self.tick_changes(dt)
+        if self.weapon is not None:
+            damage = self.weapon.tick(dt)
+            self._regain_health(damage)
+        if self.slamming:
+            self.tick_slam(dt)
+        if not self.rolling:
+            self.tick_collision(dt)
+        collisions = self.update_position(dt)
+        self.handle_collisions(collisions)
+
+        # Remove any platforms not currently colliding with
+        self.should_not_collide &= set(state.current_map.get_rect(*self, lambda e: isinstance(e, Platform)))
+
+        self.tick_sprites(dt)
+        self.tick_state(dt)
+        self.stop_wrong_sfx()
 
     def take_hit(self, damage: int) -> None:
         if self.i_frames > 0:
@@ -792,8 +809,8 @@ class Player(Hitbox):
         self.damage_tint_time = self.damage_tint_init_time
 
     def switch_weapon(self, weapon: Weapon) -> None:
-        # TODO drop current weapon
         if self.weapon:
+            self.weapon.interrupt()
             state.current_map.add_pickup(WeaponPickup(self.weapon, (self.center_x, self.center_y)))
         self.weapon = weapon
         print(f"[DEBUG] Weapon changed: {weapon.to_friendly_str()}")

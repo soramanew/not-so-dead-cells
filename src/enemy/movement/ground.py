@@ -118,7 +118,7 @@ class GroundMovement(EnemyABC):
         self.on_platform = False
         collisions = self.move(self.vx * dt, self.vy * dt)
         for direction, entity in collisions:
-            if direction == Direction.DOWN and isinstance(entity, Wall):
+            if direction is Direction.DOWN and isinstance(entity, Wall):
                 self.vy = 0
                 self.on_platform = True
                 if entity is not self.platform:

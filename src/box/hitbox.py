@@ -81,7 +81,7 @@ class Hitbox(Box):
         collisions = []
 
         for box in boxes:
-            if self.detect_collision_box(box):
+            if box.detect_collision_box(self):
                 if dx > 0:
                     collisions.append(Collision(Direction.RIGHT, box))
                     self.right = box.left

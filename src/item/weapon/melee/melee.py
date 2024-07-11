@@ -72,6 +72,7 @@ class MeleeWeapon(Weapon):
     def interrupt(self) -> None:
         self.stop_attack()
         self.atk_time = 0
+        self.sfx.fadeout(200)
 
     def tick(self, dt: float) -> int:
         # Start attack if attacking

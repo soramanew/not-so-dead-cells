@@ -19,6 +19,7 @@ from util.type import Side
 from .background import Background
 from .corpse import Corpse
 from .gate import Gate
+from .platform import Platform
 from .wall import Wall
 
 if TYPE_CHECKING:
@@ -198,8 +199,7 @@ class Map:
 
         for wall in self.map_data.walls:
             box = Wall(*wall.bounds)
-            self.walls.add(box)
-            self.add(box)
+            self.add_wall(box)
             if hasattr(wall, "enemies"):
                 # Random amount of enemies + more with higher difficulty
                 for _ in range(floor(wall.enemies * random.uniform(0.8, 1.2) * (1 + state.difficulty / 10))):
@@ -207,6 +207,10 @@ class Map:
                 # Random chance to spawn a corpse which weapons drop from
                 if random.random() < 0.2:
                     self.add(Corpse(box))
+
+        if hasattr(self.map_data, "platforms"):
+            for platform in self.map_data.platforms:
+                self.add_wall(Platform(*platform.bounds))
 
         for gate in self.map_data.gates:
             if not hasattr(gate, "optional") or not gate.optional or random.random() < 0.5:
@@ -378,9 +382,8 @@ class Map:
             The wall to add.
         """
 
-        if wall not in self.walls:
-            self.walls.add(wall)
-            self.add(wall)
+        self.walls.add(wall)
+        self.add(wall)
 
     def set_player_spawn(self, x: float, y: float, width: int, height: int) -> None:
         """Sets the player spawn for this map.
