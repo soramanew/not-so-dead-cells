@@ -12,15 +12,16 @@ class Background:
         self.y: float = 0
         self.off: float = 0
 
+        self.orig_layers: list[pygame.Surface] = []
         self.layers: list[pygame.Surface] = []
         self.offsets: list[float] = []
 
         for layer in sorted((get_project_root() / "assets/background").iterdir()):
-            self.layers.append(pygame.image.load(layer).convert_alpha())
+            self.orig_layers.append(pygame.image.load(layer).convert_alpha())
             self.offsets.append(0)
-        self.layers[0] = self.layers[0].convert()  # Base layer doesn't need alpha
-        self.num_layers: int = len(self.layers)
-        self.max_off: float = self.layers[0].height * 0.1
+        self.orig_layers[0] = self.orig_layers[0].convert()  # Base layer doesn't need alpha
+        self.num_layers: int = len(self.orig_layers)
+        self.max_off: float = self.orig_layers[0].height * 0.1
 
         self.resize(width, height, override=True)
 
@@ -33,12 +34,13 @@ class Background:
 
         height *= 1.5
         self.layers = [
-            pygame.transform.scale_by(layer, (height / layer.height)) for layer in self.layers if height != layer.height
+            pygame.transform.scale_by(layer, (height / layer.height)) if height != layer.height else layer
+            for layer in self.orig_layers
         ]
 
     def tick(self, dx: float, dy: float) -> None:
-        self.x -= dx / 4
-        self.y -= dy / 80
+        self.x -= dx / 8
+        self.y -= dy / 160
 
     def draw(self, surface: pygame.Surface) -> None:
         blits = []

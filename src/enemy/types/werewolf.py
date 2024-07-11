@@ -32,7 +32,7 @@ class Werewolf(Enemy, GroundIdleMovement, DiagonalUpOut):
             size=(45, 80),
             mass=1.5,
             speed=400,
-            sense_size=(600, 500),
+            sense_size=(1200, 500),
             sense_anchor=(0.4, 0.5),
             xray=True,
             alert_delay=SPRITE_LENGTH * 3,

@@ -43,7 +43,7 @@ class Map:
 
     @staticmethod
     def storage() -> Path:
-        return get_project_root() / "assets/maps"
+        return get_project_root() / "assets/maps/ramparts"
 
     @classmethod
     def get_air_resistance(cls, v: float, a: float) -> float:
@@ -74,25 +74,59 @@ class Map:
         storage = Map.storage()
 
         if load:
-            chosen_map = random.choice([f for f in storage.iterdir() if f.is_file()]).stem
-            texture = pygame.image.load(storage / f"{chosen_map}.png")
-            self.map_data = json.load(open(storage / f"{chosen_map}.json"), object_hook=lambda d: SimpleNamespace(**d))
-            self.static_bg = isinstance(self.map_data.background, str)
+            self.map_data = json.load(open(storage / "start.json"))
+            texture = pygame.image.load(storage / "start.png")
+            self.width: int = texture.width
+            textures = [texture]
+
+            i = 0
+            segments = random.randint(4, 8)
+            while i < segments or "gates" not in self.map_data:
+                segment = random.choice([f for f in storage.iterdir() if f.is_file() and f.stem[0].isdigit()]).stem
+                texture = pygame.image.load(storage / f"{segment}.png")
+                textures.append(texture)
+
+                map_data = json.load(open(storage / f"{segment}.json"))
+                for prop in map_data:
+                    for obj in map_data[prop]:
+                        obj["bounds"][0] += self.width
+                        if prop not in self.map_data:
+                            self.map_data[prop] = []
+                        self.map_data[prop].append(obj)
+
+                self.width += texture.width
+                i += 1
+
+            # To simple namespace
+            self.map_data = json.loads(json.dumps(self.map_data), object_hook=lambda d: SimpleNamespace(**d))
+
+            # FIXME temp, change when have generated underground
+            self.static_bg = False
             if self.static_bg:
                 self.texture = pygame.Surface(texture.size).convert()
                 self.texture.fill(self.map_data.background)
                 self.texture.blit(texture, (0, 0))
             else:
-                self.texture = texture.convert_alpha()
                 self.background: Background = Background()
+                self.texture = pygame.Surface((self.width, textures[0].height), pygame.SRCALPHA).convert_alpha()
+                off = 0
+                for texture in textures:
+                    self.texture.blit(texture, (off, 0))
+                    off += texture.width
 
-            def gen_c() -> int:
-                return random.randint(50, 255 // max(1, state.difficulty / 100))
+                # Bottom gradient
+                surf = pygame.Surface((1, 2), pygame.SRCALPHA)
+                pygame.draw.line(surf, (0, 0, 0), (0, 1), (1, 1))
+                surf = pygame.transform.smoothscale(surf, (self.width, 500))
+                self.texture.blit(surf, (0, self.texture.height - surf.height))
 
-            tint = gen_c(), gen_c(), gen_c()
-            self.texture.fill(tint, special_flags=pygame.BLEND_MULT)
-            if self.static_bg:
-                self.background: str = self.texture.get_at((0, 0))
+            # def gen_c() -> int:
+            #     return random.randint(50, 255 // max(1, state.difficulty / 100))
+
+            # tint = gen_c(), gen_c(), gen_c()
+            # self.texture.fill(tint, special_flags=pygame.BLEND_MULT)
+            # if self.static_bg:
+            #     self.background: str = self.texture.get_at((0, 0))
 
             self.width: int = self.texture.width
             self.height: int = self.texture.height

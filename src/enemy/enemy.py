@@ -169,6 +169,10 @@ class Enemy(Hitbox, Sense, Sprite):
             The damage taken due to the hit. This can be different to the given damage due to damage reduction, etc.
         """
 
+        # Idk how it can be hit if it's health is negative but it was causing errors, so oh well
+        if self.health <= 0:
+            return 0
+
         # Cap damage to health
         if damage > self.health:
             damage = self.health

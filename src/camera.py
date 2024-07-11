@@ -40,6 +40,7 @@ class Camera(Box):
 
         self.x += x
         self.y += y
+        # TODO limit movement to bottom of map
 
     def resize(self, width: int, height: int) -> None:
         """Resizes this camera's viewport to the given size.
