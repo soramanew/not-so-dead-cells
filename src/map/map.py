@@ -261,7 +261,7 @@ class Map:
             # Move to top of wall
             state.player.bottom = wall.top
 
-            for _, pos, entity in sorted(spawns, key=lambda e: e[1]):
+            for _, pos, entity in sorted(spawns, key=lambda e: e[0]):
                 state.player.center_x = pos
                 # Return if found suitable position (no walls colliding + no enemies in safe range)
                 if not (
