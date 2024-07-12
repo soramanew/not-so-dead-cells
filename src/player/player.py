@@ -798,8 +798,8 @@ class Player(Hitbox):
         self.tick_state(dt)
         self.stop_wrong_sfx()
 
-    def take_hit(self, damage: int) -> None:
-        if self.i_frames > 0:
+    def take_hit(self, damage: int, force: bool = False) -> None:
+        if not force and self.i_frames > 0:
             return
 
         self.hit_sfx.play()
@@ -808,6 +808,12 @@ class Player(Hitbox):
         self.health -= damage
         self.damage_tint_init_time = damage / 30
         self.damage_tint_time = self.damage_tint_init_time
+
+    def interrupt_all(self) -> None:
+        if self.weapon:
+            self.weapon.interrupt()
+        self._stop_rolling()
+        self.slamming = False
 
     def switch_weapon(self, weapon: Weapon) -> None:
         if self.weapon:

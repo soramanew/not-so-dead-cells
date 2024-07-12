@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 import pygame
 import state
 from box import Box
-from util.func import get_project_root
+from util.func import clamp, get_project_root
 from util.type import Side
 
 from .background import Background
@@ -40,6 +40,8 @@ WEAPONS = None
 class Map:
     GRAVITY: int = 1000
     AIR_RESISTANCE: float = 0.0002
+
+    SAFE_RANGE: int = 100
 
     @staticmethod
     def storage() -> Path:
@@ -201,6 +203,81 @@ class Map:
         for dm in to_remove:
             self.objects.remove(dm)
             self.damage_numbers.remove(dm)
+
+    def player_out_of_bounds(self) -> None:
+        # Damages player by 1/5 max health
+        state.player.take_hit(state.player.max_health // 5, True)
+        if state.player.health <= 0:
+            return
+
+        # Stop all actions
+        state.player.interrupt_all()
+        state.player.i_frames = 2  # A few seconds of i-frames
+
+        x = state.player.center_x
+        y = state.player.center_y
+
+        walls = set()  # Walls already checked
+        check_enemies = True
+
+        while True:
+            # TODO get nearest x by side if I can be bothered, cause currently this grabs by nearest center
+            wall = self.get_nearest(x, self.height, lambda e: e not in walls and e in self.walls)
+            walls.add(wall)
+
+            # No matching wall
+            if wall is None:
+                if check_enemies:
+                    print("[WARNING] Player out of bounds: no safe spawn area.")
+                    check_enemies = False
+                    walls.clear()
+                    continue
+
+                print("[CRITICAL] Player out of bounds: no suitable spawn area. Ignoring.")
+                state.player.center_x = x
+                state.player.center_y = y
+                return
+
+            bounds = wall.left + state.player.width / 2, wall.right - state.player.width / 2
+
+            obstacles = self.get_rect(
+                wall.x,
+                wall.y - state.player.HEIGHT,
+                wall.width,
+                state.player.HEIGHT,  # Use max height, not current cause all actions are interrupted
+                lambda e: e is not wall and e in self.walls or e in self.enemies,
+            )
+
+            # Get available positions to spawn
+            spawns = clamp(x, bounds[1], bounds[0])
+            spawns = [(abs(spawns - x), spawns, None)]
+            for o in obstacles:
+                off = state.player.width / 2 + (Map.SAFE_RANGE if o in self.enemies else 0)
+                if bounds[0] < o.left - off < bounds[1]:
+                    spawns.append((abs(o.left - x), o.left - off, o))
+                if bounds[0] < o.right + off < bounds[1]:
+                    spawns.append((abs(o.right - x), o.right + off, o))
+
+            # Move to top of wall
+            state.player.bottom = wall.top
+
+            for _, pos, entity in sorted(spawns, key=lambda e: e[1]):
+                state.player.center_x = pos
+                # Return if found suitable position (no walls colliding + no enemies in safe range)
+                if not (
+                    self.get_rect(*state.player, lambda e: e is not wall and e in self.walls)
+                    or (
+                        check_enemies
+                        and self.get_rect(
+                            state.player.x - Map.SAFE_RANGE,
+                            state.player.y - Map.SAFE_RANGE,
+                            state.player.width + Map.SAFE_RANGE * 2,
+                            state.player.height + Map.SAFE_RANGE * 2,
+                            lambda e: e is not entity and e in self.enemies and not e.dead,
+                        )
+                    )
+                ):
+                    return
 
     def _to_cells(self, x: float, y: float, width: int, height: int) -> tuple[int, int, int, int]:
         """Converts the given rectangle to the cell coordinates of each side (left, top, right, bottom).
@@ -381,7 +458,7 @@ class Map:
             A list of clients in this map within the given rectangle.
         """
 
-        clients = []
+        clients = set()
         s_col, s_row, e_col, e_row = self._to_cells(x, y, width, height)
         if s_row < 0:
             s_row = 0
@@ -400,11 +477,42 @@ class Map:
                         if precision:
                             for c in cell:
                                 if x < c.right and x + width > c.left and y < c.bottom and y + height > c.top:
-                                    clients.append(c)
+                                    clients.add(c)
                         else:
-                            clients += cell
+                            clients |= cell
 
-        return list(filter(filter_fn, set(clients))) if callable(filter_fn) else clients
+        return list(filter(filter_fn, clients)) if callable(filter_fn) else clients
+
+    def get_nearest(self, x: float, y: float, filter_fn: type[Box] = None, max_depth: int = -1) -> Box | None:
+        col = floor(x / self.cell_size)
+        row = floor(y / self.cell_size)
+
+        depth_cap = max(col, row, self.cols - col, self.rows - row)
+        if max_depth < 0 or max_depth > depth_cap:
+            max_depth = depth_cap
+
+        depth = 1
+        nearest = None
+        nearest_d_sq = -1
+        while nearest is None and depth <= max_depth:
+            for i in range(-depth, depth + 1):
+                r = row + i
+                if r >= 0 and r < self.rows and self.grid[r] is not None:
+                    for j in range(-depth, depth + 1):
+                        if abs(i) >= depth or abs(j) >= depth:
+                            c = col + j
+                            if c >= 0 and c < self.cols:
+                                cell = self.grid[r][c]
+                                if cell is not None:
+                                    for client in filter(filter_fn, cell) if callable(filter_fn) else cell:
+                                        d_sq = (client.center_x - x) ** 2 + (client.center_y - y) ** 2
+                                        if nearest_d_sq < 0 or d_sq < nearest_d_sq:
+                                            nearest = client
+                                            nearest_d_sq = d_sq
+
+            depth += 1
+
+        return nearest
 
     def add_wall(self, wall: Wall) -> None:
         """Adds the given wall into this map.

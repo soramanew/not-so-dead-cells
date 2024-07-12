@@ -427,6 +427,8 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             if not (pause or back_confirm):
                 key_handler.tick(dt)
                 state.player.tick(dt, move_types)
+                if state.player.top > state.current_map.height:
+                    state.current_map.player_out_of_bounds()
                 if state.player.health <= 0:
                     full_exit = DeathScreen(window, clock)
                     if state.hardcore:
