@@ -198,9 +198,9 @@ class Enemy(Hitbox, Sense, Sprite):
                 damage,
                 self.center_x,
                 self.y,
-                (max(30, kb[0]) * random.uniform(0.8, 1.2) if kb is not None else random.uniform(30, 100))
+                (max(30, kb[0]) * random.uniform(0.5, 1.5) if kb is not None else random.uniform(30, 100))
                 * (side.value if side is not None else random.choice((-1, 1))),
-                (min(-100, kb[1]) * random.uniform(0.8, 1.2) if kb is not None else -random.uniform(100, 400)),
+                (min(-100, kb[1]) * random.uniform(0.5, 1.5) if kb is not None else -random.uniform(100, 400)),
             )
         )
 
