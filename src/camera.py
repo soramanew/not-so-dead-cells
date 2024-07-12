@@ -40,7 +40,10 @@ class Camera(Box):
 
         self.x += x
         self.y += y
-        # TODO limit movement to bottom of map
+
+        # First instant center on map init fails
+        if state.current_map and self.bottom > state.current_map.height:
+            self.bottom = state.current_map.height
 
     def resize(self, width: int, height: int) -> None:
         """Resizes this camera's viewport to the given size.

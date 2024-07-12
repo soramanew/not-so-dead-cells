@@ -1,4 +1,5 @@
 import pygame
+import state
 from util.func import get_project_root
 
 
@@ -8,20 +9,14 @@ class Background:
         self.width: int = width
         self.height: int = height
 
-        self.x: float = 0
-        self.y: float = 0
-        self.off: float = 0
-
         self.orig_layers: list[pygame.Surface] = []
         self.layers: list[pygame.Surface] = []
-        self.offsets: list[float] = []
 
         for layer in sorted((get_project_root() / "assets/background").iterdir()):
-            self.orig_layers.append(pygame.image.load(layer).convert_alpha())
-            self.offsets.append(0)
-        self.orig_layers[0] = self.orig_layers[0].convert()  # Base layer doesn't need alpha
-        self.num_layers: int = len(self.orig_layers)
-        self.max_off: float = self.orig_layers[0].height * 0.1
+            layer = pygame.image.load(layer).convert()
+            layer.set_colorkey((0, 0, 0), pygame.RLEACCEL)
+            self.orig_layers.append(layer)
+        self.orig_layers[0].set_colorkey(None, pygame.RLEACCEL)  # Base layer doesn't need alpha
 
         self.resize(width, height, override=True)
 
@@ -38,21 +33,17 @@ class Background:
             for layer in self.orig_layers
         ]
 
-    def tick(self, dx: float, dy: float) -> None:
-        self.x -= dx / 8
-        self.y -= dy / 160
-
     def draw(self, surface: pygame.Surface) -> None:
         blits = []
         for idx, layer in enumerate(self.layers):
-            x = (self.x * idx) % layer.width
+            x = (((state.current_map.width - state.camera.center_x) * idx) / 8) % layer.width
             if x > 0:
                 x -= layer.width
 
-            y = self.y * idx
+            y = ((state.current_map.height - state.camera.bottom) * idx) / 16 - (layer.height - self.height) * 0.6
 
             while x < self.width:
-                blits.append((layer, (x, y - (layer.height - self.height) * 0.6)))
+                blits.append((layer, (x, y)))
                 x += layer.width
 
         surface.blits(blits)

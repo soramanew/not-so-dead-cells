@@ -206,7 +206,7 @@ def LoadingScreen(window: pygame.Surface) -> None:
     window.fill((0, 0, 0))
     text = get_font("Sabo", window.width // 15).render("Loading...", True, (255, 255, 255))
     window.blit(text, ((window.width - text.width) / 2, (window.height - text.height) / 2))
-    pygame.display.update()
+    pygame.display.flip()
 
 
 def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
@@ -253,7 +253,7 @@ def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
         window.blit(*score)
         window.blit(*prompt)
 
-        pygame.display.update()
+        pygame.display.flip()
 
 
 def _h_bar_rect(width: int, height: int) -> Rect:
@@ -442,9 +442,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                             subprocess.call(["osascript", "-e", 'tell app "System Events" to shut down'])
                     return full_exit
                 state.current_map.tick(dt)
-                cam_movement = state.camera.tick_move(dt)
-                if not state.current_map.static_bg:
-                    state.current_map.background.tick(*cam_movement)
+                state.camera.tick_move(dt)
 
             # Draw stuff
             state.camera.render(window)
@@ -624,7 +622,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             menu_needs_update = False
 
         # Update window
-        pygame.display.update()
+        pygame.display.flip()
 
 
 def _get_menu_bg():
@@ -701,7 +699,7 @@ def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
         back_button.draw(window)
 
         # Update window
-        pygame.display.update()
+        pygame.display.flip()
 
 
 def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
@@ -798,7 +796,7 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
         back_button.draw(window)
 
         # Update window
-        pygame.display.update()
+        pygame.display.flip()
 
 
 def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
@@ -905,4 +903,4 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
             d.draw(window)
 
         # Update window
-        pygame.display.update()
+        pygame.display.flip()

@@ -173,7 +173,8 @@ class Map:
         for enemy in self.get_rect(*tick_bounds, lambda e: e in self.enemies):
             self._remove(enemy, False)
             enemy.tick(dt)
-            if enemy.death_finished:
+            # Kill if out of map, TODO animation
+            if enemy.top > self.height or enemy.death_finished:
                 to_remove.add(enemy)
             else:
                 self._add(enemy, False)

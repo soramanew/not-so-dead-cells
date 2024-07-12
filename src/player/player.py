@@ -403,6 +403,7 @@ class Player(Hitbox):
             A list of collisions with the player which happened due to this movement.
         """
 
+        # TODO Damage and move to good pos on exit map bottom
         return self.move(self.vx * dt, self.vy * dt)
 
     def handle_collisions(self, collisions: list[Collision]) -> None:
