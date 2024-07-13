@@ -67,16 +67,21 @@ class GroundMovement(EnemyABC):
                     return True
             return False
 
-        print("[DEBUG] Spawning enemy: getting area...")
+        print("[DEBUG] Enemy: getting area...")
         moves = 0
-        while check_collisions():
+        max_moves = 500
+        while moves < max_moves and check_collisions():
             self.x = uniform(
                 self.platform.left,
                 self.platform.right - self.width,
             )
             moves += 1
 
-        print(f"[DEBUG] Spawned enemy{f": moved spawn {moves} times"}")
+        if moves < max_moves:
+            print(f"[DEBUG] Enemy: moved {moves} times")
+        else:
+            print("[WARNING] Enemy: max moves reached. Ignoring.")
+            return 0, 0
 
         nearest_left = None
         nearest_right = None
