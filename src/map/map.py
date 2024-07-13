@@ -86,11 +86,16 @@ class Map:
             while i < segments or "gates" not in self.map_data:
                 segment = random.choice([f for f in storage.iterdir() if f.is_file() and f.stem[0].isdigit()]).stem
                 texture = pygame.image.load(storage / f"{segment}.png")
+                flip = random.random() < 0.5
+                if flip:
+                    texture = pygame.transform.flip(texture, True, False)
                 textures.append(texture)
 
                 map_data = json.load(open(storage / f"{segment}.json"))
                 for prop in map_data:
                     for obj in map_data[prop]:
+                        if flip:
+                            obj["bounds"][0] = texture.width - obj["bounds"][0] - obj["bounds"][2]
                         obj["bounds"][0] += self.width
                         if prop not in self.map_data:
                             self.map_data[prop] = []
