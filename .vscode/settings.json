@@ -16,6 +16,7 @@
         "KEYUP",
         "knockback",
         "lerp",
+        "levelname",
         "MOUSEBUTTONDOWN",
         "MOUSEBUTTONUP",
         "MOUSEMOTION",

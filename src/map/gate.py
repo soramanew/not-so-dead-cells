@@ -1,8 +1,12 @@
+import logging
+
 import pygame
 import state
 from box import Box
 from util.func import get_project_root, render_interact_text
 from util.type import Interactable, Sound
+
+logger = logging.getLogger(__name__)
 
 
 def _create_popup() -> pygame.Surface:
@@ -28,7 +32,7 @@ class Gate(Box, Interactable):
         self.sfx.play()
         diff = round(state.difficulty, 2)
         state.difficulty *= 1.3
-        print(f"[DEBUG] Difficulty {diff} -> {round(state.difficulty, 2)}")
+        logger.info(f"Difficulty {diff} -> {round(state.difficulty, 2)}")
         state.current_map = Map()
         state.map_loaded = False
 

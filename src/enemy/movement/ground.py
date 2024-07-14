@@ -1,3 +1,4 @@
+import logging
 from math import copysign
 from random import random, uniform
 
@@ -7,6 +8,8 @@ from util.func import clamp
 from util.type import Direction, EnemyState, Side
 
 from ..enemyabc import EnemyABC
+
+logger = logging.getLogger(__name__)
 
 
 class GroundMovement(EnemyABC):
@@ -51,6 +54,8 @@ class GroundMovement(EnemyABC):
             The x bounds in which this enemy can move.
         """
 
+        logger.debug("Getting area...")
+
         obstacles = state.current_map.get_rect(
             self.platform.x,
             self.platform.y - self.height,
@@ -59,6 +64,7 @@ class GroundMovement(EnemyABC):
             lambda o: o is not self.platform and isinstance(o, Wall),
         )
         if not obstacles:
+            logger.debug("No obstacles")
             return self.platform.left, self.platform.right
 
         def check_collisions() -> bool:
@@ -67,7 +73,6 @@ class GroundMovement(EnemyABC):
                     return True
             return False
 
-        print("[DEBUG] Enemy: getting area...")
         moves = 0
         max_moves = 500
         while moves < max_moves and check_collisions():
@@ -78,9 +83,9 @@ class GroundMovement(EnemyABC):
             moves += 1
 
         if moves < max_moves:
-            print(f"[DEBUG] Enemy: moved {moves} times")
+            logger.debug(f"Moved {moves} times")
         else:
-            print("[WARNING] Enemy: max moves reached. Ignoring.")
+            logger.warn("Max moves reached. Ignoring.")
             return 0, 0
 
         nearest_left = None
@@ -130,7 +135,7 @@ class GroundMovement(EnemyABC):
                     self.platform = entity
                     self.area = self._get_area()
                     self.moving = False
-                    print(f"[DEBUG] Enemy changed platform: {entity} | Area: {self.area}")
+                    logger.debug(f"Enemy changed platform: {entity} | Area: {self.area}")
 
         if self.can_sense_player:
             self.move_target = clamp(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import random
 import time
 from collections.abc import Callable
@@ -35,6 +36,8 @@ type Grid = list[Row | None]
 
 ENEMIES = None
 WEAPONS = None
+
+logger = logging.getLogger(__name__)
 
 
 class Map:
@@ -233,12 +236,12 @@ class Map:
             # No matching wall
             if wall is None:
                 if check_enemies:
-                    print("[WARNING] Player out of bounds: no safe spawn area.")
+                    logger.warn("Player out of bounds: no safe spawn area.")
                     check_enemies = False
                     walls.clear()
                     continue
 
-                print("[CRITICAL] Player out of bounds: no suitable spawn area. Ignoring.")
+                logger.error("Player out of bounds: no suitable spawn area. Ignoring.")
                 state.player.center_x = x
                 state.player.center_y = y
                 return
@@ -335,7 +338,7 @@ class Map:
                 self.gates.add(gate)
                 self.add(gate)
 
-        print(f"[DEBUG] Done loading map: took {(time.process_time() - start)*1000}ms")
+        logger.info(f"Done loading map: took {(time.process_time() - start)*1000}ms")
 
     def add_damage_number(self, dm: DamageNumber) -> None:
         self.damage_numbers.add(dm)

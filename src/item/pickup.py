@@ -1,3 +1,4 @@
+import logging
 import math
 from abc import abstractmethod
 from random import random, uniform
@@ -17,6 +18,8 @@ from util.type import Direction, Interactable, Sound, Vec2
 from item import Item
 
 FLOAT_MAX: float = 0.1
+
+logger = logging.getLogger(__name__)
 
 
 def _draw_popup_base(surface: pygame.Surface) -> None:
@@ -397,8 +400,8 @@ class DamagePotion(Potion):
     def interact(self) -> None:
         state.player.damage_potions += 1
         state.player.damage_mul *= 1 + self.amount / 100
-        print(
-            f"[DEBUG] Picked up damage potion: {state.player.damage_potions} potions - {round(state.player.damage_mul * 100)}%"
+        logger.debug(
+            f"Picked up damage potion: {state.player.damage_potions} potions - {round(state.player.damage_mul * 100)}%"
         )
         state.current_map.remove_pickup(self)
         self.sfx.play()
@@ -418,8 +421,8 @@ class HealthPotion(Potion):
     def interact(self) -> None:
         state.player.health_potions += 1
         state.player.health_mul *= 1 + self.amount / 100
-        print(
-            f"[DEBUG] Picked up health potion: {state.player.health_potions} potions - {round(state.player.health_mul * 100)}%"
+        logger.debug(
+            f"Picked up health potion: {state.player.health_potions} potions - {round(state.player.health_mul * 100)}%"
         )
         state.current_map.remove_pickup(self)
         self.sfx.play()

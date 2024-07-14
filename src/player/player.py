@@ -1,3 +1,4 @@
+import logging
 from math import sqrt
 
 import pygame
@@ -23,6 +24,8 @@ from util.type import (
 )
 
 from .sprite import EffectSprite, PlayerSprite
+
+logger = logging.getLogger(__name__)
 
 
 def _roll_height_fn(x):
@@ -820,7 +823,7 @@ class Player(Hitbox):
             self.weapon.interrupt()
             state.current_map.add_pickup(WeaponPickup(self.weapon, (self.center_x, self.center_y)))
         self.weapon = weapon
-        print(f"[DEBUG] Weapon changed: {weapon.to_friendly_str()}")
+        logger.debug(f"Weapon changed: {repr(weapon)}")
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0):
         # super().draw(surface, (0, 255, 0), x_off, y_off)
