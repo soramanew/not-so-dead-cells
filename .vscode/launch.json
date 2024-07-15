@@ -9,14 +9,8 @@
             "type": "debugpy",
             "request": "launch",
             "module": "main",
-            "cwd": "${workspaceFolder}/src"
-        },
-        {
-            "name": "Python Debugger: Map Builder",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "map_builder.main",
-            "cwd": "${workspaceFolder}/src"
+            "cwd": "${workspaceFolder}/src",
+            "args": ["--log-level", "debug"]
         }
     ]
 }

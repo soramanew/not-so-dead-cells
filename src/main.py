@@ -1,6 +1,7 @@
 import logging
 from argparse import ArgumentParser
 
+import config
 import pygame
 from ui import MainMenu
 from util.func import get_project_root
@@ -15,10 +16,11 @@ def main():
     if not isinstance(numeric_log_level, int):
         raise ValueError(f"Invalid log level: {args.log_level}")
     logging.basicConfig(
-        level=numeric_log_level, format="%(name)s %(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S"
+        level=numeric_log_level, format="%(name)s - %(asctime)s - [%(levelname)s] %(message)s", datefmt="%H:%M:%S"
     )
 
     pygame.init()
+    config.load()
 
     pygame.display.set_icon(pygame.image.load(get_project_root() / "assets/icon.png"))
     window = pygame.display.set_mode(flags=pygame.RESIZABLE | pygame.FULLSCREEN)

@@ -202,6 +202,27 @@ class Checkbox(ShadowTextButton):
         super().__init__(font, text, colour, depth, clicked_depth, wrap_length)
 
 
+def _all_screens_handle_event(event: pygame.Event) -> bool:
+    """Handle the given event. This is for all screens.
+
+    Parameters
+    ----------
+    event : pygame.Event
+        The event to handle.
+
+    Returns
+    -------
+    bool
+        Whether to fully exit the program or not.
+    """
+
+    if event.type == pygame.QUIT:
+        return True
+    elif event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_F11:
+            pygame.display.toggle_fullscreen()
+
+
 def LoadingScreen(window: pygame.Surface) -> None:
     window.fill((0, 0, 0))
     text = get_font("Sabo", window.width // 15).render("Loading...", True, (255, 255, 255))
@@ -233,10 +254,8 @@ def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
         dt = clock.tick(30) / 1000  # To get in seconds
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if _all_screens_handle_event(event):
                 return True
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
-                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN or (
                 event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
             ):
@@ -364,7 +383,7 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
             move_types.append(PlayerControl.RIGHT)
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if _all_screens_handle_event(event):
                 return True
             elif event.type == pygame.VIDEORESIZE:
                 new_size = event.dict["size"]
@@ -408,8 +427,6 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                     pygame.mixer.pause()
                     back_confirm = True
                     menu_needs_update = True
-                elif event.key == pygame.K_F11:
-                    pygame.display.toggle_fullscreen()
             elif event.type == pygame.KEYUP:
                 held_time = key_handler.up(event.key)
                 if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
@@ -667,10 +684,8 @@ def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
         clock.tick(get_fps())
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if _all_screens_handle_event(event):
                 return True
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
-                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_down = True
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
@@ -763,10 +778,8 @@ def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
         clock.tick(get_fps())
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if _all_screens_handle_event(event):
                 return True
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
-                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_down = True
                 if back_button.collidepoint(*pygame.mouse.get_pos()):
@@ -847,10 +860,8 @@ def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
         clock.tick(get_fps())
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if _all_screens_handle_event(event):
                 return
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
-                pygame.display.toggle_fullscreen()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_down = True
                 for button in active_buttons:

@@ -9,7 +9,7 @@ from collections.abc import Callable
 from math import ceil, copysign, floor
 from pathlib import Path
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pygame
 import state
@@ -68,95 +68,81 @@ class Map:
         """
         return copysign((a * (cls.AIR_RESISTANCE * v**2) / 2), v)
 
-    def __init__(
-        self,
-        load: bool = True,
-        width: int = 2000,
-        height: int = 2000,
-        cell_size: int = 50,
-    ) -> None:
-        self.objects: set[Box] = set()
+    def __init__(self):
         storage = Map.storage()
 
-        if load:
-            self.map_data = json.load(open(storage / "start.json"))
-            texture = pygame.image.load(storage / "start.png")
-            self.width: int = texture.width
-            textures = [texture]
+        self.map_data = json.loads((storage / "start.json").read_text())
+        texture = pygame.image.load(storage / "start.png")
+        self.width: int = texture.width
+        textures = [texture]
 
-            i = 0
-            segments = random.randint(4, 8)
-            while i < segments or "gates" not in self.map_data:
-                segment = random.choice([f for f in storage.iterdir() if f.is_file() and f.stem[0].isdigit()]).stem
-                texture = pygame.image.load(storage / f"{segment}.png")
-                flip = random.random() < 0.5
-                if flip:
-                    texture = pygame.transform.flip(texture, True, False)
-                textures.append(texture)
+        i = 0
+        segments = random.randint(4, 8)
+        while i < segments or "gates" not in self.map_data:
+            segment = random.choice([f for f in storage.iterdir() if f.is_file() and f.stem[0].isdigit()]).stem
+            texture = pygame.image.load(storage / f"{segment}.png")
+            flip = random.random() < 0.5
+            if flip:
+                texture = pygame.transform.flip(texture, True, False)
+            textures.append(texture)
 
-                map_data = json.load(open(storage / f"{segment}.json"))
-                for prop in map_data:
-                    for obj in map_data[prop]:
-                        if flip:
-                            obj["bounds"][0] = texture.width - obj["bounds"][0] - obj["bounds"][2]
-                        obj["bounds"][0] += self.width
-                        if prop not in self.map_data:
-                            self.map_data[prop] = []
-                        self.map_data[prop].append(obj)
+            map_data = json.loads((storage / f"{segment}.json").read_text())
+            for prop in map_data:
+                for obj in map_data[prop]:
+                    if flip:
+                        obj["bounds"][0] = texture.width - obj["bounds"][0] - obj["bounds"][2]
+                    obj["bounds"][0] += self.width
+                    if prop not in self.map_data:
+                        self.map_data[prop] = []
+                    self.map_data[prop].append(obj)
 
-                self.width += texture.width
-                i += 1
+            self.width += texture.width
+            i += 1
 
-            # To simple namespace
-            self.map_data = json.loads(json.dumps(self.map_data), object_hook=lambda d: SimpleNamespace(**d))
+        # To simple namespace for dot access
+        self.map_data = json.loads(json.dumps(self.map_data), object_hook=lambda d: SimpleNamespace(**d))
 
-            # FIXME temp, change when have generated underground
-            self.static_bg = False
-            if self.static_bg:
-                self.texture = pygame.Surface(texture.size).convert()
-                self.texture.fill(self.map_data.background)
-                self.texture.blit(texture, (0, 0))
-            else:
-                self.background: Background = Background()
-                self.texture = pygame.Surface((self.width, textures[0].height), pygame.SRCALPHA).convert_alpha()
-                off = 0
-                for texture in textures:
-                    self.texture.blit(texture, (off, 0))
-                    off += texture.width
-
-                # Bottom gradient
-                surf = pygame.Surface((1, 2), pygame.SRCALPHA)
-                pygame.draw.line(surf, (0, 0, 0), (0, 1), (1, 1))
-                surf = pygame.transform.smoothscale(surf, (self.width, 500))
-                self.texture.blit(surf, (0, self.texture.height - surf.height))
-
-            # def gen_c() -> int:
-            #     return random.randint(50, 255 // max(1, state.difficulty / 100))
-
-            # tint = gen_c(), gen_c(), gen_c()
-            # self.texture.fill(tint, special_flags=pygame.BLEND_MULT)
-            # if self.static_bg:
-            #     self.background: str = self.texture.get_at((0, 0))
-
-            self.width: int = self.texture.width
-            self.height: int = self.texture.height
-            self.cell_size: int = min(self.width, self.height) // 10
-
-            # Reset player to default values, move to spawn and change facing to init dir
-            state.player.to_default_values(*self.map_data.spawn, Side(self.map_data.init_dir))
-            state.camera.instant_center()
+        # FIXME temp, change when have generated underground
+        self.static_bg = False
+        if self.static_bg:
+            self.texture = pygame.Surface(texture.size).convert()
+            self.texture.fill(self.map_data.background)
+            self.texture.blit(texture, (0, 0))
         else:
-            self.save_path = storage / (str(int(max(storage.iterdir()).stem) + 1) + ".json")
-            self.width = width
-            self.height = height
-            self.cell_size = cell_size
-            self.init_dir = Side.RIGHT
-            self.player_spawn = (0, 0)
+            self.background: Background = Background()
+            self.texture = pygame.Surface((self.width, textures[0].height), pygame.SRCALPHA).convert_alpha()
+            off = 0
+            for texture in textures:
+                self.texture.blit(texture, (off, 0))
+                off += texture.width
+
+            # Bottom gradient
+            surf = pygame.Surface((1, 2), pygame.SRCALPHA)
+            pygame.draw.line(surf, (0, 0, 0), (0, 1), (1, 1))
+            surf = pygame.transform.smoothscale(surf, (self.width, 500))
+            self.texture.blit(surf, (0, self.texture.height - surf.height))
+
+        # def gen_c() -> int:
+        #     return random.randint(50, 255 // max(1, state.difficulty / 100))
+
+        # tint = gen_c(), gen_c(), gen_c()
+        # self.texture.fill(tint, special_flags=pygame.BLEND_MULT)
+        # if self.static_bg:
+        #     self.background: str = self.texture.get_at((0, 0))
+
+        self.width: int = self.texture.width
+        self.height: int = self.texture.height
+        self.cell_size: int = min(self.width, self.height) // 10
+
+        # Reset player to default values, move to spawn and change facing to init dir
+        state.player.to_default_values(*self.map_data.spawn, Side(self.map_data.init_dir))
+        state.camera.instant_center()
 
         self.rows: int = ceil(self.height / self.cell_size) + 1
         self.cols: int = ceil(self.width / self.cell_size) + 1
         self.grid: Grid = [None] * self.rows
 
+        self.objects: set[Box] = set()
         self.walls: set[Wall] = set()
         self.enemies: set[Enemy] = set()
         self.pickups: set[Pickup] = set()
@@ -535,50 +521,3 @@ class Map:
 
         self.walls.add(wall)
         self.add(wall)
-
-    def set_player_spawn(self, x: float, y: float, width: int, height: int) -> None:
-        """Sets the player spawn for this map.
-
-        This also determines the size of the player.
-
-        Parameters
-        ----------
-        x : float
-            The left-most position of the player spawn.
-        y : float
-            The top-most position of the player spawn.
-        width : int
-         The width of the player spawn.
-        height : int
-            The height of the player spawn.
-        """
-
-        self.player_spawn = (x, y, width, height)
-        self.init_dir = Side.LEFT if width < 0 else Side.RIGHT
-
-    def save(self) -> dict[str, Any]:
-        """Saves this map as a JSON file and returns the JSON object representation.
-
-        See Also
-        --------
-        Box.to_json()
-
-        Returns
-        -------
-        dict with str key and any value
-            The JSON representation of this map.
-        """
-
-        json_obj = {
-            "width": self.width,
-            "height": self.height,
-            "cell_size": self.cell_size,
-            "spawn": self.player_spawn,
-            "init_dir": self.init_dir.value,
-            "walls": [wall.to_json() for wall in self.walls],
-        }
-
-        with open(self.save_path, "w") as file:
-            file.write(json.dumps(json_obj))
-
-        return json_obj
