@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 import sys
 
+from constants import APP_AUTHOR, APP_NAME
 from platformdirs import user_config_path
-from util.func import get_project_root
 
 
 # For dot access
@@ -33,12 +33,12 @@ class NestedConfig(DotDict):
 class Config(DotDict):
     DEFAULT = {}
 
-    FILE = user_config_path(get_project_root().stem, "Soramane") / "config.json"
+    FILE = user_config_path(APP_NAME, APP_AUTHOR) / "config.json"
 
     def __init__(self):
         super().__init__(
             json.loads(
-                Config.FILE.read_text() if Config.FILE.is_file() else Config.DEFAULT,
+                Config.FILE.read_text() if Config.FILE.is_file() else json.dumps(Config.DEFAULT),
                 object_hook=lambda o: NestedConfig(self, **o),
             )
         )

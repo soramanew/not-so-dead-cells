@@ -3,12 +3,13 @@ from argparse import ArgumentParser
 
 import config
 import pygame
+from constants import APP_DESC, APP_NAME
 from ui import MainMenu
 from util.func import get_project_root
 
 
 def main():
-    parser = ArgumentParser(description="A Dead Cells inspired game which is actually not very similar to it.")
+    parser = ArgumentParser(description=APP_DESC)
     parser.add_argument("--log-level", type=str, default="warning", help="minimum log level to display")
     args = parser.parse_args()
 
@@ -24,7 +25,7 @@ def main():
 
     pygame.display.set_icon(pygame.image.load(get_project_root() / "assets/icon.png"))
     window = pygame.display.set_mode(flags=pygame.RESIZABLE | pygame.FULLSCREEN)
-    pygame.display.set_caption("Not so Dead Cells")
+    pygame.display.set_caption(APP_NAME)
     clock = pygame.time.Clock()
 
     MainMenu(window, clock)

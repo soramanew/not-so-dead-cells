@@ -8,12 +8,44 @@
 
 > Requires Python 3.12 or newer. This will NOT work with any version of python 2 or below 3.12.
 
-1. Clone this repo and open a terminal in the folder.
-2. Run `python3 -m venv .venv` to create a virtual environment.
-3. Activate the venv using `. .venv/bin/activate` if on Linux or macOS. If using `fish` shell, use `activate.fish` instead. If on Windows, use `.venv/Scripts/activate`.
-4. Install the dependencies via `pip install -r requirements.txt` and `pyinstaller` using `pip install -U pyinstaller`.
-5. Package the application using `pyinstaller main.spec`. There should now be a `dist` folder and `build` folder.
-6. Run the application via the `main` executable in the `dist` folder. The folder and executable can be renamed as you wish.
+1. Clone this repo
+    ```
+    git clone https://github.com/soramanew/not-so-dead-cells.git
+    ```
+2. Run `install.bat` if on Windows otherwise `install.sh`
+3. If the install script didn't work:
+    1. Open a terminal in the folder
+    2. Create a virtual environment
+        ```
+        python3 -m venv .venv
+        ```
+    3. Activate the venv
+        ```
+        . .venv/bin/activate  # Linux or macOS (.fish if using fish shell, .csh for c shell)
+        .venv/Scripts/activate  # Windows
+        ```
+    4. Install dependencies and `pyinstaller`
+        ```
+        pip install -r requirements.txt
+        pip install -U pyinstaller
+        ```
+    5. Package the application
+        ```
+        pyinstaller main.spec
+        ```
+4. Run the application via the executable in the `dist/main` folder (`Not so Dead Cells` if using the install script otherwise `main`). The folder and executable can be renamed as you wish.
 
-## Troubleshooting
+# Updating
+
+## Using the packaged application (recommended)
+Download the new release and replace the old release.
+
+## Building from source
+
+> The install script requires git in the PATH for updating.
+
+Just run the install script again.
+If it doesn't work, use `git pull origin master` or re-download the repo then build it again manually.
+
+# Troubleshooting
 If you get permission denied error when running the executable on macOS or Linux, use `chmod u+x <FILE_NAME>` (where `<FILE_NAME>` is the name of the executable file) to give the file execute permission for the current user.
