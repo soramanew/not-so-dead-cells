@@ -1,7 +1,6 @@
 import logging
 from argparse import ArgumentParser
 
-import config
 import pygame
 from constants import APP_DESC, APP_NAME
 from ui import MainMenu
@@ -21,7 +20,6 @@ def main():
     )
 
     pygame.init()
-    config.load()
 
     pygame.display.set_icon(pygame.image.load(get_project_root() / "assets/icon.png"))
     window = pygame.display.set_mode(flags=pygame.RESIZABLE | pygame.FULLSCREEN)

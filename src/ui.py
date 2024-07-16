@@ -1,6 +1,7 @@
 import math
 import random
 
+import config
 import pygame
 import state
 from camera import Camera
@@ -221,6 +222,8 @@ def _all_screens_handle_event(event: pygame.Event) -> bool:
     elif event.type == pygame.KEYDOWN:
         if event.key == pygame.K_F11:
             pygame.display.toggle_fullscreen()
+        elif event.key == pygame.K_m and pygame.key.get_mods() & pygame.KMOD_CTRL:
+            config.muted = not config.muted
 
 
 def LoadingScreen(window: pygame.Surface) -> None:

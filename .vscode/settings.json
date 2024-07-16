@@ -9,6 +9,7 @@
         "enemyabc",
         "FULLSCREEN",
         "funcs",
+        "getpid",
         "Hitbox",
         "Hitboxes",
         "Interactable",
@@ -25,6 +26,7 @@
         "pixelify",
         "platformdirs",
         "plent",
+        "pycaw",
         "pygame",
         "RLEACCEL",
         "rotatedbox",
@@ -35,6 +37,7 @@
         "SRCALPHA",
         "topleft",
         "VIDEORESIZE",
+        "wpctl",
         "wraplength"
     ]
 }
