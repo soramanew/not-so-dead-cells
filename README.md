@@ -9,28 +9,28 @@
 > Requires Python 3.12 or newer. This will NOT work with any version of python 2 or below 3.12.
 
 1. Clone this repo
-    ```
+    ```sh
     git clone https://github.com/soramanew/not-so-dead-cells.git
     ```
 2. Run `install.bat` if on Windows otherwise `install.sh`
 3. If the install script didn't work:
     1. Open a terminal in the folder
     2. Create a virtual environment
-        ```
+        ```sh
         python3 -m venv .venv
         ```
     3. Activate the venv
-        ```
+        ```sh
         . .venv/bin/activate  # Linux or macOS (.fish if using fish shell, .csh for c shell)
         .venv/Scripts/activate  # Windows
         ```
     4. Install dependencies and `pyinstaller`
-        ```
+        ```sh
         pip install -r requirements.txt
         pip install -U pyinstaller
         ```
     5. Package the application
-        ```
+        ```sh
         pyinstaller main.spec
         ```
 4. Run the application via the executable in the `dist/main` folder (`Not so Dead Cells` if using the install script otherwise `main`). The folder and executable can be renamed as you wish.
