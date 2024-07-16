@@ -9,7 +9,7 @@ from map import Map
 from player import Player
 from util import key_handler
 from util.func import change_music, clamp, get_font, get_fps, get_project_root
-from util.type import Colour, PlayerControl, Rect, Side, Sound, Vec2
+from util.type import Colour, PlayerControl, Side, Sound, Vec2
 
 
 class ShadowTextButton(pygame.Rect):
@@ -203,428 +203,451 @@ class Checkbox(ShadowTextButton):
         super().__init__(font, text, colour, depth, clicked_depth, wrap_length)
 
 
-def _all_screens_handle_event(event: pygame.Event) -> bool:
-    """Handle the given event. This is for all screens.
+class Screen:
+    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        self.window: pygame.Surface = window
+        self.clock: pygame.Clock = clock
+        self.fps_cap: int = fps_cap or get_fps()
 
-    Parameters
-    ----------
-    event : pygame.Event
-        The event to handle.
+        self.exit: bool = False
+        self.dt: float = 0
+        self.skip_frames: int = 0
 
-    Returns
-    -------
-    bool
-        Whether to fully exit the program or not.
-    """
+    def init_loop(self) -> None:
+        self.exit = False
+        self.on_resize(*self.window.size)
 
-    if event.type == pygame.QUIT:
-        return True
-    elif event.type == pygame.KEYDOWN:
-        if event.key == pygame.K_F11:
-            pygame.display.toggle_fullscreen()
-        elif event.key == pygame.K_m and pygame.key.get_mods() & pygame.KMOD_CTRL:
-            config.muted = not config.muted
+    def main_loop(self) -> bool:
+        self.init_loop()
 
+        while True:
+            self.dt = self.clock.tick(self.fps_cap) / 1000  # To get in seconds
 
-def LoadingScreen(window: pygame.Surface) -> None:
-    window.fill((0, 0, 0))
-    text = get_font("Sabo", window.width // 15).render("Loading...", True, (255, 255, 255))
-    window.blit(text, ((window.width - text.width) / 2, (window.height - text.height) / 2))
-    pygame.display.flip()
+            self.pre_event_handling()
 
+            if self.skip_frames > 0:
+                self.skip_frames -= 1
+                continue
 
-def DeathScreen(window: pygame.Surface, clock: pygame.Clock) -> bool:
-    change_music("game_over", "ogg")
+            for event in pygame.event.get():
+                if self.handle_event(event):
+                    return True
 
-    death_text = None
-    score = None
-    prompt = None
-
-    def update_text() -> None:
-        nonlocal death_text, score, prompt
-        death_text = get_font("Sabo", window.width // 15).render("You Died.", True, (255, 255, 255))
-        death_text = death_text, ((window.width - death_text.width) / 2, (window.height - death_text.height) / 2)
-
-        score = get_font("PixelifySans", window.width // 45).render(f"Score: {state.score}", True, (255, 255, 255))
-        score = score, ((window.width - score.width) / 2, window.height * 0.6 - score.height / 2)
-
-        prompt = get_font("Silkscreen", window.width // 45).render("Click anywhere to exit", True, (255, 255, 255))
-        prompt = prompt, ((window.width - prompt.width) / 2, window.height * 0.8 - prompt.height / 2)
-
-    update_text()
-
-    while True:
-        dt = clock.tick(30) / 1000  # To get in seconds
-
-        for event in pygame.event.get():
-            if _all_screens_handle_event(event):
-                return True
-            elif event.type == pygame.MOUSEBUTTONDOWN or (
-                event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
-            ):
+            if self.exit:
                 return
-            elif event.type == pygame.VIDEORESIZE:
-                update_text()
 
-        intensity = 255 * max(0, 1 - dt)
-        window.fill((255, intensity, intensity), special_flags=pygame.BLEND_MULT)
-        surface = pygame.transform.gaussian_blur(window, clamp(int(10 * dt), 10, 1))
-        window.blit(surface, (0, 0))
+            if self.tick():
+                return True
 
-        window.blit(*death_text)
-        window.blit(*score)
-        window.blit(*prompt)
+            self.draw()
+            pygame.display.flip()
 
-        pygame.display.flip()
+    def handle_event(self, event: pygame.Event) -> bool:
+        if event.type == pygame.QUIT:
+            return True
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_F11:
+                pygame.display.toggle_fullscreen()
+            elif event.key == pygame.K_m and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                config.muted = not config.muted
+        elif event.type == pygame.VIDEORESIZE:
+            self.on_resize(*event.dict["size"])
 
+    def on_resize(self, width: int, height: int) -> None:
+        self.width = width
+        self.height = height
 
-def _h_bar_rect(width: int, height: int) -> Rect:
-    h_bar_height = height * 0.04
-    return 50, height - h_bar_height - 50, width * 0.33, h_bar_height
+    def pre_event_handling(self) -> None:
+        pass
 
+    def tick(self) -> bool:
+        pass
 
-def _h_bar_inner_rect(width: int, height: int) -> Rect:
-    i_w = 0.97  # inner width
-    i_h = 0.7  # inner height
-    x, y, w, h = _h_bar_rect(width, height)
-    return x + w * (1 - i_w) / 2, y + h * (1 - i_h) / 2, w * i_w, h * i_h
-
-
-def _create_h_bar(width: int, height: int) -> tuple[pygame.Surface, Rect, pygame.font.Font]:
-    h_bar = pygame.Surface((width, height), pygame.SRCALPHA).convert_alpha()
-    pygame.draw.rect(h_bar, (0, 0, 0, 100), _h_bar_rect(width, height), border_radius=3)
-    inner_rect = _h_bar_inner_rect(width, height)
-    pygame.draw.rect(h_bar, (82, 191, 118), inner_rect, width=1, border_radius=10)
-    return h_bar, inner_rect, get_font("BIT", int(height * 0.02))
+    def draw(self) -> None:
+        pass
 
 
-def _create_damage_tint(width: int, height: int, strength: int, size: int = 5) -> pygame.Surface:
-    strength = 255 - strength
-    surface = pygame.Surface((size, size)).convert()
-    surface.fill((255, 255, 255))
-    pygame.draw.rect(surface, (255, strength, strength), (0, 0, size, size), width=1)
-    return pygame.transform.smoothscale(surface, (width, height))
+class DeathScreen(Screen):
+    def handle_event(self, event: pygame.Event) -> bool:
+        if super().handle_event(event):
+            return True
+        elif event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            self.exit = True
+            return
+
+    def init_loop(self) -> None:
+        super().init_loop()
+
+        change_music("game_over", "ogg")
+
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+
+        death_text = get_font("Sabo", width // 15).render("You Died.", True, (255, 255, 255))
+        self.death_text = death_text, ((width - death_text.width) / 2, (height - death_text.height) / 2)
+
+        score = get_font("PixelifySans", width // 45).render(f"Score: {state.score}", True, (255, 255, 255))
+        self.score = score, ((width - score.width) / 2, height * 0.6 - score.height / 2)
+
+        prompt = get_font("Silkscreen", width // 45).render("Click anywhere to exit", True, (255, 255, 255))
+        self.prompt = prompt, ((width - prompt.width) / 2, height * 0.8 - prompt.height / 2)
+
+    def draw(self) -> None:
+        intensity = 255 * max(0, 1 - self.dt)
+        self.window.fill((255, intensity, intensity), special_flags=pygame.BLEND_MULT)
+        surface = pygame.transform.gaussian_blur(self.window, clamp(int(10 * self.dt), 10, 1))
+        self.window.blit(surface, (0, 0))
+
+        self.window.blit(*self.death_text)
+        self.window.blit(*self.score)
+        self.window.blit(*self.prompt)
 
 
-def _create_damage_tints(
-    width: int, height: int, start: int = 1, stop: int = 255, step: int = 25
-) -> tuple[list[pygame.Surface], int]:
-    tints = [_create_damage_tint(width, height, i) for i in range(start, stop, step)]
-    return tints, len(tints) - 1
+class Game(Screen):
+    def create_h_bar(self, width: int, height: int) -> None:
+        h_bar_height = height * 0.04
+        x, y, w, h = 50, height - h_bar_height - 50, width * 0.33, h_bar_height
 
+        # Base
+        self.h_bar = pygame.Surface((width, height), pygame.SRCALPHA).convert_alpha()
+        pygame.draw.rect(self.h_bar, (0, 0, 0, 100), (x, y, w, h), border_radius=3)
 
-def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
-    state.reset()
-    key_handler.reset()
+        # Inner
+        i_w = 0.97  # inner width
+        i_h = 0.7  # inner height
+        self.h_bar_inner_rect = x + w * (1 - i_w) / 2, y + h * (1 - i_h) / 2, w * i_w, h * i_h
+        pygame.draw.rect(self.h_bar, (82, 191, 118), self.h_bar_inner_rect, width=1, border_radius=10)
 
-    state.player = Player()
-    state.camera = Camera()
-    state.current_map = Map()
+        self.h_bar_font = get_font("BIT", int(height * 0.02))
 
-    state.current_map.spawn_init_weapon()
+    def create_damage_tint(self, width: int, height: int, strength: int, size: int = 5) -> pygame.Surface:
+        strength = 255 - strength
+        surface = pygame.Surface((size, size)).convert()
+        surface.fill((255, 255, 255))
+        pygame.draw.rect(surface, (255, strength, strength), (0, 0, size, size), width=1)
+        return pygame.transform.smoothscale(surface, (width, height))
 
-    h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*window.size)
-    damage_tints, max_damage_tint = _create_damage_tints(*window.size)
+    def create_damage_tints(self, width: int, height: int, start: int = 1, stop: int = 255, step: int = 25) -> None:
+        self.damage_tints = [self.create_damage_tint(width, height, i) for i in range(start, stop, step)]
+        self.max_damage_tint = len(self.damage_tints) - 1
 
-    overlay_font = None
-    title_font = None
-    top_pause_font = None
-    bottom_pause_font = None
-    prompt_font = None
-    pause_prompts = None
-    back_prompts = None
+    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(window, clock, fps_cap)
 
-    def update_fonts():
-        nonlocal overlay_font, title_font, top_pause_font, bottom_pause_font, prompt_font, pause_prompts, back_prompts
-        overlay_font = get_font("Silkscreen", window.width // 60)
-        title_font = get_font("SilkscreenExpanded", window.width // 10, "Bold")
-        top_pause_font = get_font("PixelifySans", window.width // 30)
-        bottom_pause_font = get_font("PixelifySans", window.width // 40)
-        prompt_font = get_font("Silkscreen", window.width // 45)
-        pause_prompts = [
+        self.enter_map_sfx = Sound(get_project_root() / "assets/sfx/Enter_Level.wav")
+
+    def init_loop(self) -> None:
+        state.reset()
+        key_handler.reset()
+
+        state.player = Player()
+        state.camera = Camera()
+        state.current_map = Map()
+
+        state.current_map.spawn_init_weapon()
+
+        self.paused = False
+        self.skip_frame = False
+        self.back_confirm = False
+        self.need_update = False
+
+        super().init_loop()
+
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+
+        state.camera.resize(width, height)
+        if not state.current_map.static_bg:
+            state.current_map.background.resize(width, height)
+
+        self.create_h_bar(width, height)
+        self.create_damage_tints(width, height)
+
+        self.overlay_font = get_font("Silkscreen", width // 60)
+        self.title_font = get_font("SilkscreenExpanded", width // 10, "Bold")
+        self.top_pause_font = get_font("PixelifySans", width // 30)
+        self.bottom_pause_font = get_font("PixelifySans", width // 40)
+        prompt_font = get_font("Silkscreen", width // 45)
+        self.pause_prompts = [
             prompt_font.render("[Esc] to resume", True, (255, 255, 255)),
             prompt_font.render("[B] to return to the main menu", True, (255, 255, 255)),
         ]
-        back_prompts = [
+        self.back_prompts = [
             prompt_font.render("[Esc] Nooooo, let me keep playing!", True, (255, 255, 255)),
             prompt_font.render("[B] I want to leave, LET ME OUT!!!", True, (255, 255, 255)),
         ]
 
-    update_fonts()
+        self.need_update = True
 
-    pause = False
-    skip_frame = False
-    back_confirm = False
-    menu_needs_update = False
-
-    enter_map_sfx = Sound(get_project_root() / "assets/sfx/Enter_Level.wav")
-
-    while True:
-        # FPS = refresh rate or default 60
-        dt = clock.tick(get_fps()) / 1000  # To get in seconds
-
-        # Do not count loading time
+    def pre_event_handling(self) -> None:
         if not state.map_loaded:
             change_music("pause")
-            LoadingScreen(window)
+
+            # Loading screen
+            self.window.fill((0, 0, 0))
+            text = get_font("Sabo", self.width // 15).render("Loading...", True, (255, 255, 255))
+            self.window.blit(text, ((self.width - text.width) / 2, (self.height - text.height) / 2))
+            pygame.display.flip()
+
             state.current_map.load()
             state.map_loaded = True
-            skip_frame = True
-            enter_map_sfx.play()
+            self.skip_frames = 2  # Skip this and the next frame so the loading time doesn't count as dt
+            self.enter_map_sfx.play()
             change_music("game", "ogg", random.uniform(0, 90))
-            continue
 
-        if skip_frame:
-            skip_frame = False
-            continue
-
-        move_types = []
-
+        self.moves = []
         if key_handler.get(pygame.K_LEFT) or key_handler.get(pygame.K_a):
-            move_types.append(PlayerControl.LEFT)
+            self.moves.append(PlayerControl.LEFT)
         if key_handler.get(pygame.K_RIGHT) or key_handler.get(pygame.K_d):
-            move_types.append(PlayerControl.RIGHT)
+            self.moves.append(PlayerControl.RIGHT)
 
-        for event in pygame.event.get():
-            if _all_screens_handle_event(event):
-                return True
-            elif event.type == pygame.VIDEORESIZE:
-                new_size = event.dict["size"]
-                state.camera.resize(*new_size)
-                if not state.current_map.static_bg:
-                    state.current_map.background.resize(*new_size)
-                h_bar, h_bar_inner_rect, h_bar_font = _create_h_bar(*new_size)
-                damage_tints, max_damage_tint = _create_damage_tints(*new_size)
-                update_fonts()
-                menu_needs_update = True
-            elif event.type == pygame.KEYDOWN:
-                # TODO changeable keybinds
-                key_handler.down(event.key)
-                jump = event.key == pygame.K_w or event.key == pygame.K_UP or event.key == pygame.K_SPACE
-                if (key_handler.get(pygame.K_s) or key_handler.get(pygame.K_DOWN)) and jump:
-                    move_types.append(PlayerControl.SLAM)
-                elif jump:
-                    move_types.append(PlayerControl.JUMP)
-                elif event.key == pygame.K_f:
-                    move_types.append(PlayerControl.INTERACT)
-                elif event.key == pygame.K_COMMA:
-                    move_types.append(PlayerControl.ATTACK_START)
-                elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
-                    state.player.sprinting = True
-                elif event.key == pygame.K_ESCAPE:
-                    if back_confirm:
-                        back_confirm = False
-                    else:
-                        pause = not pause
-                    if pause:
-                        change_music("pause")
-                        pygame.mixer.pause()
-                    else:
-                        change_music("game", "ogg", random.uniform(0, 90))
-                        pygame.mixer.unpause()
-                    menu_needs_update = True
-                elif event.key == pygame.K_b:
-                    if back_confirm:
-                        return
+    def handle_event(self, event: pygame.Event) -> bool:
+        if super().handle_event(event):
+            return True
+        elif event.type == pygame.KEYDOWN:
+            # TODO changeable keybinds
+            key_handler.down(event.key)
+            jump = event.key == pygame.K_w or event.key == pygame.K_UP or event.key == pygame.K_SPACE
+            if (key_handler.get(pygame.K_s) or key_handler.get(pygame.K_DOWN)) and jump:
+                self.moves.append(PlayerControl.SLAM)
+            elif jump:
+                self.moves.append(PlayerControl.JUMP)
+            elif event.key == pygame.K_f:
+                self.moves.append(PlayerControl.INTERACT)
+            elif event.key == pygame.K_COMMA:
+                self.moves.append(PlayerControl.ATTACK_START)
+            elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
+                state.player.sprinting = True
+            elif event.key == pygame.K_ESCAPE:
+                if self.back_confirm:
+                    self.back_confirm = False
+                else:
+                    self.paused = not self.paused
+                if self.paused:
                     change_music("pause")
                     pygame.mixer.pause()
-                    back_confirm = True
-                    menu_needs_update = True
-            elif event.type == pygame.KEYUP:
-                held_time = key_handler.up(event.key)
-                if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
-                    if held_time < key_handler.TAP_THRESHOLD:
-                        move_types.append(PlayerControl.ROLL)
-                    state.player.sprinting = False
-                elif event.key == pygame.K_COMMA:
-                    move_types.append(PlayerControl.ATTACK_STOP)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                move_types.append(PlayerControl.ATTACK_START)
-            elif event.type == pygame.MOUSEBUTTONUP:
-                move_types.append(PlayerControl.ATTACK_STOP)
+                else:
+                    change_music("game", "ogg", random.uniform(0, 90))
+                    pygame.mixer.unpause()
+                self.need_update = True
+            elif event.key == pygame.K_b:
+                if self.back_confirm:
+                    self.exit = True
+                    return
+                change_music("pause")
+                pygame.mixer.pause()
+                self.back_confirm = True
+                self.need_update = True
+        elif event.type == pygame.KEYUP:
+            held_time = key_handler.up(event.key)
+            if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
+                if held_time < key_handler.TAP_THRESHOLD:
+                    self.moves.append(PlayerControl.ROLL)
+                state.player.sprinting = False
+            elif event.key == pygame.K_COMMA:
+                self.moves.append(PlayerControl.ATTACK_STOP)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.moves.append(PlayerControl.ATTACK_START)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.moves.append(PlayerControl.ATTACK_STOP)
 
-        if menu_needs_update or not (pause or back_confirm):
-            if not (pause or back_confirm):
-                key_handler.tick(dt)
-                state.player.tick(dt, move_types)
-                if state.player.top > state.current_map.height:
-                    state.current_map.player_out_of_bounds()
-                if state.player.health <= 0:
-                    full_exit = DeathScreen(window, clock)
-                    if state.hardcore:
-                        import platform
-                        import subprocess
+    def tick(self) -> bool:
+        if not (self.paused or self.back_confirm):
+            key_handler.tick(self.dt)
+            state.player.tick(self.dt, self.moves)
+            if state.player.top > state.current_map.height:
+                state.current_map.player_out_of_bounds()
+            if state.player.health <= 0:
+                full_exit = DeathScreen(self.window, self.clock).main_loop()
+                if state.hardcore:
+                    import platform
+                    import subprocess
 
-                        # NOTE Shuts down the PC
-                        if platform.system() == "Windows":
-                            subprocess.run(["shutdown", "-s"])
-                        elif platform.system() == "Linux":
-                            subprocess.run(["shutdown"])
-                        else:
-                            subprocess.call(["osascript", "-e", 'tell app "System Events" to shut down'])
-                    return full_exit
-                state.current_map.tick(dt)
-                state.camera.tick_move(dt)
+                    # NOTE Shuts down the PC
+                    if platform.system() == "Windows":
+                        subprocess.run(["shutdown", "-s"])
+                    elif platform.system() == "Linux":
+                        subprocess.run(["shutdown"])
+                    else:
+                        subprocess.call(["osascript", "-e", 'tell app "System Events" to shut down'])
+                self.exit = True
+                return full_exit
+            state.current_map.tick(self.dt)
+            state.camera.tick_move(self.dt)
 
-            # Draw stuff
-            state.camera.render(window)
-
-            if 0 <= state.player.health <= state.player.max_health * 0.2:
-                # Low health tint
-                window.blit(
-                    damage_tints[int((1 - state.player.health / (state.player.max_health * 0.5)) * max_damage_tint)],
-                    (0, 0),
-                    special_flags=pygame.BLEND_MULT,
-                )
-            elif state.player.damage_tint_time > 0:
-                # Damage flash
-                window.blit(
-                    damage_tints[
-                        int(
-                            math.sin(math.pi * (state.player.damage_tint_time / state.player.damage_tint_init_time))
-                            * (max_damage_tint / 2)
-                        )
-                    ],
-                    (0, 0),
-                    special_flags=pygame.BLEND_MULT,
-                )
-
-            # FPS monitor
-            fps = overlay_font.render(f"FPS: {round(clock.get_fps(), 2)}", True, (255, 255, 255))
-            window.blit(fps, (15, 15))
-
-            # Score
-            window.blit(overlay_font.render(f"Score: {state.score}", True, (255, 255, 255)), (15, 15 + fps.height))
-
-            multipliers = overlay_font.render(
-                f"Damage x{round(state.player.damage_mul, 2)}, Health x{round(state.player.health_mul, 2)}",
-                True,
-                (255, 255, 255),
+    def draw_damage_tint(self) -> None:
+        if 0 <= state.player.health <= state.player.max_health * 0.2:
+            # Low health tint
+            self.window.blit(
+                self.damage_tints[
+                    int((1 - state.player.health / (state.player.max_health * 0.5)) * self.max_damage_tint)
+                ],
+                (0, 0),
+                special_flags=pygame.BLEND_MULT,
             )
-            window.blit(multipliers, (window.width - 15 - multipliers.width, window.height - 15 - multipliers.height))
+        elif state.player.damage_tint_time > 0:
+            # Damage flash
+            self.window.blit(
+                self.damage_tints[
+                    int(
+                        math.sin(math.pi * (state.player.damage_tint_time / state.player.damage_tint_init_time))
+                        * (self.max_damage_tint / 2)
+                    )
+                ],
+                (0, 0),
+                special_flags=pygame.BLEND_MULT,
+            )
 
-            # Draw GUI
-            window.blit(h_bar, (0, 0))  # Health bar base
-            # Health bar health gain opportunity
-            border = 0 if state.player.health < state.player.max_health else -1
-            if state.player.damage_health >= 1:
-                pygame.draw.rect(
-                    window,
-                    (213, 162, 59),
-                    (
-                        h_bar_inner_rect[0],
-                        h_bar_inner_rect[1],
-                        h_bar_inner_rect[2]
-                        * ((state.player.health + state.player.damage_health) / state.player.max_health),
-                        h_bar_inner_rect[3],
-                    ),
-                    border_radius=10,
-                    border_top_right_radius=border,
-                    border_bottom_right_radius=border,
-                )
-            # Actual health
-            border = 0 if state.player.health + state.player.damage_health < state.player.max_health else -1
+    def draw_overlay_text(self) -> None:
+        # FPS
+        fps = self.overlay_font.render(f"FPS: {round(self.clock.get_fps(), 2)}", True, (255, 255, 255))
+        self.window.blit(fps, (15, 15))
+
+        # Score
+        self.window.blit(
+            self.overlay_font.render(f"Score: {state.score}", True, (255, 255, 255)), (15, 15 + fps.height)
+        )
+
+        # Multipliers (damage, health)
+        multipliers = self.overlay_font.render(
+            f"Damage x{round(state.player.damage_mul, 2)}, Health x{round(state.player.health_mul, 2)}",
+            True,
+            (255, 255, 255),
+        )
+        self.window.blit(multipliers, (self.width - 15 - multipliers.width, self.height - 15 - multipliers.height))
+
+    def draw_health_bar(self):
+        # Draw GUI
+        self.window.blit(self.h_bar, (0, 0))  # Health bar base
+        # Health bar health gain opportunity
+        border = 0 if state.player.health < state.player.max_health else -1
+        if state.player.damage_health >= 1:
             pygame.draw.rect(
-                window,
-                (82, 191, 118),
+                self.window,
+                (213, 162, 59),
                 (
-                    h_bar_inner_rect[0],
-                    h_bar_inner_rect[1],
-                    h_bar_inner_rect[2] * (state.player.health / state.player.max_health),
-                    h_bar_inner_rect[3],
+                    self.h_bar_inner_rect[0],
+                    self.h_bar_inner_rect[1],
+                    self.h_bar_inner_rect[2]
+                    * ((state.player.health + state.player.damage_health) / state.player.max_health),
+                    self.h_bar_inner_rect[3],
                 ),
                 border_radius=10,
                 border_top_right_radius=border,
                 border_bottom_right_radius=border,
             )
-            # Health text
-            health_text_uncropped = h_bar_font.render(
-                f"{state.player.health} / {state.player.max_health}", True, (255, 255, 255)
-            )
-            health_text_rect = health_text_uncropped.get_bounding_rect()
-            player_health = pygame.Surface(health_text_rect.size, pygame.SRCALPHA)
-            player_health.blit(health_text_uncropped, (0, 0), health_text_rect)
-            window.blit(
-                player_health,
-                (
-                    h_bar_inner_rect[0] + (h_bar_inner_rect[2] - player_health.width) / 2,
-                    h_bar_inner_rect[1] + (h_bar_inner_rect[3] - player_health.height) / 2,
-                ),
-            )
+        # Actual health
+        border = 0 if state.player.health + state.player.damage_health < state.player.max_health else -1
+        pygame.draw.rect(
+            self.window,
+            (82, 191, 118),
+            (
+                self.h_bar_inner_rect[0],
+                self.h_bar_inner_rect[1],
+                self.h_bar_inner_rect[2] * (state.player.health / state.player.max_health),
+                self.h_bar_inner_rect[3],
+            ),
+            border_radius=10,
+            border_top_right_radius=border,
+            border_bottom_right_radius=border,
+        )
+        # Health text
+        health_text_uncropped = self.h_bar_font.render(
+            f"{state.player.health} / {state.player.max_health}", True, (255, 255, 255)
+        )
+        health_text_rect = health_text_uncropped.get_bounding_rect()
+        player_health = pygame.Surface(health_text_rect.size, pygame.SRCALPHA)
+        player_health.blit(health_text_uncropped, (0, 0), health_text_rect)
+        self.window.blit(
+            player_health,
+            (
+                self.h_bar_inner_rect[0] + (self.h_bar_inner_rect[2] - player_health.width) / 2,
+                self.h_bar_inner_rect[1] + (self.h_bar_inner_rect[3] - player_health.height) / 2,
+            ),
+        )
 
-        if menu_needs_update and (back_confirm or pause):
+    def draw(self) -> None:
+        if self.need_update or not (self.paused or self.back_confirm):
+            # Draw stuff
+            state.camera.render(self.window)
+
+            self.draw_damage_tint()
+            self.draw_overlay_text()
+            self.draw_health_bar()
+
+        if self.need_update and (self.back_confirm or self.paused):
             # Darken and blur
-            window.fill((140, 140, 140), special_flags=pygame.BLEND_MULT)
-            surface = pygame.transform.gaussian_blur(window, 10)
+            self.window.fill((140, 140, 140), special_flags=pygame.BLEND_MULT)
+            surface = pygame.transform.gaussian_blur(self.window, 10)
 
-            if back_confirm:
+            if self.back_confirm:
                 # Question
-                confirm = title_font.render("Really?", True, (255, 255, 255))
+                confirm = self.title_font.render("Really?", True, (255, 255, 255))
                 y_off = (surface.height - confirm.height) / 2
                 surface.blit(confirm, ((surface.width - confirm.width) / 2, y_off))
 
                 # Prompts
-                height = sum([p.height for p in back_prompts])
-                for i, prompt in enumerate(back_prompts):
+                height = sum([p.height for p in self.back_prompts])
+                for i, prompt in enumerate(self.back_prompts):
                     surface.blit(
                         prompt,
                         (
                             (surface.width - prompt.width) / 2,
                             (y_off + confirm.height) * 1.3
                             - height / 2
-                            + (sum(p.height for p in back_prompts[:i]) if i > 0 else 0),
+                            + (sum(p.height for p in self.back_prompts[:i]) if i > 0 else 0),
                         ),
                     )
             else:
                 # Centered pause text
-                pause_text = title_font.render("PAUSED", True, (255, 255, 255))
-                y_off = (window.height - pause_text.height) / 2
-                surface.blit(pause_text, ((window.width - pause_text.width) / 2, y_off))
+                pause_text = self.title_font.render("PAUSED", True, (255, 255, 255))
+                y_off = (self.height - pause_text.height) / 2
+                surface.blit(pause_text, ((self.width - pause_text.width) / 2, y_off))
 
                 # Score and difficulty
-                score = top_pause_font.render(f"Current score: {state.score}  ", True, (255, 255, 255))
-                surface.blit(score, (window.width / 2 - score.width - 10, y_off * 0.8 - score.height / 2))
-                separator = top_pause_font.render("|", True, (255, 255, 255))
-                surface.blit(separator, (window.width / 2 - separator.width, y_off * 0.8 - separator.height / 2))
-                difficulty = top_pause_font.render(
+                score = self.top_pause_font.render(f"Current score: {state.score}  ", True, (255, 255, 255))
+                surface.blit(score, (self.width / 2 - score.width - 10, y_off * 0.8 - score.height / 2))
+                separator = self.top_pause_font.render("|", True, (255, 255, 255))
+                surface.blit(separator, (self.width / 2 - separator.width, y_off * 0.8 - separator.height / 2))
+                difficulty = self.top_pause_font.render(
                     f" Current difficulty: {round(state.difficulty, 2)}x", True, (255, 255, 255)
                 )
-                surface.blit(difficulty, (window.width / 2 + 10, y_off * 0.8 - difficulty.height / 2))
+                surface.blit(difficulty, (self.width / 2 + 10, y_off * 0.8 - difficulty.height / 2))
 
                 # Multipliers
-                damage = bottom_pause_font.render(
+                damage = self.bottom_pause_font.render(
                     f"Damage multiplier: {round(state.player.damage_mul, 2)}x  ", True, (255, 255, 255)
                 )
                 surface.blit(
                     damage,
-                    (window.width / 2 - damage.width - 10, (y_off + pause_text.height) * 1.1 - damage.height / 2),
+                    (self.width / 2 - damage.width - 10, (y_off + pause_text.height) * 1.1 - damage.height / 2),
                 )
-                separator = bottom_pause_font.render("|", True, (255, 255, 255))
+                separator = self.bottom_pause_font.render("|", True, (255, 255, 255))
                 surface.blit(
                     separator,
-                    (window.width / 2 - separator.width, (y_off + pause_text.height) * 1.1 - separator.height / 2),
+                    (self.width / 2 - separator.width, (y_off + pause_text.height) * 1.1 - separator.height / 2),
                 )
-                health = bottom_pause_font.render(
+                health = self.bottom_pause_font.render(
                     f" Health multiplier: {round(state.player.health_mul, 2)}x", True, (255, 255, 255)
                 )
-                surface.blit(health, (window.width / 2 + 10, (y_off + pause_text.height) * 1.1 - health.height / 2))
+                surface.blit(health, (self.width / 2 + 10, (y_off + pause_text.height) * 1.1 - health.height / 2))
 
-                height = sum([p.height for p in pause_prompts])
-                for i, prompt in enumerate(pause_prompts):
+                height = sum([p.height for p in self.pause_prompts])
+                for i, prompt in enumerate(self.pause_prompts):
                     surface.blit(
                         prompt,
                         (
-                            (window.width - prompt.width) / 2,
+                            (self.width - prompt.width) / 2,
                             (y_off + pause_text.height) * 1.3
                             - height / 2
-                            + (sum(p.height for p in pause_prompts[:i]) if i > 0 else 0),
+                            + (sum(p.height for p in self.pause_prompts[:i]) if i > 0 else 0),
                         ),
                     )
 
                 if state.player.weapon:
                     weapon = state.player.weapon
-                    font = get_font("Silkscreen", window.width // 60)
-                    name = get_font("BIT", window.width // 50).render(weapon.name, True, (255, 255, 255))
+                    font = get_font("Silkscreen", self.width // 60)
+                    name = get_font("BIT", self.width // 50).render(weapon.name, True, (255, 255, 255))
                     dps = font.render(f"{weapon.dps} DPS", True, (180, 180, 180))
                     mods = font.render(weapon.modifiers_str, True, (230, 230, 230))
 
@@ -640,283 +663,259 @@ def Game(window: pygame.Surface, clock: pygame.Clock) -> int:
                     surface.blit(dps, (x_off + sprite.width * 1.1, y_off))
                     surface.blit(mods, (x_off, y_off + dps.height))
 
-            window.blit(surface, (0, 0))
-            menu_needs_update = False
-
-        # Update window
-        pygame.display.flip()
+            self.window.blit(surface, (0, 0))
+            self.need_update = False
 
 
-def _get_menu_bg():
-    return pygame.image.load(get_project_root() / "assets/main_menu.png").convert()
+class MenuScreen(Screen):
+    def get_back_font(self, width: int) -> pygame.font.Font:
+        return get_font("PixelBit", width // 18)
 
+    def __init__(
+        self,
+        window: pygame.Surface,
+        clock: pygame.Clock,
+        fps_cap: int = None,
+        back_text: str = "Return to Main Menu",
+    ):
+        super().__init__(window, clock, fps_cap)
 
-def HardcoreWarning(window: pygame.Surface, clock: pygame.Clock) -> bool:
-    orig_menu_bg = _get_menu_bg()
-    menu_bg = None
+        self.orig_menu_bg = pygame.image.load(get_project_root() / "assets/main_menu.png").convert()
+        self.back_button = ShadowTextButton(self.get_back_font(window.width), back_text, (176, 166, 145))
 
-    warning = ShadowTextButton(
-        get_font("BIT", window.width // 14),
-        "BE WARNED, SAVE YOUR DATA BEFORE USING THIS.",
-        (188, 181, 166),
-        wrap_length=int(window.width * 0.8),
-    )
-    warning.font.align = pygame.FONT_CENTER
-    back_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Return to Main Menu", (176, 166, 145))
+    def init_loop(self) -> None:
+        super().init_loop()
 
-    def update_menu_bg():
-        nonlocal menu_bg
-        menu_bg = pygame.transform.scale_by(
-            orig_menu_bg, max(window.width / orig_menu_bg.width, window.height / orig_menu_bg.height)
+        self.mouse_down = False
+
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+
+        self.menu_bg = pygame.transform.scale_by(
+            self.orig_menu_bg, max(width / self.orig_menu_bg.width, height / self.orig_menu_bg.height)
         )
 
-    def update_text_positions():
-        warning.wrap_length = int(window.width * 0.8)
-        warning.center = window.width / 2, window.height * 0.45
-        warning.update()
-        back_button.center = window.width / 2, window.height * 0.8
-        back_button.update()
+        self.back_button.font = self.get_back_font(width)
+        self.back_button.center = width / 2, height * 0.8
+        self.back_button.update()
 
-    update_menu_bg()
-    update_text_positions()
+    def handle_event(self, event: pygame.Event, only_parent: bool = False) -> bool:
+        if super().handle_event(event):
+            return True
 
-    mouse_down = False
+        if only_parent:
+            return
 
-    while True:
-        # Limit fps
-        clock.tick(get_fps())
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            self.mouse_down = True
+            if self.back_button.collidepoint(*pygame.mouse.get_pos()):
+                self.back_button.clicked = True
+        elif self.mouse_down and event.type == pygame.MOUSEBUTTONUP:
+            self.mouse_down = False
+            self.back_button.clicked = False
+            if self.back_button.collidepoint(*pygame.mouse.get_pos()):
+                self.exit = True
+                return
+        elif event.type == pygame.MOUSEMOTION:
+            if self.back_button.collidepoint(*pygame.mouse.get_pos()):
+                self.back_button.hovered = True
+                if self.mouse_down:
+                    self.back_button.clicked = True
+            else:
+                self.back_button.hovered = False
+                self.back_button.clicked = False
 
-        for event in pygame.event.get():
-            if _all_screens_handle_event(event):
-                return True
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_down = True
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    back_button.clicked = True
-            elif mouse_down and event.type == pygame.MOUSEBUTTONUP:
-                mouse_down = False
-                back_button.clicked = False
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    return
-            elif event.type == pygame.MOUSEMOTION:
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    back_button.hovered = True
-                    if mouse_down:
-                        back_button.clicked = True
-                else:
-                    back_button.hovered = False
-                    back_button.clicked = False
-            elif event.type == pygame.VIDEORESIZE:
-                update_menu_bg()
-
-                warning.font = get_font("BIT", window.width // 14)
-                warning.font.align = pygame.FONT_CENTER
-                back_button.font = get_font("PixelBit", window.width // 18)
-                update_text_positions()
-
-        window.blit(menu_bg, ((window.width - menu_bg.width) / 2, (window.height - menu_bg.height) / 2))
-        warning.draw(window)
-        back_button.draw(window)
-
-        # Update window
-        pygame.display.flip()
+    def draw(self) -> None:
+        self.window.blit(self.menu_bg, ((self.width - self.menu_bg.width) / 2, (self.height - self.menu_bg.height) / 2))
+        self.back_button.draw(self.window)
 
 
-def Controls(window: pygame.Surface, clock: pygame.Clock) -> int:
-    orig_menu_bg = _get_menu_bg()
-    menu_bg = None
+class HardcoreWarning(MenuScreen):
+    def get_warning_font(self, width: int) -> pygame.font.Font:
+        return get_font("BIT", width // 14)
 
-    controls = [
-        [
-            ["A/←", "Move left"],
-            ["D/→", "Move right"],
-            ["W/↑/Space", "Jump"],
-            ["S/↓ + W/↑/Space", "Slam"],
-            ["Shift", "(Hold) Sprint (Tap) Roll"],
-            ["Comma/Click", "Attack"],
-        ],
-        [
-            ["F", "Interact"],
-            ["Esc", "Pause"],
-            ["B", "Back to main menu"],
-            ["F11", "Toggle fullscreen"],
-        ],
-    ]
-    control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 10)
-    controls = [
-        [ShadowTextButton(control_font, f"[{key}] {action}", (188, 181, 166)) for key, action in column]
-        for column in controls
-    ]
+    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(window, clock, fps_cap)
 
-    back_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Return to Main Menu", (176, 166, 145))
-
-    def update_menu_bg():
-        nonlocal menu_bg
-        menu_bg = pygame.transform.scale_by(
-            orig_menu_bg, max(window.width / orig_menu_bg.width, window.height / orig_menu_bg.height)
+        self.warning = ShadowTextButton(
+            self.get_warning_font(window.width),
+            "BE WARNED, SAVE YOUR DATA BEFORE USING THIS.",
+            (188, 181, 166),
+            wrap_length=int(window.width * 0.8),
         )
+        self.warning.font.align = pygame.FONT_CENTER
 
-    def update_text_positions():
-        widths = [max(c.width for c in col) for col in controls]
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+
+        self.warning.font = self.get_warning_font(width)
+        self.warning.font.align = pygame.FONT_CENTER
+
+        self.warning.wrap_length = int(width * 0.8)
+        self.warning.center = width / 2, height * 0.45
+        self.warning.update()
+
+    def draw(self) -> None:
+        super().draw()
+
+        self.warning.draw(self.window)
+
+
+class Controls(MenuScreen):
+    def get_control_font(self, width: int, height: int) -> pygame.font.Font:
+        return get_font("PixelUnicode", min(width // 2, height) // 10)
+
+    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(window, clock, fps_cap)
+
+        controls = [
+            [
+                ["A/←", "Move left"],
+                ["D/→", "Move right"],
+                ["W/↑/Space", "Jump"],
+                ["S/↓ + W/↑/Space", "Slam"],
+                ["Shift", "(Hold) Sprint (Tap) Roll"],
+                ["Comma/Click", "Attack"],
+            ],
+            [
+                ["F", "Interact"],
+                ["Esc", "Pause"],
+                ["B", "Back to main menu"],
+                ["F11", "Toggle fullscreen"],
+            ],
+        ]
+        self.control_font = self.get_control_font(*window.size)
+        self.controls = [
+            [ShadowTextButton(self.control_font, f"[{key}] {action}", (188, 181, 166)) for key, action in column]
+            for column in controls
+        ]
+
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+
+        self.control_font = self.get_control_font(width, height)
+        widths = [max(c.width for c in col) for col in self.controls]
         total_width = sum(widths)
-        for i, column in enumerate(controls):
+        for i, column in enumerate(self.controls):
             x_off = sum(widths[:i]) if i > 0 else 0
             for j, control in enumerate(column):
-                control.font = control_font
+                control.font = self.control_font
                 control.topleft = (
-                    (window.width - total_width) / 2 + x_off,
-                    window.height * 0.2 + (sum(c.height * 1.2 for c in column[:j]) if j > 0 else 0),
+                    (width - total_width) / 2 + x_off,
+                    height * 0.2 + (sum(c.height * 1.2 for c in column[:j]) if j > 0 else 0),
                 )
                 control.update()
-        back_button.center = window.width / 2, window.height * 0.8
-        back_button.update()
 
-    update_menu_bg()
-    update_text_positions()
+    def draw(self) -> None:
+        super().draw()
 
-    mouse_down = False
-
-    while True:
-        # Limit fps
-        clock.tick(get_fps())
-
-        for event in pygame.event.get():
-            if _all_screens_handle_event(event):
-                return True
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_down = True
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    back_button.clicked = True
-            elif mouse_down and event.type == pygame.MOUSEBUTTONUP:
-                mouse_down = False
-                back_button.clicked = False
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    return
-            elif event.type == pygame.MOUSEMOTION:
-                if back_button.collidepoint(*pygame.mouse.get_pos()):
-                    back_button.hovered = True
-                    if mouse_down:
-                        back_button.clicked = True
-                else:
-                    back_button.hovered = False
-                    back_button.clicked = False
-            elif event.type == pygame.VIDEORESIZE:
-                update_menu_bg()
-
-                control_font = get_font("PixelUnicode", min(window.width // 2, window.height) // 10)
-                back_button.font = get_font("PixelBit", window.width // 18)
-                update_text_positions()
-
-        window.blit(menu_bg, ((window.width - menu_bg.width) / 2, (window.height - menu_bg.height) / 2))
-        for col in controls:
+        for col in self.controls:
             for control in col:
-                control.draw(window)
-        back_button.draw(window)
-
-        # Update window
-        pygame.display.flip()
+                control.draw(self.window)
 
 
-def MainMenu(window: pygame.Surface, clock: pygame.Clock) -> None:
-    change_music("main_menu")
+class MainMenu(MenuScreen):
+    def get_title_font(self, width: int) -> pygame.font.Font:
+        return get_font("BIT", width // 10)
 
-    orig_menu_bg = _get_menu_bg()
-    menu_bg = None
+    def get_start_font(self, width: int) -> pygame.font.Font:
+        return get_font("PixelifySans", width // 18, "Bold")
 
-    title = ShadowTextButton(get_font("BIT", window.width // 10), "Not so Dead Cells", (188, 181, 166))
-    text_colour = 176, 166, 145
-    start_button = ShadowTextButton(get_font("PixelifySans", window.width // 18, "Bold"), "Start Game", text_colour)
-    sub_button_font = get_font("PixelifySans", window.width // 24, "Bold")
-    controls_button = ShadowTextButton(sub_button_font, "Controls", text_colour)
-    hardcore_button = Checkbox(sub_button_font, "Hardcore", text_colour, on_release=True)
-    exit_button = ShadowTextButton(get_font("PixelBit", window.width // 18), "Exit", text_colour)
+    def get_sub_font(self, width: int) -> pygame.font.Font:
+        return get_font("PixelifySans", width // 24, "Bold")
 
-    active_buttons = start_button, controls_button, hardcore_button, exit_button
-    draw = title, *active_buttons
+    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(window, clock, fps_cap, "Exit")
 
-    def update_menu_bg():
-        nonlocal menu_bg
-        menu_bg = pygame.transform.scale_by(
-            orig_menu_bg, max(window.width / orig_menu_bg.width, window.height / orig_menu_bg.height)
-        )
+        self.title = ShadowTextButton(self.get_title_font(window.width), "Not so Dead Cells", (188, 181, 166))
+        text_colour = 176, 166, 145
+        self.start_button = ShadowTextButton(self.get_start_font(window.width), "Start Game", text_colour)
+        sub_button_font = self.get_sub_font(window.width)
+        self.controls_button = ShadowTextButton(sub_button_font, "Controls", text_colour)
+        self.hardcore_button = Checkbox(sub_button_font, "Hardcore", text_colour, on_release=True)
 
-    def update_text_positions():
-        title.center = window.width / 2, window.height * 0.3
-        title.update()
-        start_button.center = window.width / 2, window.height * 0.5
-        start_button.update()
-        controls_button.center = window.width / 2, window.height * 0.59
-        controls_button.update()
-        hardcore_button.center = window.width / 2, window.height * 0.66
-        hardcore_button.update()
-        exit_button.center = window.width / 2, window.height * 0.8
-        exit_button.update()
+        self.active_buttons = self.start_button, self.controls_button, self.hardcore_button, self.back_button
+        self.needs_draw = self.title, *self.active_buttons
 
-    update_menu_bg()
-    update_text_positions()
+        self.game_screen = Game(window, clock)
+        self.controls_screen = Controls(window, clock)
 
-    mouse_down = False
-    hardcore_warned = False
+    def init_loop(self) -> None:
+        super().init_loop()
 
-    while True:
-        # Limit fps
-        clock.tick(get_fps())
+        change_music("main_menu")
+        self.hardcore_warned = False
 
-        for event in pygame.event.get():
-            if _all_screens_handle_event(event):
-                return
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_down = True
-                for button in active_buttons:
-                    if button.collidepoint(*pygame.mouse.get_pos()):
+    def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
+
+        self.title.font = self.get_title_font(width)
+        self.start_button.font = self.get_start_font(width)
+        sub_button_font = self.get_sub_font(width)
+        self.controls_button.font = sub_button_font
+        self.hardcore_button.font = sub_button_font
+
+        self.title.center = width / 2, height * 0.3
+        self.title.update()
+        self.start_button.center = width / 2, height * 0.5
+        self.start_button.update()
+        self.controls_button.center = width / 2, height * 0.59
+        self.controls_button.update()
+        self.hardcore_button.center = width / 2, height * 0.66
+        self.hardcore_button.update()
+
+    def handle_event(self, event: pygame.Event) -> bool:
+        if super().handle_event(event, True):
+            return True
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.mouse_down = True
+
+            for button in self.active_buttons:
+                if button.collidepoint(*pygame.mouse.get_pos()):
+                    button.clicked = True
+        elif self.mouse_down and event.type == pygame.MOUSEBUTTONUP:
+            self.mouse_down = False
+
+            for button in self.active_buttons:
+                button.clicked = False
+
+            mouse_pos = pygame.mouse.get_pos()
+            full_exit = None
+            if self.start_button.collidepoint(*mouse_pos):
+                full_exit = self.game_screen.main_loop()
+                if not full_exit:
+                    change_music("main_menu")
+                    pygame.mixer.stop()
+            elif self.controls_button.collidepoint(*mouse_pos):
+                full_exit = self.controls_screen.main_loop()
+            elif self.hardcore_button.collidepoint(*mouse_pos):
+                state.hardcore = self.hardcore_button.checked
+                if not self.hardcore_warned:
+                    full_exit = HardcoreWarning(self.window, self.clock).main_loop()
+                    self.hardcore_warned = True
+            elif self.back_button.collidepoint(*pygame.mouse.get_pos()):
+                full_exit = True
+
+            if full_exit:
+                return True
+        elif event.type == pygame.MOUSEMOTION:
+            for button in self.active_buttons:
+                if button.collidepoint(*pygame.mouse.get_pos()):
+                    button.hovered = True
+                    if self.mouse_down:
                         button.clicked = True
-            elif mouse_down and event.type == pygame.MOUSEBUTTONUP:
-                mouse_down = False
-
-                for button in active_buttons:
+                else:
+                    button.hovered = False
+                    is_hardcore_btn = button is self.hardcore_button
+                    if is_hardcore_btn:
+                        checked = button.checked
                     button.clicked = False
+                    if is_hardcore_btn:
+                        # Ignore when move off
+                        button.checked = checked
 
-                full_exit = None
-                if start_button.collidepoint(*pygame.mouse.get_pos()):
-                    full_exit = Game(window, clock)
-                    if not full_exit:
-                        change_music("main_menu")
-                        pygame.mixer.stop()
-                elif controls_button.collidepoint(*pygame.mouse.get_pos()):
-                    full_exit = Controls(window, clock)
-                elif hardcore_button.collidepoint(*pygame.mouse.get_pos()):
-                    state.hardcore = hardcore_button.checked
-                    if not hardcore_warned:
-                        full_exit = HardcoreWarning(window, clock)
-                        hardcore_warned = True
-                elif exit_button.collidepoint(*pygame.mouse.get_pos()):
-                    full_exit = True
+    def draw(self) -> None:
+        super().draw()
 
-                if full_exit:
-                    return
-            elif event.type == pygame.MOUSEMOTION:
-                for button in active_buttons:
-                    if button.collidepoint(*pygame.mouse.get_pos()):
-                        button.hovered = True
-                        if mouse_down:
-                            button.clicked = True
-                    else:
-                        button.hovered = False
-                        button.clicked = False
-            elif event.type == pygame.VIDEORESIZE:
-                update_menu_bg()
-
-                title.font = get_font("BIT", window.width // 10)
-                start_button.font = get_font("PixelifySans", window.width // 18, "Bold")
-                sub_button_font = get_font("PixelifySans", window.width // 24, "Bold")
-                controls_button.font = sub_button_font
-                hardcore_button.font = sub_button_font
-                exit_button.font = get_font("PixelBit", window.width // 18)
-                update_text_positions()
-
-        window.blit(menu_bg, ((window.width - menu_bg.width) / 2, (window.height - menu_bg.height) / 2))
-        for d in draw:
-            d.draw(window)
-
-        # Update window
-        pygame.display.flip()
+        for d in self.needs_draw:
+            d.draw(self.window)

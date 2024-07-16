@@ -48,9 +48,9 @@ class Player(Hitbox):
     WALL_JUMP_STRENGTH: float = 300
 
     # The speed of rolling (px/s)
-    ROLL_SPEED: int = 400
+    ROLL_SPEED: int = 500
     # The length of a roll (s)
-    ROLL_LENGTH: float = 0.5
+    ROLL_LENGTH: float = 0.3
     # The time until the player can roll again after a roll is finished (s)
     ROLL_COOLDOWN: float = 0.3
 

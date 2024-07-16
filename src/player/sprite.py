@@ -82,7 +82,10 @@ class PlayerSprite:
         return self.current_state.get_current_sprite(state.player.facing)
 
     def __init__(self, folder: str):
+        from .player import Player
+
         folder_path = get_project_root() / "assets/sprites" / folder
+        roll_sprites = _get_sprites_from_sheet(folder_path / "Roll.png")
         self.states: dict[str, State] = {
             "attack": State(_get_sprites_from_sheet(folder_path / "Attack_1.png")),
             "dead": State(_get_sprites_from_sheet(folder_path / "Dead.png")),
@@ -92,8 +95,8 @@ class PlayerSprite:
             "jump": State(_get_sprites_from_sheet(folder_path / "Jump.png")),
             "climb": State(_get_sprites_from_sheet(folder_path / "Climb.png")),
             "wall_slide": State(_get_sprites_from_sheet(folder_path / "Wall_Slide.png")),
-            "roll": State(_get_sprites_from_sheet(folder_path / "Roll.png"), 1.3),
-            # "hurt": _get_sprites_from_sheet(folder_path / "Hurt.png")  # TODO stagger enemy and use when hurt
+            "roll": State(roll_sprites, SPRITES_PER_SECOND / len(roll_sprites) * Player.ROLL_LENGTH),
+            # "hurt": _get_sprites_from_sheet(folder_path / "Hurt.png")  # TODO stagger player and use when hurt
         }
 
         # self.death_time: float = 4  # Time remains stay for

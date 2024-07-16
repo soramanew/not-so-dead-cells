@@ -26,7 +26,7 @@ def main():
     pygame.display.set_caption(APP_NAME)
     clock = pygame.time.Clock()
 
-    MainMenu(window, clock)
+    MainMenu(window, clock).main_loop()
 
     pygame.quit()
 

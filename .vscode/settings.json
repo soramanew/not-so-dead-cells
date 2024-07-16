@@ -15,6 +15,7 @@
         "Interactable",
         "KEYDOWN",
         "KEYUP",
+        "KMOD",
         "knockback",
         "lerp",
         "levelname",
