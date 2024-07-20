@@ -9,11 +9,11 @@ import pygame
 if TYPE_CHECKING:
     from box import Hitbox
 
-type Vec2 = tuple[float, float]
-type Line = tuple[Vec2, Vec2]
-type Size = tuple[int, int]
-type Rect = tuple[float, float, int, int]  # Vec2, Size
-type Colour = tuple[int, int, int]
+type Vec2 = tuple[float, float] | list[float]
+type Line = tuple[Vec2, Vec2] | list[Vec2]
+type Size = tuple[int, int] | list[int]  # TODO use frects, get rid of int size
+type Rect = tuple[float, float, int, int] | list[float]  # Vec2, Size
+type Colour = tuple[int, int, int] | list[int]
 
 
 class Drawable(ABC):

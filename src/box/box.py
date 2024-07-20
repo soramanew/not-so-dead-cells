@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import pygame
 from util.func import normalise_for_drawing
-from util.type import Colour, Drawable, Rect
+from util.type import Colour, Drawable
 
 
 class BoxABC(ABC):
@@ -187,7 +187,7 @@ class Box(BoxABC, Drawable):
         """
         return {"x": self.x, "y": self.y, "w": self.width, "h": self.height}
 
-    def __iter__(self) -> Rect:
+    def __iter__(self):
         return iter((self.x, self.y, self.width, self.height))
 
     def __str__(self) -> str:

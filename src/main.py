@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 import pygame
 from constants import APP_DESC, APP_NAME
-from ui import MainMenu
+from ui.screens import MainMenu
 from util.func import get_project_root
 
 

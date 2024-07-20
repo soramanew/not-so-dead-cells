@@ -177,6 +177,9 @@ class Enemy(Hitbox, Sense, Sprite):
         if damage > self.health:
             damage = self.health
 
+        if damage < 0:
+            return 0
+
         # Stagger
         self.stagger_time = self.stagger_length
         self.states[EnemyState.HURT.value].time = 0

@@ -10,10 +10,10 @@ def get_project_root():
     return Path(__file__).parent.parent  # NOTE 2 parents when packaging, 3 when not
 
 
-def get_font(family: str, size: int, weight: str = "Regular") -> pygame.font.Font:
+def get_font(family: str, size: int, weight: str = "Regular") -> pygame.Font:
     fonts_dir = get_project_root() / "assets/fonts"
     ttf = fonts_dir / f"{family}-{weight}.ttf"
-    return pygame.font.Font(ttf if ttf.is_file() else (fonts_dir / f"{family}-{weight}.otf"), size)
+    return pygame.Font(ttf if ttf.is_file() else (fonts_dir / f"{family}-{weight}.otf"), size)
 
 
 def get_fps() -> int:

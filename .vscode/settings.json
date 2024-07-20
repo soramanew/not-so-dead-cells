@@ -2,6 +2,8 @@
     "cSpell.words": [
         "blit",
         "blits",
+        "centerx",
+        "centery",
         "collidepoint",
         "colorkey",
         "COOLDOWN",
@@ -23,6 +25,7 @@
         "MOUSEBUTTONUP",
         "MOUSEMOTION",
         "MULT",
+        "Nooooo",
         "Noto",
         "pixelify",
         "platformdirs",
@@ -37,6 +40,7 @@
         "Soramane",
         "SRCALPHA",
         "topleft",
+        "USEREVENT",
         "VIDEORESIZE",
         "wpctl",
         "wraplength"

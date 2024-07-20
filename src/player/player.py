@@ -9,6 +9,16 @@ from item.pickup import WeaponPickup
 from map import Gate, Map, Platform, Wall
 from util import key_handler
 from util.decor import run_once
+from util.event import (
+    PLAYER_DAMAGE_HEALTH_CHANGED,
+    PLAYER_DAMAGE_MULTIPLIER_CHANGED,
+    PLAYER_HEALTH_CHANGED,
+    PLAYER_HEALTH_MULTIPLIER_CHANGED,
+    PLAYER_HIT,
+    PLAYER_MAX_HEALTH_CHANGED,
+    PLAYER_MULTIPLIERS_CHANGED,
+    PLAYER_WEAPON_CHANGED,
+)
 from util.func import clamp, get_project_root
 from util.type import (
     Collision,
@@ -104,9 +114,39 @@ class Player(Hitbox):
 
     @health.setter
     def health(self, value: int) -> None:
+        if self._health == value:
+            return
+
+        pygame.event.post(pygame.Event(PLAYER_HEALTH_CHANGED, amount=value - self._health, new_value=value))
         if value < self._health:
             self.i_frames = Player.I_FRAMES
         self._health = value
+
+    @property
+    def max_health(self) -> int:
+        return self._max_health
+
+    @max_health.setter
+    def max_health(self, value: int) -> None:
+        if self._max_health == value:
+            return
+
+        pygame.event.post(pygame.Event(PLAYER_MAX_HEALTH_CHANGED, amount=value - self._max_health, new_value=value))
+        self._max_health = value
+
+    @property
+    def damage_health(self) -> int:
+        return self._damage_health
+
+    @damage_health.setter
+    def damage_health(self, value: int) -> None:
+        if self._damage_health == value:
+            return
+
+        pygame.event.post(
+            pygame.Event(PLAYER_DAMAGE_HEALTH_CHANGED, amount=value - self._damage_health, new_value=value)
+        )
+        self._damage_health = value
 
     @property
     def arm_x(self) -> float:
@@ -138,11 +178,41 @@ class Player(Hitbox):
         )
 
     @property
+    def damage_mul(self) -> float:
+        return self._damage_mul
+
+    @damage_mul.setter
+    def damage_mul(self, value: float) -> None:
+        if self._damage_mul == value:
+            return
+
+        pygame.event.post(
+            pygame.Event(PLAYER_DAMAGE_MULTIPLIER_CHANGED, amount=value - self._damage_mul, new_value=value)
+        )
+        pygame.event.post(
+            pygame.Event(
+                PLAYER_MULTIPLIERS_CHANGED, amount=value - self._damage_mul, new_value=value, multiplier="damage"
+            )
+        )
+        self._damage_mul = value
+
+    @property
     def health_mul(self) -> float:
         return self._health_mul
 
     @health_mul.setter
     def health_mul(self, value: float) -> None:
+        if self._health_mul == value:
+            return
+
+        pygame.event.post(
+            pygame.Event(PLAYER_HEALTH_MULTIPLIER_CHANGED, amount=value - self._health_mul, new_value=value)
+        )
+        pygame.event.post(
+            pygame.Event(
+                PLAYER_MULTIPLIERS_CHANGED, amount=value - self._health_mul, new_value=value, multiplier="health"
+            )
+        )
         self._health_mul = value
 
         # Update max & current health
@@ -183,13 +253,13 @@ class Player(Hitbox):
         self.wall_col_dir: Side | None = None  # The direction of the collision with a wall (None if no collision)
         self.ledge_climbing: tuple[Side, Vec2] | None = None
         self.wall_climb_time: float = 0
-        self.max_health: int = Player.MAX_HEALTH
+        self._max_health: int = Player.MAX_HEALTH
         self._health: int = self.max_health
         self.i_frames: float = 0
-        self.damage_health: float = 0
+        self._damage_health: float = 0
         self.weapon: Weapon = None
         self.damage_potions: int = 0
-        self.damage_mul: float = 1  # Damage multiplier
+        self._damage_mul: float = 1  # Damage multiplier
         self.health_potions: int = 0
         self._health_mul: float = 1  # Health multiplier
         self.state: PlayerState = PlayerState.IDLE
@@ -805,11 +875,13 @@ class Player(Hitbox):
         if not force and self.i_frames > 0:
             return
 
+        pygame.event.post(pygame.Event(PLAYER_HIT, damage=damage))
+
         self.hit_sfx.play()
 
-        self.damage_health += damage
         self.health -= damage
-        self.damage_tint_init_time = damage / 30
+        self.damage_health += damage
+        self.damage_tint_init_time = max(0.3, damage / 30)
         self.damage_tint_time = self.damage_tint_init_time
 
     def interrupt_all(self) -> None:
@@ -823,6 +895,7 @@ class Player(Hitbox):
             self.weapon.interrupt()
             state.current_map.add_pickup(WeaponPickup(self.weapon, (self.center_x, self.center_y)))
         self.weapon = weapon
+        pygame.event.post(pygame.Event(PLAYER_WEAPON_CHANGED, new_value=weapon))
         logger.debug(f"Weapon changed: {repr(weapon)}")
 
     def draw(self, surface: pygame.Surface, x_off: float = 0, y_off: float = 0):

@@ -8,8 +8,7 @@
             "name": "Python Debugger: Main",
             "type": "debugpy",
             "request": "launch",
-            "module": "main",
-            "cwd": "${workspaceFolder}/src",
+            "program": "${workspaceFolder}/src/main.py",
             "args": ["--log-level", "debug"]
         }
     ]
