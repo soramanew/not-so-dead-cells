@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import math
 import random
+from threading import Thread
 
 import config
 import pygame
@@ -27,6 +30,7 @@ from .elements import (
     Checkbox,
     EventText,
     Grid,
+    Image,
     Panel,
     ShadowText,
     ShadowTextButton,
@@ -39,7 +43,8 @@ from .elements import (
 
 
 class Screen:
-    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+    def __init__(self, parent: Screen, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        self.parent: Screen = parent
         self.window: pygame.Surface = window
         self.clock: pygame.Clock = clock
         self.fps_cap: int = fps_cap or get_fps()
@@ -69,6 +74,8 @@ class Screen:
                     return True
 
             if self.exit:
+                if self.parent:
+                    self.parent.on_resize(*self.window.size)  # Resize parent on exit
                 return
 
             if self.update():
@@ -103,12 +110,37 @@ class Screen:
 
 
 class DeathScreen(Screen):
+    def __init__(self, parent: Screen, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(parent, window, clock, fps_cap)
+
+        self.panel: Panel = Panel((0, 0), (1920, 1080), anchors={"center": "center"})
+        self.death_text: Text = Text(
+            (0, -100), get_font("Sabo", 172), "You Died.", container=self.panel, anchors={"center": "center"}
+        )
+        self.score: Text = Text(
+            (0, 30),
+            get_font("PixelifySans", 80),
+            f"Score: {state.score}",
+            container=self.panel,
+            anchors={"centerx": "centerx", "top": "bottom", "top_target": self.death_text},
+        )
+        self.prompt: Text = Text(
+            (0, 150),
+            get_font("Silkscreen", 60),
+            "[Esc] or click anywhere to exit",
+            container=self.panel,
+            anchors={"centerx": "centerx", "top": "bottom", "top_target": self.score},
+        )
+
     def handle_event(self, event: pygame.Event) -> bool:
         if super().handle_event(event):
             return True
-        elif event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+
+        if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             self.exit = True
             return
+
+        self.panel.handle_event(event)
 
     def init_loop(self) -> None:
         super().init_loop()
@@ -118,14 +150,10 @@ class DeathScreen(Screen):
     def on_resize(self, width: int, height: int) -> None:
         super().on_resize(width, height)
 
-        death_text = get_font("Sabo", width // 15).render("You Died.", True, (255, 255, 255))
-        self.death_text = death_text, ((width - death_text.width) / 2, (height - death_text.height) / 2)
+        self.panel.scale_by_ip(min(width / self.panel.width, height / self.panel.height))
 
-        score = get_font("PixelifySans", width // 45).render(f"Score: {state.score}", True, (255, 255, 255))
-        self.score = score, ((width - score.width) / 2, height * 0.6 - score.height / 2)
-
-        prompt = get_font("Silkscreen", width // 45).render("Click anywhere to exit", True, (255, 255, 255))
-        self.prompt = prompt, ((width - prompt.width) / 2, height * 0.8 - prompt.height / 2)
+    def update(self) -> None:
+        self.panel.update()
 
     def draw(self) -> None:
         intensity = 255 * max(0, 1 - self.dt)
@@ -133,9 +161,7 @@ class DeathScreen(Screen):
         surface = pygame.transform.gaussian_blur(self.window, clamp(int(10 * self.dt), 10, 1))
         self.window.blit(surface, (0, 0))
 
-        self.window.blit(*self.death_text)
-        self.window.blit(*self.score)
-        self.window.blit(*self.prompt)
+        self.panel.draw(self.window)
 
 
 class Game(Screen):
@@ -150,8 +176,8 @@ class Game(Screen):
         self.damage_tints = [self.create_damage_tint(width, height, i) for i in range(start, stop, step)]
         self.max_damage_tint = len(self.damage_tints) - 1
 
-    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
-        super().__init__(window, clock, fps_cap)
+    def __init__(self, parent: Screen, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(parent, window, clock, fps_cap)
 
         self.enter_map_sfx: Sound = Sound(get_project_root() / "assets/sfx/Enter_Level.wav")
 
@@ -282,6 +308,9 @@ class Game(Screen):
             anchors={"centerx": "centerx", "top": "bottom", "top_target": self.back_text},
         )
 
+        # Loading screen text
+        self.loading_text: Text = Text((0, 0), get_font("Sabo", 162), "Loading...", anchors={"center": "center"})
+
         # Element groups
         self.overlay_elements: tuple[UIElement, ...] = self.fps, self.score, self.multipliers, self.health_bar
         self.pause_elements: list[UIElement] = [
@@ -291,7 +320,15 @@ class Game(Screen):
             self.pause_prompt_group,
         ]
         self.back_elements: tuple[UIElement, ...] = self.back_text, self.back_prompt_group
-        self.ui_elements: list[UIElement] = [*self.overlay_elements, *self.pause_elements, *self.back_elements]
+        self.ui_elements: list[UIElement] = [
+            *self.overlay_elements,
+            *self.pause_elements,
+            *self.back_elements,
+            self.loading_text,
+        ]
+
+        # Async map loading
+        self.load_map_thread: Thread | None = None
 
     def init_loop(self) -> None:
         state.reset()
@@ -304,12 +341,10 @@ class Game(Screen):
         state.current_map.spawn_init_weapon()
 
         self.health_bar.max = Player.MAX_HEALTH
-        self.health_bar.set_value(Player.MAX_HEALTH, 1)
-        self.health_bar.set_value(0, 0)
+        self.health_bar.values = [0, Player.MAX_HEALTH]
         self.multipliers.set_value(1, 1)
         self.pause_damage_mul.set_value(1)
         self.pause_health_mul.set_value(1)
-        # TODO async map load to fix unresponsive closing
 
         self.paused = False
         self.skip_frame = False
@@ -334,21 +369,18 @@ class Game(Screen):
 
         self.need_update = True
 
+    def load_map(self) -> None:
+        change_music("pause")
+        state.current_map.load()
+        state.map_loaded = True
+        self.load_map_thread = None  # Unref when done
+        self.enter_map_sfx.play()
+        change_music("game", "ogg", random.uniform(0, 90))
+
     def pre_event_handling(self) -> None:
-        if not state.map_loaded:
-            change_music("pause")
-
-            # Loading screen
-            self.window.fill((0, 0, 0))
-            text = get_font("Sabo", int(self.dummy_rect.width / 15)).render("Loading...", True, (255, 255, 255))
-            self.window.blit(text, ((self.width - text.width) / 2, (self.height - text.height) / 2))
-            pygame.display.flip()
-
-            state.current_map.load()
-            state.map_loaded = True
-            self.skip_frames = 2  # Skip this and the next frame so the loading time doesn't count as dt
-            self.enter_map_sfx.play()
-            change_music("game", "ogg", random.uniform(0, 90))
+        if not state.map_loaded and self.load_map_thread is None:
+            self.load_map_thread = Thread(target=self.load_map)
+            self.load_map_thread.start()
 
         self.moves = []
         if key_handler.get(pygame.K_LEFT) or key_handler.get(pygame.K_a):
@@ -438,13 +470,13 @@ class Game(Screen):
         for el in self.ui_elements:
             el.update()
 
-        if not (self.paused or self.back_confirm):
+        if state.map_loaded and not (self.paused or self.back_confirm):
             key_handler.tick(self.dt)
             state.player.tick(self.dt, self.moves)
             if state.player.top > state.current_map.height:
                 state.current_map.player_out_of_bounds()
             if state.player.health <= 0:
-                full_exit = DeathScreen(self.window, self.clock).main_loop()
+                full_exit = DeathScreen(self, self.window, self.clock).main_loop()
                 if state.hardcore:
                     import platform
                     import subprocess
@@ -478,6 +510,12 @@ class Game(Screen):
             self.window.blit(self.damage_tints[int(intensity)], (0, 0), special_flags=pygame.BLEND_MULT)
 
     def draw(self) -> None:
+        if not state.map_loaded:
+            # Loading screen
+            self.window.fill((0, 0, 0))
+            self.loading_text.draw(self.window)
+            return
+
         if self.need_update or not (self.paused or self.back_confirm):
             # Draw stuff
             state.camera.render(self.window)
@@ -505,14 +543,19 @@ class Game(Screen):
 class MenuScreen(Screen):
     def __init__(
         self,
+        parent: Screen,
         window: pygame.Surface,
         clock: pygame.Clock,
         fps_cap: int = None,
         back_text: str = "Return to Main Menu",
     ):
-        super().__init__(window, clock, fps_cap)
+        super().__init__(parent, window, clock, fps_cap)
 
-        self.orig_menu_bg = pygame.image.load(get_project_root() / "assets/main_menu.png").convert()
+        self.background: Image = Image(
+            (0, 0),
+            pygame.image.load(get_project_root() / "assets/main_menu.png").convert(),
+            anchors={"center": "center"},
+        )
 
         # Panel for scaling
         self.panel: Panel = Panel((0, 0), (1920, 1080), anchors={"center": "center"})
@@ -528,9 +571,7 @@ class MenuScreen(Screen):
     def on_resize(self, width: int, height: int) -> None:
         super().on_resize(width, height)
 
-        self.menu_bg = pygame.transform.scale_by(
-            self.orig_menu_bg, max(width / self.orig_menu_bg.width, height / self.orig_menu_bg.height)
-        )
+        self.background.scale_by_ip(max(width / self.background.width, height / self.background.height))
         self.panel.scale_by_ip(min(width / self.panel.width, height / self.panel.height))
 
     def handle_event(self, event: pygame.Event, only_parent: bool = False) -> bool:
@@ -541,19 +582,21 @@ class MenuScreen(Screen):
             self.exit = True
             return
 
+        self.background.handle_event(event)
         self.panel.handle_event(event)
 
     def update(self) -> None:
+        self.background.update()
         self.panel.update()
 
     def draw(self) -> None:
-        self.window.blit(self.menu_bg, ((self.width - self.menu_bg.width) / 2, (self.height - self.menu_bg.height) / 2))
+        self.background.draw(self.window)
         self.panel.draw(self.window)
 
 
 class HardcoreWarning(MenuScreen):
-    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
-        super().__init__(window, clock, fps_cap)
+    def __init__(self, parent: Screen, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(parent, window, clock, fps_cap)
 
         self.warning = ShadowText(
             (0, -80),
@@ -568,8 +611,8 @@ class HardcoreWarning(MenuScreen):
 
 
 class Controls(MenuScreen):
-    def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
-        super().__init__(window, clock, fps_cap)
+    def __init__(self, parent: Screen, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
+        super().__init__(parent, window, clock, fps_cap)
 
         controls = [
             [
@@ -604,7 +647,7 @@ class Controls(MenuScreen):
 
 class MainMenu(MenuScreen):
     def __init__(self, window: pygame.Surface, clock: pygame.Clock, fps_cap: int = None):
-        super().__init__(window, clock, fps_cap, "Exit")
+        super().__init__(None, window, clock, fps_cap, "Exit")
 
         self.title = ShadowText(
             (0, -260),
@@ -641,8 +684,8 @@ class MainMenu(MenuScreen):
             anchors={"centerx": "centerx", "top": "bottom", "top_target": self.controls_button},
         )
 
-        self.game_screen = Game(window, clock)
-        self.controls_screen = Controls(window, clock)
+        self.game_screen = Game(self, window, clock)
+        self.controls_screen = Controls(self, window, clock)
 
     def init_loop(self) -> None:
         super().init_loop()
@@ -657,7 +700,7 @@ class MainMenu(MenuScreen):
         if event.type == UI_BUTTON_PRESSED:
             full_exit = None
             if event.element is self.start_button:
-                self.start_button.hovered = False
+                self.start_button.hovered = False  # No hover because moved to new screen
                 full_exit = self.game_screen.main_loop()
                 if not full_exit:
                     change_music("main_menu")
@@ -665,13 +708,12 @@ class MainMenu(MenuScreen):
             elif event.element is self.controls_button:
                 self.controls_button.hovered = False
                 full_exit = self.controls_screen.main_loop()
-                # TODO Resize on exit loop
             elif event.element is self.hardcore_button:
                 state.hardcore = self.hardcore_button.checked
                 if not self.hardcore_warned:
                     self.hardcore_button.hovered = False
                     # Only shows once so no point keeping a ref to it
-                    full_exit = HardcoreWarning(self.window, self.clock).main_loop()
+                    full_exit = HardcoreWarning(self, self.window, self.clock).main_loop()
                     self.hardcore_warned = True
 
             if full_exit:

@@ -308,7 +308,10 @@ class Image(UIElement):
         self.original: pygame.Surface = image
         self.scaled: pygame.Surface = image
 
-        super().__init__(relative_pos, image.size if size is None else size, container=container, anchors=anchors)
+        super().__init__(relative_pos, image.size, container=container, anchors=anchors)
+
+        if size:
+            self.scale_by_ip(size[0] / self.width, size[1] / self.height)
 
     def scale_by_ip(self, x: float, y: float = None) -> None:
         if y is None:
