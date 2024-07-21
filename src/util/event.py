@@ -5,26 +5,29 @@ import pygame
 _counter = pygame.USEREVENT + 1
 
 
-def add_events(*events: str, prefix: str = "") -> None:
+def add_events(*events: str, prefix: str = "", suffix: str = "") -> None:
     if prefix:
         prefix += "_"  # Add underscore separator
+    if suffix:
+        suffix = "_" + suffix
 
     global _counter
     for event in events:
-        setattr(sys.modules[__name__], (prefix + event).upper(), _counter)
+        setattr(sys.modules[__name__], (prefix + event + suffix).upper(), _counter)
         _counter += 1
 
 
+add_events("hit", prefix="player")
 add_events(
-    "hit",
-    "health_changed",
-    "max_health_changed",
-    "damage_health_changed",
-    "damage_multiplier_changed",
-    "health_multiplier_changed",
-    "multipliers_changed",
-    "weapon_changed",
+    "health",
+    "max_health",
+    "damage_health",
+    "damage_multiplier",
+    "health_multiplier",
+    "multipliers",
+    "weapon",
     prefix="player",
+    suffix="changed",
 )
 add_events("button_pressed", prefix="ui")
-add_events("difficulty_changed", "score_changed")
+add_events("difficulty", "score", "loading_progress", suffix="changed")

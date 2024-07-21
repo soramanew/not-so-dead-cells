@@ -231,7 +231,7 @@ class EventText(Text):
     ):
         self.format_text: str = format_text
         self.event: int = event
-        self.get_value: Callable[[pygame.Event], str] = get_value
+        self.event_get_value: Callable[[pygame.Event], Any] = get_value
 
         try:
             default_text = format_text.format(*defaults)
@@ -251,9 +251,9 @@ class EventText(Text):
     def handle_event(self, event: pygame.Event) -> None:
         if event.type == self.event:
             try:  # If multiple args
-                self.text_str = self.format_text.format(*self.get_value(event))
+                self.set_value(*self.event_get_value(event))
             except TypeError:
-                self.text_str = self.format_text.format(self.get_value(event))
+                self.set_value(self.event_get_value(event))
 
     def set_value(self, *values: Any) -> None:
         self.text_str = self.format_text.format(*values)

@@ -13,6 +13,7 @@ from player import Player
 from util import key_handler
 from util.event import (
     DIFFICULTY_CHANGED,
+    LOADING_PROGRESS_CHANGED,
     PLAYER_DAMAGE_HEALTH_CHANGED,
     PLAYER_DAMAGE_MULTIPLIER_CHANGED,
     PLAYER_HEALTH_CHANGED,
@@ -28,13 +29,14 @@ from util.type import PlayerControl, Sound
 
 from .elements import (
     Checkbox,
+    EventProgressBar,
+    EventStackedProgressBar,
     EventText,
     Grid,
     Image,
     Panel,
     ShadowText,
     ShadowTextButton,
-    StackedProgressBar,
     Text,
     TextGroup,
     UIElement,
@@ -51,7 +53,6 @@ class Screen:
 
         self.exit: bool = False
         self.dt: float = 0
-        self.skip_frames: int = 0
 
     def init_loop(self) -> None:
         self.exit = False
@@ -65,20 +66,17 @@ class Screen:
 
             self.pre_event_handling()
 
-            if self.skip_frames > 0:
-                self.skip_frames -= 1
-                continue
-
             for event in pygame.event.get():
                 if self.handle_event(event):
+                    self.on_full_exit()
                     return True
 
             if self.exit:
-                if self.parent:
-                    self.parent.on_resize(*self.window.size)  # Resize parent on exit
+                self.on_exit()
                 return
 
             if self.update():
+                self.on_full_exit()
                 return True
 
             self.draw()
@@ -98,6 +96,13 @@ class Screen:
     def on_resize(self, width: int, height: int) -> None:
         self.width = width
         self.height = height
+
+    def on_exit(self) -> None:
+        if self.parent:
+            self.parent.on_resize(*self.window.size)  # Resize parent on exit
+
+    def on_full_exit(self) -> None:
+        pass
 
     def pre_event_handling(self) -> None:
         pass
@@ -205,17 +210,21 @@ class Game(Screen):
             (1, 1),
             anchors={"bottom": "bottom", "right": "right"},
         )
-        self.health_bar: StackedProgressBar = StackedProgressBar(
+        self.health_bar: EventStackedProgressBar = EventStackedProgressBar(
             (15, -15),
             (400, 30),
             Player.MAX_HEALTH,
-            [(213, 162, 59), (82, 191, 118)],
+            [(82, 191, 118), (213, 162, 59)],
             2,
+            [PLAYER_HEALTH_CHANGED, PLAYER_DAMAGE_HEALTH_CHANGED],
+            lambda e: e.new_value,
+            max_event=PLAYER_MAX_HEALTH_CHANGED,
+            get_max=lambda e: e.new_value,
             progress_value=True,
             font=get_font("BIT", 14),
             border_colour=(82, 191, 118),
             border_radius=12,
-            values=[0, Player.MAX_HEALTH],
+            values=[Player.MAX_HEALTH, 0],
             anchors={"bottom": "bottom"},
         )
 
@@ -308,8 +317,40 @@ class Game(Screen):
             anchors={"centerx": "centerx", "top": "bottom", "top_target": self.back_text},
         )
 
-        # Loading screen text
-        self.loading_text: Text = Text((0, 0), get_font("Sabo", 162), "Loading...", anchors={"center": "center"})
+        # Loading screen
+        self.loading_progress: EventProgressBar = EventProgressBar(
+            (0, 0),
+            (800, 30),
+            1,
+            (255, 255, 255),
+            LOADING_PROGRESS_CHANGED,
+            lambda e: e.new_value,
+            border_colour=(255, 255, 255),
+            border_thickness=5,
+            gaps=(12, 12),
+            anchors={"center": "center"},
+        )
+        self.loading_text_group: Panel = Panel(
+            (0, 30),
+            size=self.loading_progress.size,
+            anchors={"centerx": "centerx", "top": "bottom", "top_target": self.loading_progress},
+        )
+        loading_font = get_font("Sabo", 36)
+        self.loading_text: Text = Text((0, 0), loading_font, "Loading...", container=self.loading_text_group)
+        # Sabo does not have the percent sign :sob:
+        self.loading_percent_percent: Text = Text(
+            (0, 0), get_font("PixelUnicode", 48), "%", container=self.loading_text_group, anchors={"right": "right"}
+        )
+        self.loading_percent: EventText = EventText(
+            (-10, 0),
+            loading_font,
+            "{:.1f}",
+            LOADING_PROGRESS_CHANGED,
+            lambda e: e.new_value * 100,
+            0,
+            container=self.loading_text_group,
+            anchors={"right": "left", "right_target": self.loading_percent_percent},
+        )
 
         # Element groups
         self.overlay_elements: tuple[UIElement, ...] = self.fps, self.score, self.multipliers, self.health_bar
@@ -320,11 +361,12 @@ class Game(Screen):
             self.pause_prompt_group,
         ]
         self.back_elements: tuple[UIElement, ...] = self.back_text, self.back_prompt_group
+        self.loading_elements: tuple[UIElement, ...] = self.loading_progress, self.loading_text_group
         self.ui_elements: list[UIElement] = [
             *self.overlay_elements,
             *self.pause_elements,
             *self.back_elements,
-            self.loading_text,
+            *self.loading_elements,
         ]
 
         # Async map loading
@@ -341,13 +383,12 @@ class Game(Screen):
         state.current_map.spawn_init_weapon()
 
         self.health_bar.max = Player.MAX_HEALTH
-        self.health_bar.values = [0, Player.MAX_HEALTH]
+        self.health_bar.values = [Player.MAX_HEALTH, 0]
         self.multipliers.set_value(1, 1)
         self.pause_damage_mul.set_value(1)
         self.pause_health_mul.set_value(1)
 
         self.paused = False
-        self.skip_frame = False
         self.back_confirm = False
         self.need_update = False
 
@@ -370,16 +411,20 @@ class Game(Screen):
         self.need_update = True
 
     def load_map(self) -> None:
-        change_music("pause")
-        state.current_map.load()
-        state.map_loaded = True
-        self.load_map_thread = None  # Unref when done
-        self.enter_map_sfx.play()
-        change_music("game", "ogg", random.uniform(0, 90))
+        try:
+            change_music("pause")
+            state.current_map.load()
+            state.map_loaded = True
+            self.load_map_thread = None  # Unref when done
+            self.enter_map_sfx.play()
+            change_music("game", "ogg", random.uniform(0, 90))
+        except pygame.error:
+            pass  # Ignore pygame display type + mixer init exceptions when early exit
 
     def pre_event_handling(self) -> None:
         if not state.map_loaded and self.load_map_thread is None:
-            self.load_map_thread = Thread(target=self.load_map)
+            # Daemon so program can exit while thread still running
+            self.load_map_thread = Thread(target=self.load_map, daemon=True)
             self.load_map_thread.start()
 
         self.moves = []
@@ -395,13 +440,7 @@ class Game(Screen):
         for el in self.ui_elements:
             el.handle_event(event)
 
-        if event.type == PLAYER_HEALTH_CHANGED:
-            self.health_bar.set_value(event.new_value, 1)
-        elif event.type == PLAYER_MAX_HEALTH_CHANGED:
-            self.health_bar.max = event.new_value
-        elif event.type == PLAYER_DAMAGE_HEALTH_CHANGED:
-            self.health_bar.set_value(event.new_value, 0)
-        elif event.type == PLAYER_WEAPON_CHANGED:
+        if event.type == PLAYER_WEAPON_CHANGED:
             if self.weapon_display is None:
                 font = get_font("Silkscreen", 40)
                 self.weapon_display = WeaponDisplay(
@@ -513,7 +552,8 @@ class Game(Screen):
         if not state.map_loaded:
             # Loading screen
             self.window.fill((0, 0, 0))
-            self.loading_text.draw(self.window)
+            for el in self.loading_elements:
+                el.draw(self.window)
             return
 
         if self.need_update or not (self.paused or self.back_confirm):

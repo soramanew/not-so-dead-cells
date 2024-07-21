@@ -303,6 +303,21 @@ class Map:
     def load(self) -> None:
         start = time.process_time()
 
+        gates = [
+            gate
+            for gate in self.map_data.gates
+            if not hasattr(gate, "optional") or not gate.optional or random.random() < 0.5
+        ]
+
+        def get_progress(wall) -> float:
+            return (wall.bounds[2] * wall.bounds[3]) / 10000 + getattr(wall, "enemies", 0)
+
+        total_progress = sum(map(get_progress, self.map_data.walls + gates))
+        if hasattr(self.map_data, "platforms"):
+            total_progress += sum(map(get_progress, self.map_data.platforms))
+
+        state.loading_progress = 0
+
         for wall in self.map_data.walls:
             box = Wall(*wall.bounds)
             self.add_wall(box)
@@ -313,16 +328,16 @@ class Map:
                 # Random chance to spawn a corpse which weapons drop from
                 if random.random() < 0.2:
                     self.add(Corpse(box))
+            state.loading_progress += get_progress(wall) / total_progress
 
         if hasattr(self.map_data, "platforms"):
             for platform in self.map_data.platforms:
                 self.add_wall(Platform(*platform.bounds))
+                state.loading_progress += get_progress(platform) / total_progress
 
-        for gate in self.map_data.gates:
-            if not hasattr(gate, "optional") or not gate.optional or random.random() < 0.5:
-                gate = Gate(*gate.bounds)
-                self.gates.add(gate)
-                self.add(gate)
+        for gate in gates:
+            self.add_gate(Gate(*gate.bounds))
+            state.loading_progress += get_progress(gate) / total_progress
 
         logger.info(f"Done loading map: took {(time.process_time() - start)*1000}ms")
 
@@ -366,8 +381,12 @@ class Map:
             self.add_pickup(pickup)
 
     def add_pickup(self, pickup: Pickup) -> None:
-        self.add(pickup)
         self.pickups.add(pickup)
+        self.add(pickup)
+
+    def add_gate(self, gate: Gate) -> None:
+        self.gates.add(gate)
+        self.add(gate)
 
     def add(self, box: Box) -> None:
         self._add(box, True)
