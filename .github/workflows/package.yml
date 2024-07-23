@@ -7,7 +7,6 @@ on:
       - assets/**
       - main.spec
       - requirements.txt
-      - install.*
 jobs:
   build:
     name: Build on ${{ matrix.config.os }}
