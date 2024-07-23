@@ -22,7 +22,7 @@ cd /d "%~dp0" || exit /b 1
 :: Check if git is installed and update repo
 where git >nul 2>&1
 if %ERRORLEVEL% equ 0 (
-    git pull origin master
+    git pull origin main
 )
 
 :: Create venv
