@@ -1,6 +1,9 @@
 name: package
 run-name: Package and create release
-on: push
+on:
+  push:
+    paths:
+      - src/**
 jobs:
   build:
     name: Build on ${{ matrix.config.os }}
@@ -50,7 +53,6 @@ jobs:
         id: semver
         uses: paulhatch/semantic-version@v5.4.0
         with:
-          change_path: src
           search_commit_body: true
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -59,4 +61,3 @@ jobs:
           files: release/*.tar.gz
           tag_name: ${{ steps.semver.outputs.version_tag }}
           generate_release_notes: true
-        if: ${{ steps.semver.outputs.changed == true }}
