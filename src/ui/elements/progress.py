@@ -115,7 +115,7 @@ class _ProgressBarABC(ABC, Panel):
         self._border_thickness: float = border_thickness
         self._border_radius: float = border_radius
 
-        self._gaps: Vec2 = gaps
+        self._gaps: Vec2 = list(gaps)
 
         self.progress_value: bool = progress_value
         if progress_value:
@@ -143,6 +143,8 @@ class _ProgressBarABC(ABC, Panel):
 
         self.border_thickness *= x
         self.border_radius *= x
+        self.gaps[0] *= x
+        self.gaps[1] *= y
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.blit(self.surface, self)

@@ -1,5 +1,5 @@
 name: package
-run-name: Package release zips
+run-name: Package and create release
 on: push
 jobs:
   build:
@@ -29,8 +29,8 @@ jobs:
         with:
           name: ${{ matrix.config.name }}
           path: ${{ matrix.config.name }}.tar.gz
-  push:
-    name: Commit and push to repository
+  release:
+    name: Create release
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -43,11 +43,8 @@ jobs:
         with:
           path: release
           merge-multiple: true
-      - name: Commit & push changes
-        run: |
-          git config --global user.name '2 * r + 2 * t'
-          git config --global user.email '61896496+soramanew@users.noreply.github.com'
-
-          git add .
-          git commit -m "Auto package"
-          git push
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: release/*.tar.gz
