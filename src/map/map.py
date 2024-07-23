@@ -310,7 +310,7 @@ class Map:
         ]
 
         def get_progress(wall) -> float:
-            return (wall.bounds[2] * wall.bounds[3]) / 10000 + getattr(wall, "enemies", 0)
+            return (wall.bounds[2] * wall.bounds[3]) / 10000 + getattr(wall, "enemies", 0) * (1 + state.difficulty / 10)
 
         total_progress = sum(map(get_progress, self.map_data.walls + gates))
         if hasattr(self.map_data, "platforms"):
