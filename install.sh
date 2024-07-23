@@ -11,7 +11,7 @@ cd "$(dirname "$0")" || exit
 
 # Check if git is installed and update repo
 if command -v git &> /dev/null; then
-    git pull origin master
+    git pull origin main
 fi
 
 # Create venv
