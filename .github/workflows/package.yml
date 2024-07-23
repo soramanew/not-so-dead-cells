@@ -4,21 +4,22 @@ on:
   push:
     paths:
       - src/**
+      - assets/**
 jobs:
   build:
     name: Build on ${{ matrix.config.os }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
-        config: [{ name: windows, os: windows-latest, ext: .exe }, { name: linux, os: ubuntu-latest, ext: '' }]
+        config: [{ name: windows, os: windows-latest, ext: .exe }, { name: linux, os: ubuntu-latest, ext: "" }]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
-          cache: 'pip'
+          python-version: "3.x"
+          cache: "pip"
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
@@ -57,7 +58,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: true
+          prerelease: ${{ !contains(fromJSON('["major", "minor"]'), steps.semver.outputs.version_type) }}
           files: release/*.tar.gz
           tag_name: ${{ steps.semver.outputs.version_tag }}
           generate_release_notes: true
