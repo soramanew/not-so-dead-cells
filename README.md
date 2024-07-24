@@ -1,7 +1,7 @@
 # Installation
 
 ## Using the packaged application (recommended)
-1. Download the compressed tarball from the `release` folder for your operating system. This is `release/windows.tar.gz` for Windows and `release/linux.tar.gz` for Linux. For macOS, you must build the application yourself.
+1. Download the release for your operating system. This is `windows.tar.gz` for Windows and `linux.tar.gz` for Linux. For macOS, you must build the application yourself.
 2. Extract it then run the executable `Not so Dead Cells` to run the game.
 
 ## Building from source
@@ -45,7 +45,7 @@ Download the new release and replace the old release.
 > The install script requires git in the PATH for updating.
 
 Just run the install script again.
-If it doesn't work, use `git pull origin master` or re-download the repo then build it again manually.
+If it doesn't work, use `git pull origin main` or re-download the repo then build it again manually.
 
 # Troubleshooting
 If you get permission denied error when running the executable on macOS or Linux, use `chmod u+x <FILE_NAME>` (where `<FILE_NAME>` is the name of the executable file) to give the file execute permission for the current user.

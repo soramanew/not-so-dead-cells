@@ -23,11 +23,10 @@ jobs:
           python-version: "3.x"
           cache: "pip"
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -U pyinstaller
+        run: pip install -r requirements.txt
       - name: Package via pyinstaller & compress to gzipped tarball
         run: |
+          pip install -U pyinstaller
           pyinstaller main.spec
           mv dist/main/main${{ matrix.config.ext }} dist/main/'Not so Dead Cells'${{ matrix.config.ext }}
           tar -czf ${{ matrix.config.name }}.tar.gz -C dist/main .
