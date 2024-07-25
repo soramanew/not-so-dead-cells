@@ -59,7 +59,6 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ !contains(fromJSON('["major", "minor"]'), steps.semver.outputs.version_type) }}
           files: release/*.tar.gz
           tag_name: ${{ steps.semver.outputs.version_tag }}
           generate_release_notes: true
